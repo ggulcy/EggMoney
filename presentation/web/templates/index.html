@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="bot-container">
+    <!-- 페이지 헤더 -->
+    <div class="page-header">
+        <div class="page-title">
+            <h1>🏠 {{ title }}</h1>
+        </div>
+    </div>
+
+    <!-- 메뉴 카드 섹션 -->
+    <div class="card-section">
+        <div class="section-title">📋 메뉴</div>
+        <div class="menu-grid">
+            <!-- Bot Info 카드 -->
+            <a href="/bot_info" class="menu-card">
+                <div class="menu-card-icon">🤖</div>
+                <div class="menu-card-title">봇 정보 관리</div>
+                <div class="menu-card-description">
+                    봇 설정, 티어 관리, 스케줄 설정
+                </div>
+            </a>
+
+            <!-- Status Info 카드 -->
+            <a href="/status" class="menu-card">
+                <div class="menu-card-icon">💰</div>
+                <div class="menu-card-title">입출금 관리</div>
+                <div class="menu-card-description">
+                    입출금 정보, 텔레그램 메시지
+                </div>
+            </a>
+
+            <!-- Trade Info 카드 -->
+            <a href="/trade" class="menu-card">
+                <div class="menu-card-icon">📈</div>
+                <div class="menu-card-title">거래 정보</div>
+                <div class="menu-card-description">
+                    거래 내역, 포트폴리오 현황
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- 시스템 정보 섹션 -->
+    <div class="card-section">
+        <div class="section-title">ℹ️ 시스템 정보</div>
+        <div class="info-card">
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">프로젝트</div>
+                    <div class="info-value">EggMoney</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">버전</div>
+                    <div class="info-value">2.0.0</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">계정</div>
+                    <div class="info-value">{{ admin }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">상태</div>
+                    <div class="info-value">🟢 실행 중</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trade Management</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+        // 로딩 표시
+        function showLoading() {
+            document.getElementById('loadingOverlay').classList.add('active');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('active');
+        }
+
+        // 숫자 포맷팅 함수
+        function formatCurrency(input, currencySymbol) {
+            let value = input.value.replace(/[^0-9.]/g, '');
+            if ((value.match(/\./g) || []).length > 1) {
+                value = value.replace(/\.+$/, '');
+            }
+            if (!isNaN(value) && value !== "") {
+                const parts = value.split('.');
+                parts[0] = parseInt(parts[0], 10).toLocaleString('en-US');
+                input.value = currencySymbol + parts.join('.');
+            } else {
+                input.value = currencySymbol;
+            }
+            input.selectionStart = input.selectionEnd = input.value.length;
+        }
+
+        function formatAmount(input) {
+            let value = input.value.replace(/[^0-9]/g, '');
+            if (!isNaN(value) && value !== "") {
+                input.value = parseFloat(value).toLocaleString('en-US');
+            } else {
+                input.value = '';
+            }
+        }
+
+        function parseCurrency(value) {
+            return parseFloat(value.replace(/[^0-9.]/g, '')) || 0;
+        }
+
+        // Total Price 계산
+        function calculateTotalPrice(card) {
+            const priceInput = card.querySelector('input[name="purchase_price"]');
+            const amountInput = card.querySelector('input[name="amount"]');
+            const totalInput = card.querySelector('input[name="total_price"]');
+
+            if (!priceInput || !amountInput || !totalInput) return;
+
+            const price = parseCurrency(priceInput.value);
+            const amount = parseCurrency(amountInput.value);
+            const total = price * amount;
+
+            totalInput.value = total ? '$ ' + total.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }) : '$ 0.00';
+        }
+
+        // Trade 저장
+        function saveTrade(button) {
+            const card = button.closest('.trade-card');
+            const name = card.querySelector('input[name="name"]').value;
+            const purchasePrice = parseCurrency(card.querySelector('input[name="purchase_price"]').value);
+            const amount = parseCurrency(card.querySelector('input[name="amount"]').value);
+
+            if (!name) {
+                alert('이름을 입력해주세요.');
+                return;
+            }
+
+            if (!confirm(`${name}의 Trade를 저장하시겠습니까?`)) {
+                return;
+            }
+
+            showLoading();
+            fetch('/save_trade', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    name: name,
+                    purchase_price: purchasePrice,
+                    amount: amount
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    hideLoading();
+                    alert(data.message || data.error);
+                    if (!data.error) location.reload();
+                })
+                .catch(error => {
+                    hideLoading();
+                    alert('Error: ' + error);
+                });
+        }
+
+        // History 추가
+        function addHistory() {
+            const name = document.getElementById('history_name').value.trim();
+            const symbol = document.getElementById('history_symbol').value.trim();
+            const buyPrice = parseCurrency(document.getElementById('history_buy_price').value);
+            const sellPrice = parseCurrency(document.getElementById('history_sell_price').value);
+            const amount = parseCurrency(document.getElementById('history_amount').value);
+
+            if (!name || !symbol) {
+                alert('이름과 심볼을 입력해주세요.');
+                return;
+            }
+
+            if (!confirm('History를 추가하시겠습니까?')) {
+                return;
+            }
+
+            showLoading();
+            fetch('/add_history', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    name: name,
+                    symbol: symbol,
+                    buy_price: buyPrice,
+                    sell_price: sellPrice,
+                    amount: amount
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    hideLoading();
+                    alert(data.message || data.error);
+                    if (!data.error) location.reload();
+                })
+                .catch(error => {
+                    hideLoading();
+                    alert('Error: ' + error);
+                });
+        }
+
+        // 강제 매도
+        function handleForceSell(name) {
+            const ratio = prompt(`${name}의 판매 비율(%)을 입력하세요.\n예: 50 → 전체의 50% 매도`);
+
+            if (ratio === null || ratio.trim() === "") {
+                alert("판매가 취소되었습니다.");
+                return;
+            }
+
+            const value = parseFloat(ratio);
+            if (isNaN(value) || value <= 0 || value > 100) {
+                alert("1~100 사이의 숫자를 입력해주세요.");
+                return;
+            }
+
+            if (!confirm(`${name}의 ${value}%를 판매하시겠습니까?`)) {
+                return;
+            }
+
+            showLoading();
+            fetch('/force_sell', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name: name, sell_ratio: value})
+            })
+                .then(response => response.json())
+                .then(data => {
+                    hideLoading();
+                    alert(`✅ ${data.message || data.error}`);
+                    window.location.reload();
+                })
+                .catch(error => {
+                    hideLoading();
+                    alert('Error: ' + error);
+                });
+        }
+
+        // 티커 그룹 토글
+        function toggleTickerGroup(symbol) {
+            const content = document.getElementById('group-' + symbol);
+            const icon = document.getElementById('toggle-' + symbol);
+
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                icon.textContent = '▼';
+            } else {
+                content.style.display = 'none';
+                icon.textContent = '▶';
+            }
+        }
+
+        // 페이지 로드 시 이벤트 리스너 등록
+        document.addEventListener('DOMContentLoaded', function () {
+            // Trade 카드에 이벤트 리스너 등록
+            document.querySelectorAll('.trade-card').forEach(function (card) {
+                const priceInput = card.querySelector('input[name="purchase_price"]');
+                const amountInput = card.querySelector('input[name="amount"]');
+
+                if (priceInput) {
+                    priceInput.addEventListener('input', function () {
+                        formatCurrency(priceInput, '$ ');
+                        calculateTotalPrice(card);
+                    });
+                }
+
+                if (amountInput) {
+                    amountInput.addEventListener('input', function () {
+                        formatAmount(amountInput);
+                        calculateTotalPrice(card);
+                    });
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+<!-- 로딩 오버레이 -->
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-spinner"></div>
+</div>
+
+<div class="bot-container">
+    <!-- 페이지 헤더 -->
+    <div class="page-header">
+        <div class="page-title">
+            <h1>📊 Trade 관리</h1>
+        </div>
+        <a href="/" class="back-link">← 메인으로</a>
+    </div>
+
+    <!-- Trade 리스트 섹션 -->
+    <div class="card-section">
+        <div class="section-title">💼 Trade List</div>
+
+        <!-- 티커별 그룹화 -->
+        {% set grouped_trades = {} %}
+        {% for trade in trade_list %}
+            {% set symbol = trade.symbol %}
+            {% if symbol not in grouped_trades %}
+                {% set _ = grouped_trades.__setitem__(symbol, []) %}
+            {% endif %}
+            {% set _ = grouped_trades[symbol].append(trade) %}
+        {% endfor %}
+
+        {% for symbol, trades in grouped_trades.items() %}
+        <!-- 티커 그룹 헤더 -->
+        <div class="ticker-group-header" onclick="toggleTickerGroup('{{ symbol }}')">
+            <div class="ticker-info">
+                <span class="ticker-symbol">📊 {{ symbol }}</span>
+                <span class="ticker-count">{{ trades|length }}개 거래</span>
+            </div>
+            <span class="toggle-icon" id="toggle-{{ symbol }}">▶</span>
+        </div>
+
+        <!-- 티커 그룹 콘텐츠 (기본: 접힌 상태) -->
+        <div class="ticker-group-content" id="group-{{ symbol }}" style="display: none;">
+            {% for trade in trades %}
+            <div class="trade-card">
+                <div class="trade-header">
+                    <div class="trade-name">{{ trade.name }}</div>
+                    <div class="trade-symbol">{{ trade.symbol }}</div>
+                </div>
+
+                <div class="trade-grid">
+                    <!-- 날짜 정보 -->
+                    <div class="trade-section">
+                        <div class="trade-section-title">📅 거래 날짜</div>
+                        <div class="trade-field-group">
+                            <div class="trade-field">
+                                <label>첫 구매</label>
+                                <input type="text" value="{{ trade.date_added.strftime('%Y-%m-%d %H:%M') if trade.date_added else '' }}"
+                                       readonly>
+                            </div>
+                            <div class="trade-field">
+                                <label>마지막 거래</label>
+                                <input type="text"
+                                       value="{{ trade.latest_date_trade.strftime('%Y-%m-%d %H:%M') if trade.latest_date_trade else '' }}"
+                                       readonly>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 거래 정보 -->
+                    <div class="trade-section">
+                        <div class="trade-section-title">💰 거래 정보</div>
+                        <div class="trade-field-group">
+                            <input type="hidden" name="name" value="{{ trade.name }}">
+                            <div class="trade-field">
+                                <label>구매가</label>
+                                <input type="text" name="purchase_price"
+                                       value="$ {{ '{:,.2f}'.format(trade.purchase_price) if trade.purchase_price else '0' }}"
+                                       oninput="formatCurrency(this, '$ ')">
+                            </div>
+                            <div class="trade-field">
+                                <label>수량</label>
+                                <input type="text" name="amount"
+                                       value="{{ '{:,.0f}'.format(trade.amount) if trade.amount else '0' }}"
+                                       oninput="formatAmount(this)">
+                            </div>
+                            <div class="trade-field">
+                                <label>총액</label>
+                                <input type="text" name="total_price"
+                                       value="$ {{ '{:,.2f}'.format(trade.total_price) if trade.total_price else '0' }}"
+                                       readonly>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="trade-actions">
+                    <button type="button" onclick="saveTrade(this)" class="btn-success">💾 Save</button>
+                    {% if trade.symbol != 'RP' %}
+                    <button type="button" onclick="handleForceSell('{{ trade.name }}')" class="btn-warning">📉 Force Sell</button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- History 추가 섹션 -->
+    <div class="card-section">
+        <div class="section-title">➕ Add History</div>
+        <div class="history-add-card">
+            <div class="history-grid">
+                <div class="history-field">
+                    <label>봇 이름</label>
+                    <input type="text" id="history_name" placeholder="Enter name">
+                </div>
+                <div class="history-field">
+                    <label>심볼</label>
+                    <input type="text" id="history_symbol" placeholder="Enter symbol">
+                </div>
+                <div class="history-field">
+                    <label>구매가</label>
+                    <input type="text" id="history_buy_price" placeholder="$ 0.00"
+                           oninput="formatCurrency(this, '$ ')">
+                </div>
+                <div class="history-field">
+                    <label>판매가</label>
+                    <input type="text" id="history_sell_price" placeholder="$ 0.00"
+                           oninput="formatCurrency(this, '$ ')">
+                </div>
+                <div class="history-field">
+                    <label>수량</label>
+                    <input type="text" id="history_amount" placeholder="0"
+                           oninput="formatAmount(this)">
+                </div>
+            </div>
+            <div class="history-actions">
+                <button type="button" onclick="addHistory()" class="btn-success">➕ Add History</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- History 필터 및 리스트 섹션 -->
+    <div class="card-section">
+        <div class="section-title">📜 History List</div>
+
+        <!-- 필터 폼 -->
+        <form method="POST" action="/trade" class="history-filter-form">
+            <div class="filter-group">
+                <div class="filter-field">
+                    <label for="year">Year</label>
+                    <input type="number" id="year" name="year" value="{{ year }}" min="2000" max="2100">
+                </div>
+                <div class="filter-field">
+                    <label for="month">Month</label>
+                    <input type="number" id="month" name="month" value="{{ month }}" min="1" max="12">
+                </div>
+                <div class="filter-field">
+                    <label for="symbol">Symbol</label>
+                    <input type="text" id="symbol" name="symbol" value="{{ symbol or '' }}"
+                           placeholder="Enter Symbol (optional)">
+                </div>
+                <div class="filter-actions">
+                    <button type="submit" class="btn-primary">🔍 Search</button>
+                </div>
+            </div>
+        </form>
+
+        <!-- History 리스트 -->
+        {% if history_list %}
+        <div class="history-list">
+            {% for history in history_list %}
+            <div class="history-card">
+                <div class="history-header">
+                    <div class="history-name">{{ history.name }}</div>
+                    <div class="history-symbol">{{ history.symbol }}</div>
+                    <div class="history-type">{{ history.trade_type.name }}</div>
+                </div>
+
+                <div class="history-content">
+                    <div class="history-field">
+                        <label>구매일</label>
+                        <span>{{ history.date_added.strftime('%Y-%m-%d %H:%M') if history.date_added else '' }}</span>
+                    </div>
+                    <div class="history-field">
+                        <label>판매일</label>
+                        <span>{{ history.sell_date.strftime('%Y-%m-%d %H:%M') if history.sell_date else '' }}</span>
+                    </div>
+                    <div class="history-field">
+                        <label>구매가</label>
+                        <span>$ {{ '{:,.2f}'.format(history.buy_price) if history.buy_price else '0' }}</span>
+                    </div>
+                    <div class="history-field">
+                        <label>판매가</label>
+                        <span>$ {{ '{:,.2f}'.format(history.sell_price) if history.sell_price else '0' }}</span>
+                    </div>
+                    <div class="history-field">
+                        <label>수익금</label>
+                        <span class="{{ 'profit-positive' if history.profit >= 0 else 'profit-negative' }}">
+                            {{ '{:,.2f}'.format(history.profit) if history.profit else '0' }}$
+                        </span>
+                    </div>
+                    <div class="history-field">
+                        <label>수익률</label>
+                        <span class="{{ 'profit-positive' if history.profit_rate >= 0 else 'profit-negative' }}">
+                            {{ '{:,.2f}'.format(history.profit_rate) if history.profit_rate else '0' }}%
+                        </span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-data">조회된 History가 없습니다.</div>
+        {% endif %}
+    </div>
+</div>
+</body>
+</html>

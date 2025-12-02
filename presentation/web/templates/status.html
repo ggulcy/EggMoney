@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Status Management</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+        // 로딩 표시
+        function showLoading() {
+            document.getElementById('loadingOverlay').classList.add('active');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('active');
+        }
+
+        // 숫자 포맷팅 함수
+        function formatCurrency(input, currencySymbol) {
+            let value = input.value.replace(/[^0-9.]/g, '');
+            if ((value.match(/\./g) || []).length > 1) {
+                value = value.replace(/\.+$/, '');
+            }
+            if (!isNaN(value) && value !== "") {
+                const parts = value.split('.');
+                parts[0] = parseInt(parts[0], 10).toLocaleString('en-US');
+                input.value = currencySymbol + parts.join('.');
+            } else {
+                input.value = currencySymbol;
+            }
+            input.selectionStart = input.selectionEnd = input.value.length;
+        }
+
+        function parseCurrency(value) {
+            return parseFloat(value.replace(/[^0-9.]/g, '')) || 0;
+        }
+
+        // 입출금 정보 저장
+        function saveDepositWithdraw() {
+            const depositWon = parseCurrency(document.getElementById('deposit_won').value);
+            const depositDollar = parseCurrency(document.getElementById('deposit_dollar').value);
+            const withdrawWon = parseCurrency(document.getElementById('withdraw_won').value);
+            const withdrawDollar = parseCurrency(document.getElementById('withdraw_dollar').value);
+
+            if (!confirm('입출금 정보를 저장하시겠습니까?')) {
+                return;
+            }
+
+            showLoading();
+            fetch('/save_status', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    deposit_won: depositWon,
+                    deposit_dollar: depositDollar,
+                    withdraw_won: withdrawWon,
+                    withdraw_dollar: withdrawDollar
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                alert(data.message || data.error);
+                if (!data.error) location.reload();
+            })
+            .catch(error => {
+                hideLoading();
+                alert('Error: ' + error);
+            });
+        }
+
+        // 텔레그램 메시지 전송
+        function sendTelegramMessage(endpoint, messageName) {
+            if (!confirm(`${messageName} 메시지를 보내겠습니까?`)) {
+                return;
+            }
+
+            showLoading();
+            fetch(endpoint, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                alert(data.message || data.error);
+            })
+            .catch(error => {
+                hideLoading();
+                alert('Error: ' + error);
+            });
+        }
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function () {
+            // 초기값 포맷팅
+            const depositWon = document.getElementById('deposit_won');
+            const depositDollar = document.getElementById('deposit_dollar');
+            const withdrawWon = document.getElementById('withdraw_won');
+            const withdrawDollar = document.getElementById('withdraw_dollar');
+
+            if (depositWon.value && !depositWon.value.includes('₩')) {
+                formatCurrency(depositWon, '₩ ');
+            }
+            if (depositDollar.value && !depositDollar.value.includes('$')) {
+                formatCurrency(depositDollar, '$ ');
+            }
+            if (withdrawWon.value && !withdrawWon.value.includes('₩')) {
+                formatCurrency(withdrawWon, '₩ ');
+            }
+            if (withdrawDollar.value && !withdrawDollar.value.includes('$')) {
+                formatCurrency(withdrawDollar, '$ ');
+            }
+        });
+    </script>
+</head>
+<body>
+<!-- 로딩 오버레이 -->
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-spinner"></div>
+</div>
+
+<div class="bot-container">
+    <!-- 페이지 헤더 -->
+    <div class="page-header">
+        <div class="page-title">
+            <h1>💰 입출금 관리</h1>
+        </div>
+        <a href="/" class="back-link">← 메인으로</a>
+    </div>
+
+    <!-- 입출금 정보 섹션 -->
+    <div class="card-section">
+        <div class="section-title">📊 입출금 정보</div>
+        <div class="status-card">
+            <div class="status-grid">
+                <!-- 입금 섹션 -->
+                <div class="status-section">
+                    <div class="status-section-title">💵 입금 (Deposit)</div>
+                    <div class="status-field-group">
+                        <div class="status-field">
+                            <label>원화 (KRW)</label>
+                            <input type="text" id="deposit_won" name="deposit_won"
+                                   value="₩ {{ '{:,.0f}'.format(status.deposit_won) if status.deposit_won else '0' }}"
+                                   oninput="formatCurrency(this, '₩ ')" placeholder="₩ 0">
+                        </div>
+                        <div class="status-field">
+                            <label>달러 (USD)</label>
+                            <input type="text" id="deposit_dollar" name="deposit_dollar"
+                                   value="$ {{ '{:,.0f}'.format(status.deposit_dollar) if status.deposit_dollar else '0' }}"
+                                   oninput="formatCurrency(this, '$ ')" placeholder="$ 0">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 출금 섹션 -->
+                <div class="status-section">
+                    <div class="status-section-title">💸 출금 (Withdraw)</div>
+                    <div class="status-field-group">
+                        <div class="status-field">
+                            <label>원화 (KRW)</label>
+                            <input type="text" id="withdraw_won" name="withdraw_won"
+                                   value="₩ {{ '{:,.0f}'.format(status.withdraw_won) if status.withdraw_won else '0' }}"
+                                   oninput="formatCurrency(this, '₩ ')" placeholder="₩ 0">
+                        </div>
+                        <div class="status-field">
+                            <label>달러 (USD)</label>
+                            <input type="text" id="withdraw_dollar" name="withdraw_dollar"
+                                   value="$ {{ '{:,.0f}'.format(status.withdraw_dollar) if status.withdraw_dollar else '0' }}"
+                                   oninput="formatCurrency(this, '$ ')" placeholder="$ 0">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="status-actions">
+                <button type="button" onclick="saveDepositWithdraw()" class="btn-success">💾 Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 텔레그램 메시지 전송 섹션 -->
+    <div class="card-section">
+        <div class="section-title">📱 텔레그램 메시지 전송</div>
+        <div class="telegram-card">
+            <div class="telegram-button-group">
+                <button type="button" onclick="sendTelegramMessage('/send_trade_status', '거래 상태')" class="btn-telegram">
+                    📊 거래 상태
+                </button>
+                <button type="button" onclick="sendTelegramMessage('/send_history_status', '거래 기록')" class="btn-telegram">
+                    📈 거래 기록
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

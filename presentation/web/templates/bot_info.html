@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bot Info Management</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* bot_info 페이지 전용 스타일 (나머지는 style.css 참조) */
+    </style>
+    <script>
+        // 로딩 표시
+        function showLoading() {
+            document.getElementById('loadingOverlay').classList.add('active');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('active');
+        }
+
+        // 숫자 포맷팅 함수
+        function formatCurrency(input, currencySymbol) {
+            let value = input.value.replace(/[^0-9.]/g, '');
+            if ((value.match(/\./g) || []).length > 1) {
+                value = value.replace(/\.+$/, '');
+            }
+            if (!isNaN(value) && value !== "") {
+                const parts = value.split('.');
+                parts[0] = parseInt(parts[0], 10).toLocaleString('en-US');
+                input.value = currencySymbol + parts.join('.');
+            } else {
+                input.value = currencySymbol;
+            }
+            input.selectionStart = input.selectionEnd = input.value.length;
+        }
+
+        function parseCurrency(value) {
+            return parseFloat(value.replace(/[^0-9.]/g, '')) || 0;
+        }
+
+        // 총 시드 계산
+        function updateTotalSeed(card) {
+            const seedInput = card.querySelector('input[name="seed"]');
+            const maxTierInput = card.querySelector('input[name="max_tier"]');
+            const totalSeedInput = card.querySelector('input[name="total_seed"]');
+
+            if (!seedInput || !maxTierInput || !totalSeedInput) return;
+
+            const seedValue = parseFloat(seedInput.value.replace(/[^0-9.]/g, '')) || 0;
+            const maxTierValue = parseInt(maxTierInput.value) || 0;
+
+            const total = seedValue * maxTierValue;
+            totalSeedInput.value = total ? '$ ' + total.toLocaleString('en-US') : '';
+        }
+
+        // 개별 bot 저장
+        function saveBotInfo(button) {
+            const card = button.closest('.bot-card');
+            const data = {
+                name: card.querySelector('input[name="name"]').value,
+                symbol: card.querySelector('input[name="symbol"]').value,
+                seed: parseCurrency(card.querySelector('input[name="seed"]').value),
+                max_tier: parseInt(card.querySelector('input[name="max_tier"]').value) || 0,
+                profit_rate: parseFloat(card.querySelector('input[name="profit_rate"]').value) || 0,
+                t_div: parseInt(card.querySelector('input[name="t_div"]').value) || 0,
+                is_check_buy_avr_price: card.querySelector('input[name^="is_check_buy_avr_price"]').checked,
+                is_check_buy_t_div_price: card.querySelector('input[name^="is_check_buy_t_div_price"]').checked,
+                active: card.querySelector('input[name^="active"]').checked,
+                skip_sell: card.querySelector('input[name^="skip_sell"]').checked,
+                point_loc: card.querySelector('input[name^="point_loc"]:checked').value
+            };
+
+            showLoading();
+            fetch('/save_bot_info', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                alert(data.message || data.error);
+                if (!data.error) location.reload();
+            })
+            .catch(error => {
+                hideLoading();
+                alert('Error: ' + error);
+            });
+        }
+
+        // 개별 bot 삭제
+        function deleteBotInfo(button, name) {
+            if (!confirm(name + '을(를) 삭제하시겠습니까?')) return;
+
+            showLoading();
+            fetch('/delete_bot_info', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name: name})
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                alert(data.message || data.error);
+                if (!data.error) location.reload();
+            })
+            .catch(error => {
+                hideLoading();
+                alert('Error: ' + error);
+            });
+        }
+
+        // 새로운 bot 추가
+        function addNewBot(button) {
+            const card = button.closest('.bot-card');
+            const name = card.querySelector('input[name="name"]').value;
+            const symbol = card.querySelector('input[name="symbol"]').value;
+            const seed = parseCurrency(card.querySelector('input[name="seed"]').value);
+
+            if (!name) {
+                alert('이름을 입력해주세요.');
+                return;
+            }
+
+            if (!seed || seed <= 0) {
+                alert('Seed는 0보다 커야 합니다.');
+                return;
+            }
+
+            const data = {
+                name: name,
+                symbol: symbol,
+                seed: seed,
+                max_tier: parseInt(card.querySelector('input[name="max_tier"]').value) || 0,
+                profit_rate: parseFloat(card.querySelector('input[name="profit_rate"]').value) || 0,
+                t_div: parseInt(card.querySelector('input[name="t_div"]').value) || 0
+            };
+
+            showLoading();
+            fetch('/add_bot_info', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                alert(data.message || data.error);
+                if (!data.error) location.reload();
+            })
+            .catch(error => {
+                hideLoading();
+                alert('Error: ' + error);
+            });
+        }
+
+        // 모든 설정 저장
+        function saveAllSettings() {
+            const tradeStart = document.querySelector('input[name="trade_start"]').value.trim();
+            const tradeEnd = document.querySelector('input[name="trade_end"]').value.trim();
+            const twapCount = parseInt(document.querySelector('input[name="twap_count"]').value);
+
+            if (!tradeStart || !tradeEnd || !twapCount) {
+                alert('모든 시간 설정값을 입력해주세요.');
+                return;
+            }
+
+            const timeFormat = /^([01]\d|2[0-3]):([0-5]\d)$/;
+            if (!timeFormat.test(tradeStart) || !timeFormat.test(tradeEnd)) {
+                alert('시간은 HH:MM 형식으로 입력해야 합니다.\n예: 04:30');
+                return;
+            }
+
+            if (twapCount < 1) {
+                alert('TWAP Count는 1 이상이어야 합니다.');
+                return;
+            }
+
+            const tradeStartMinutes = parseTimeToMinutes(tradeStart);
+            const tradeEndMinutes = parseTimeToMinutes(tradeEnd);
+
+            if (tradeStartMinutes >= tradeEndMinutes) {
+                alert('⚠️ TRADE START는 TRADE END 시간보다 빨라야 합니다!');
+                return;
+            }
+
+            showLoading();
+            fetch('/save_all_settings', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    trade_start: tradeStart,
+                    trade_end: tradeEnd,
+                    twap_count: twapCount
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                alert(data.message || data.error);
+                if (!data.error) location.reload();
+            })
+            .catch(error => {
+                hideLoading();
+                alert('Error: ' + error);
+            });
+        }
+
+        function parseTimeToMinutes(timeStr) {
+            const [hour, minute] = timeStr.split(':').map(Number);
+            return hour * 60 + minute;
+        }
+
+        // 티커 그룹 토글
+        function toggleTickerGroup(symbol) {
+            const group = document.querySelector(`[data-ticker-group="${symbol}"]`);
+            const toggleBtn = document.querySelector(`[data-ticker-toggle="${symbol}"]`);
+
+            if (group.style.display === 'none') {
+                group.style.display = 'block';
+                toggleBtn.textContent = '▼';
+                saveExpandedState(symbol, true);
+            } else {
+                group.style.display = 'none';
+                toggleBtn.textContent = '▶';
+                saveExpandedState(symbol, false);
+            }
+        }
+
+        // 확장 상태 저장
+        function saveExpandedState(symbol, isExpanded) {
+            let expandedGroups = JSON.parse(localStorage.getItem('expandedTickerGroups') || '{}');
+            expandedGroups[symbol] = isExpanded;
+            localStorage.setItem('expandedTickerGroups', JSON.stringify(expandedGroups));
+        }
+
+        // 확장 상태 복원
+        function restoreExpandedStates() {
+            const expandedGroups = JSON.parse(localStorage.getItem('expandedTickerGroups') || '{}');
+
+            for (const symbol in expandedGroups) {
+                if (expandedGroups[symbol]) {
+                    const group = document.querySelector(`[data-ticker-group="${symbol}"]`);
+                    const toggleBtn = document.querySelector(`[data-ticker-toggle="${symbol}"]`);
+
+                    if (group && toggleBtn) {
+                        group.style.display = 'block';
+                        toggleBtn.textContent = '▼';
+                    }
+                }
+            }
+        }
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function () {
+            const shortModeCheckboxes = document.querySelectorAll('input[type="checkbox"][name^="skip_sell"]');
+            shortModeCheckboxes.forEach(function (checkbox) {
+                checkbox.addEventListener('change', function () {
+                    if (checkbox.checked) {
+                        alert('활성화시 판매를 스킵하고 구매로직만 실행합니다(저장해야함)');
+                    }
+                });
+            });
+
+            const botCards = document.querySelectorAll('.bot-card:not(.new-entry)');
+            botCards.forEach(updateTotalSeed);
+
+            // 확장 상태 복원
+            restoreExpandedStates();
+        });
+    </script>
+</head>
+<body>
+<!-- 로딩 오버레이 -->
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-spinner"></div>
+</div>
+
+<div class="bot-container">
+    <!-- 페이지 헤더 -->
+    <div class="page-header">
+        <div class="page-title">
+            <h1>🤖 봇 정보 관리</h1>
+        </div>
+        <a href="/" class="back-link">← 메인으로</a>
+    </div>
+
+    <!-- 스케줄 설정 섹션 -->
+    <div class="card-section">
+        <div class="section-title">⏰ 스케줄 설정</div>
+        <div class="schedule-card">
+            <div class="schedule-field-group">
+                <div class="schedule-field">
+                    <label>TRADE START</label>
+                    <input type="text" name="trade_start" value="{{ trade_time }}" placeholder="HH:MM">
+                </div>
+                <div class="schedule-field">
+                    <label>TRADE END</label>
+                    <input type="text" name="trade_end" value="{{ twap_time[1] }}" placeholder="HH:MM">
+                </div>
+                <div class="schedule-field">
+                    <label>TWAP Count</label>
+                    <input type="number" name="twap_count" value="{{ twap_count }}" placeholder="분할 횟수" min="1">
+                </div>
+            </div>
+            <div class="schedule-actions">
+                <button type="button" onclick="saveAllSettings()" class="btn-success">💾 Save All</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 봇 정보 섹션 -->
+    <div class="card-section">
+        <div class="section-title">🎯 봇 목록</div>
+        {% set grouped_bots = {} %}
+        {% for bot_info, tier in bot_info_with_tiers %}
+            {% set symbol = bot_info.symbol %}
+            {% if symbol not in grouped_bots %}
+                {% set _ = grouped_bots.__setitem__(symbol, []) %}
+            {% endif %}
+            {% set _ = grouped_bots[symbol].append((bot_info, tier)) %}
+        {% endfor %}
+
+        {% for symbol, bots in grouped_bots.items() %}
+        <!-- 티커 그룹 헤더 -->
+        <div class="ticker-group-header" onclick="toggleTickerGroup('{{ symbol }}')">
+            <span class="ticker-toggle" data-ticker-toggle="{{ symbol }}">▶</span>
+            <span class="ticker-name">{{ symbol }}</span>
+            <span class="ticker-count">({{ bots|length }}개)</span>
+        </div>
+
+        <!-- 티커 그룹 내용 -->
+        <div class="ticker-group-content" data-ticker-group="{{ symbol }}" style="display: none;">
+        {% for bot_info, tier in bots %}
+        <div class="bot-card">
+            <div class="bot-card-header">
+                <span>{{ bot_info.name }}</span>
+                <div class="bot-header-toggle">
+                    <label>활성화</label>
+                    <label class="switch">
+                        <input type="checkbox" name="active[{{ loop.index0 }}]" value="true" {% if bot_info.active %}checked{% endif %}>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            </div>
+            <div class="bot-card-body">
+                <!-- 기본 정보 -->
+                <div class="bot-field-group">
+                    <div class="bot-field">
+                        <label>이름</label>
+                        <input type="text" name="name" value="{{ bot_info.name }}">
+                    </div>
+                    <div class="bot-field">
+                        <label>티커</label>
+                        <input type="text" name="symbol" value="{{ bot_info.symbol }}">
+                    </div>
+                    <div class="bot-field">
+                        <label>현재 Tier</label>
+                        <input type="text" value="{{ tier }}" disabled>
+                    </div>
+                    <div class="bot-field">
+                        <label>반복리 시드</label>
+                        <input type="text" value="{{ bot_info.added_seed }}" disabled>
+                    </div>
+                </div>
+
+                <!-- Seed 정보 -->
+                <div class="bot-field-group">
+                    <div class="bot-field">
+                        <label>1회시드</label>
+                        <input type="text" name="seed"
+                               value="$ {{ '{:,.0f}'.format(bot_info.seed) if bot_info.seed else '' }}"
+                               oninput="formatCurrency(this, '$ '); updateTotalSeed(this.closest('.bot-card'))">
+                    </div>
+                    <div class="bot-field">
+                        <label>Max티어</label>
+                        <input type="number" name="max_tier" value="{{ bot_info.max_tier }}"
+                               oninput="updateTotalSeed(this.closest('.bot-card'))">
+                    </div>
+                    <div class="bot-field">
+                        <label>수익률</label>
+                        <input type="text" name="profit_rate" value="{{ bot_info.profit_rate }}" placeholder="소수점">
+                    </div>
+                    <div class="bot-field">
+                        <label>TDiv</label>
+                        <input type="text" name="t_div" value="{{ bot_info.t_div }}">
+                    </div>
+                    <div class="bot-field">
+                        <label>총 시드</label>
+                        <input type="text" name="total_seed" disabled>
+                    </div>
+                </div>
+
+                <!-- 체크 설정 -->
+                <div class="bot-field-group">
+                    <div class="bot-field bot-field-checkbox">
+                        <label>평단가</label>
+                        <label class="switch">
+                            <input type="checkbox" name="is_check_buy_avr_price[{{ loop.index0 }}]" value="true"
+                                   {% if bot_info.is_check_buy_avr_price %}checked{% endif %}>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="bot-field bot-field-checkbox">
+                        <label>TDiv</label>
+                        <label class="switch">
+                            <input type="checkbox" name="is_check_buy_t_div_price[{{ loop.index0 }}]" value="true"
+                                   {% if bot_info.is_check_buy_t_div_price %}checked{% endif %}>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="bot-field bot-field-checkbox">
+                        <label>판매 스킵</label>
+                        <label class="switch">
+                            <input type="checkbox" name="skip_sell[{{ loop.index0 }}]" value="true" {% if bot_info.skip_sell %}checked{% endif %}>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- PointLoc 라디오 -->
+                <div class="bot-field-group">
+                    <div class="bot-field-radio">
+                        <label class="radio-label">손절 설정</label>
+                        <div class="radio-options">
+                            <label><input type="radio" name="point_loc[{{ loop.index0 }}]" value="P1" {% if bot_info.point_loc== PointLoc.P1 %}checked{% endif %}> 손절없음</label>
+                            <label><input type="radio" name="point_loc[{{ loop.index0 }}]" value="P1_2" {% if bot_info.point_loc== PointLoc.P1_2 %}checked{% endif %}> 1/2지점</label>
+                            <label><input type="radio" name="point_loc[{{ loop.index0 }}]" value="P2_3" {% if bot_info.point_loc== PointLoc.P2_3 %}checked{% endif %}> 2/3지점</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 버튼 -->
+                <div class="bot-card-actions">
+                    <button type="button" onclick="saveBotInfo(this)" class="btn-success">💾 Save</button>
+                    <button type="button" onclick="deleteBotInfo(this, '{{ bot_info.name }}')" class="btn-danger">🗑️ Delete</button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        </div> <!-- ticker-group-content 닫기 -->
+        {% endfor %}
+
+        <!-- 새로운 bot 추가 카드 -->
+        <div class="bot-card new-entry">
+            <div class="bot-card-header">➕ 새 봇 추가</div>
+            <div class="bot-card-body">
+                <div class="bot-field-group">
+                    <div class="bot-field">
+                        <label>이름</label>
+                        <input type="text" name="name" placeholder="Enter new name">
+                    </div>
+                    <div class="bot-field">
+                        <label>티커</label>
+                        <input type="text" name="symbol" placeholder="Enter new symbol">
+                    </div>
+                    <div class="bot-field">
+                        <label>1회시드</label>
+                        <input type="text" name="seed" placeholder="Enter Seed" oninput="formatCurrency(this, '$ ')">
+                    </div>
+                    <div class="bot-field">
+                        <label>Max티어</label>
+                        <input type="number" name="max_tier" placeholder="Enter Max Tier">
+                    </div>
+                    <div class="bot-field">
+                        <label>수익률</label>
+                        <input type="text" name="profit_rate" placeholder="Enter profit rate">
+                    </div>
+                    <div class="bot-field">
+                        <label>TDiv</label>
+                        <input type="text" name="t_div" placeholder="Enter T Div">
+                    </div>
+                </div>
+                <div class="bot-card-actions">
+                    <button type="button" onclick="addNewBot(this)" class="btn-info">➕ Add Bot</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

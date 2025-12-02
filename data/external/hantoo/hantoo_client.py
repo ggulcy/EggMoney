@@ -1,0 +1,311 @@
+# -*- coding: utf-8 -*-
+"""한국투자증권 API 클라이언트"""
+import json
+import logging
+import time
+from datetime import datetime
+from typing import Dict, Optional
+
+import requests
+
+from config import item, key_store
+from data.external.hantoo.hantoo_models import HantooExd
+
+# 로거 설정
+logging.basicConfig(
+    level=logging.DEBUG,
+    filename='app.log',
+    filemode='w',
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+
+
+class HantooAccountInfo:
+    """한국투자증권 계좌 정보"""
+
+    # 박찬형 (Chan) 계좌
+    CANO_CHAN = "64280842"
+    ACNT_PRDT_CD_CHAN = "01"
+    API_URL_CHAN = "https://openapi.koreainvestment.com:9443"
+    APP_KEY_CHAN = "PS5Vx7eE1sLLn2YMpObiKzf2QYy2eZtvWC3d"
+    APP_SECRET_CHAN = "TbGvojUiTkY6lDUwJbusOSTbvEdhdurGqRC+50eW58iBKZTGZ/Dhida4q5/kDRDpnoVNYKFdKsBpAmwb4DH+I5+WxmPDmho35lAA7dFCWGWo/InVd+ZUatfQ/NmAqSeW70uJC/ktG0T6d/ngrD58XW/WfyblKAOPmRLi5gqZuoFLiMmQiKk="
+
+    # 최태성 (Choe) 계좌
+    CANO_CHOE = "64448134"
+    ACNT_PRDT_CD_CHOE = "01"
+    API_URL_CHOE = "https://openapi.koreainvestment.com:9443"
+    APP_KEY_CHOE = "PS9aRz6JtS5kKyIKIzCISVH0DBQIyMhTaYoH"
+    APP_SECRET_CHOE = "SgQMd2mkPBdMXOlIVfh7rkatvgo/34s6OQcAy3PSORNvXBSjZs3Vpm1FilMjo5iqq26N0tqeLaBwfR1ZcMl0Z971q+rtiuFgkF1tdLX8SVoe/Ea/Ydo3HTy9uEkayi4I3HLj3q8B8pvqUpTRbiR8aq2WZDK3ykOCs93lbACYiOfipKMUDmg="
+
+    # SK 계좌
+    CANO_SK = "74585335"
+    ACNT_PRDT_CD_SK = "01"
+    API_URL_SK = "https://openapi.koreainvestment.com:9443"
+    APP_KEY_SK = "PSn7Xy7gG9Lsel4fdBT5JFosFoIWCzU7Ys4u"
+    APP_SECRET_SK = "qcOgCU/WBfOlrbuGk6ABFo8AHl1OhZFNz/YbAQSv6wFxYKE9uQV7ZPSKUbYyJrJqUIt5VMJRP+3Oz8rfiFXP7LHlgI8o4MxAA7ZL/Q8n7QNBr7BsRuX6Wg3BbmZko2tqmIF6IcV3xevb4l5hvNkR2Jz5IHLxla0jQQRSLBuRfVvVblla8tM="
+
+    def __init__(self):
+        """현재 관리자에 따라 계좌 정보 초기화"""
+        if item.admin == item.BotAdmin.Chan:
+            self.cano = self.CANO_CHAN
+            self.acnt_prdt_cd = self.ACNT_PRDT_CD_CHAN
+            self.api_url = self.API_URL_CHAN
+            self.app_key = self.APP_KEY_CHAN
+            self.app_secret = self.APP_SECRET_CHAN
+        elif item.admin == item.BotAdmin.Choe:
+            self.cano = self.CANO_CHOE
+            self.acnt_prdt_cd = self.ACNT_PRDT_CD_CHOE
+            self.api_url = self.API_URL_CHOE
+            self.app_key = self.APP_KEY_CHOE
+            self.app_secret = self.APP_SECRET_CHOE
+        elif item.admin == item.BotAdmin.SK:
+            self.cano = self.CANO_SK
+            self.acnt_prdt_cd = self.ACNT_PRDT_CD_SK
+            self.api_url = self.API_URL_SK
+            self.app_key = self.APP_KEY_SK
+            self.app_secret = self.APP_SECRET_SK
+        else:
+            raise ValueError(f"Unknown admin: {item.admin}")
+
+
+class HantooClient:
+    """한국투자증권 API 클라이언트"""
+
+    # 거래소 코드 매핑 테이블
+    EXCHANGE_TABLE = {
+        "SOXL": ("AMEX", "AMS"),
+        "TQQQ": ("NASD", "NAS"),
+        "BULZ": ("AMEX", "AMS"),
+        "UPRO": ("AMEX", "AMS"),
+        "LABU": ("AMEX", "AMS"),
+        "RETL": ("AMEX", "AMS"),
+        "FAS": ("AMEX", "AMS"),
+        "ERX": ("AMEX", "AMS"),
+        "CURE": ("AMEX", "AMS"),
+        "DRN": ("AMEX", "AMS"),
+        "WANT": ("AMEX", "AMS"),
+        "TECL": ("AMEX", "AMS"),
+        "TPOR": ("AMEX", "AMS"),
+        "UTSL": ("AMEX", "AMS"),
+        "BITU": ("AMEX", "AMS"),
+    }
+
+    def __init__(self):
+        """한국투자증권 클라이언트 초기화"""
+        self.account_info = HantooAccountInfo()
+        # shelve DB에서 토큰 로드
+        self._token = key_store.read(key_store.AT_KEY)
+        self._token_expiration = key_store.read(key_store.AT_EX_DATE)
+
+    def get_hantoo_exd(self, symbol: str) -> HantooExd:
+        """
+        종목 심볼을 기준으로 한투 거래소 코드 조회
+
+        Args:
+            symbol: 종목 심볼 (예: TQQQ, SOXL)
+
+        Returns:
+            HantooExd: 거래소 정보 (기본값: AMEX/AMS)
+        """
+        if symbol in self.EXCHANGE_TABLE:
+            trading_exd, price_exd = self.EXCHANGE_TABLE[symbol]
+            return HantooExd(trading_exd=trading_exd, price_exd=price_exd)
+        # 기본값: AMEX/AMS
+        return HantooExd(trading_exd="AMEX", price_exd="AMS")
+
+    def _request_token(self) -> requests.Response:
+        """
+        토큰 발급 요청
+
+        Returns:
+            requests.Response: API 응답
+        """
+        url = self.account_info.api_url + "/oauth2/tokenP"
+        headers = {
+            "Content-Type": "application/json; charset=UTF-8"
+        }
+        body = {
+            "grant_type": "client_credentials",
+            "appkey": self.account_info.app_key,
+            "appsecret": self.account_info.app_secret
+        }
+        try:
+            response = requests.post(url, headers=headers, data=json.dumps(body))
+            msg = f"POST {url} - Status: {response.status_code}"
+            logging.debug(msg)
+            print(msg)
+            return response
+        except requests.exceptions.RequestException as e:
+            msg = f"POST Request Failed: {e}"
+            logging.error(msg)
+            raise
+
+    def _update_token(self) -> Optional[str]:
+        """
+        토큰 갱신 (새로운 토큰 발급)
+
+        Returns:
+            Optional[str]: 발급된 토큰, 실패 시 None
+        """
+        response = self._request_token()
+
+        if response.status_code == 200:
+            try:
+                response_data = response.json()
+                access_token = response_data.get('access_token')
+                expiration = response_data.get('access_token_token_expired')
+
+                # 토큰을 메모리와 영속 저장소에 저장 (메모리 + shelve DB)
+                self._token = access_token
+                self._token_expiration = expiration
+
+                # shelve DB에 저장하여 재시작 시에도 사용 가능하도록 함
+                key_store.write(key_store.AT_KEY, access_token)
+                key_store.write(key_store.AT_EX_DATE, expiration)
+
+                logging.info(f"새로운 토큰 발급 완료 및 저장됨 (만료일: {expiration})")
+
+                return access_token
+            except json.JSONDecodeError:
+                logging.error("JSON 응답 파싱 실패")
+                return None
+
+        elif response.status_code == 403:
+            try:
+                response_data = response.json()
+                error_code = response_data.get('error_code')
+                if error_code == "EGW00133":
+                    logging.info("토큰 발급 횟수 초과, 65초 대기 후 재시도합니다")
+                    time.sleep(65)
+                    return self._update_token()  # 재귀 호출로 재시도
+                else:
+                    logging.error("알 수 없는 403 에러: 응답 내용 확인 필요")
+            except json.JSONDecodeError:
+                logging.error("JSON 응답 파싱 실패")
+        else:
+            logging.error(f"HTTP Error: {response.status_code}")
+            logging.error(response.text)
+
+        return None
+
+    def _get_token(self) -> str:
+        """
+        유효한 토큰 조회 (만료 시 갱신)
+
+        Returns:
+            str: 유효한 토큰
+        """
+        # 토큰이 없으면 새로 발급
+        if self._token is None:
+            logging.info("토큰이 없습니다. 토큰을 발급합니다.")
+            return self._update_token()
+
+        # 토큰 만료 여부 체크
+        if self._token_expiration:
+            try:
+                expiration_datetime = datetime.strptime(self._token_expiration, "%Y-%m-%d %H:%M:%S")
+                current_time = datetime.now()
+
+                # 현재 시간이 만료 시간보다 이전이면 기존 토큰 사용
+                if current_time < expiration_datetime:
+                    return self._token
+                else:
+                    logging.info("토큰이 만료되었습니다. 새로운 토큰을 발급합니다.")
+                    return self._update_token()
+            except ValueError:
+                logging.error("유효하지 않은 만료일 형식입니다. 새로운 토큰을 발급합니다.")
+                return self._update_token()
+        else:
+            logging.warning("유효하지 않은 만료일 정보입니다. 새로운 토큰을 발급합니다.")
+            return self._update_token()
+
+    def post_request(
+        self,
+        end_point_url: str,
+        extra_headers: Optional[Dict[str, str]] = None,
+        extra_body: Optional[Dict[str, str]] = None
+    ) -> requests.Response:
+        """
+        POST 요청 전송
+
+        Args:
+            end_point_url: API 엔드포인트
+            extra_headers: 추가 헤더
+            extra_body: 추가 바디
+
+        Returns:
+            requests.Response: API 응답
+        """
+        url = self.account_info.api_url + end_point_url
+        headers = {
+            "Content-Type": "application/json; charset=UTF-8",
+            "authorization": "Bearer " + self._get_token(),
+            "appkey": self.account_info.app_key,
+            "appsecret": self.account_info.app_secret
+        }
+        if extra_headers:
+            headers.update(extra_headers)
+
+        body = {
+            "CANO": self.account_info.cano,
+            "ACNT_PRDT_CD": self.account_info.acnt_prdt_cd
+        }
+        if extra_body:
+            body.update(extra_body)
+
+        try:
+            response = requests.post(url, headers=headers, data=json.dumps(body))
+            msg = f"POST {url} - Status: {response.status_code}"
+            logging.debug(msg)
+            return response
+        except requests.exceptions.RequestException as e:
+            msg = f"POST Request Failed: {e}"
+            logging.error(msg)
+            raise
+
+    def get_request(
+        self,
+        end_point: str,
+        extra_header: Optional[Dict[str, str]] = None,
+        extra_param: Optional[Dict[str, str]] = None
+    ) -> requests.Response:
+        """
+        GET 요청 전송
+
+        Args:
+            end_point: API 엔드포인트
+            extra_header: 추가 헤더
+            extra_param: URL 쿼리 파라미터
+
+        Returns:
+            requests.Response: API 응답
+        """
+        url = self.account_info.api_url + end_point
+        headers = {
+            "Content-Type": "application/json; charset=UTF-8",
+            "authorization": "Bearer " + self._get_token(),
+            "appkey": self.account_info.app_key,
+            "appsecret": self.account_info.app_secret
+        }
+        if extra_header:
+            headers.update(extra_header)
+
+        # 기본 쿼리 파라미터 설정
+        default_query_params = {
+            "CANO": self.account_info.cano,
+            "ACNT_PRDT_CD": self.account_info.acnt_prdt_cd
+        }
+
+        if extra_param:
+            default_query_params.update(extra_param)
+
+        try:
+            response = requests.get(url, headers=headers, params=default_query_params)
+            msg = f"GET {url} - Status: {response.status_code}"
+            logging.debug(msg)
+            print(msg)
+            return response
+        except requests.exceptions.RequestException as e:
+            msg = f"GET Request Failed: {e}"
+            logging.error(msg)
+            raise
