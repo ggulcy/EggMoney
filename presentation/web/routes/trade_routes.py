@@ -2,6 +2,7 @@ from datetime import datetime
 from flask import render_template, request, redirect, url_for, jsonify
 
 from data.persistence.sqlalchemy.core import SessionFactory
+from presentation.web.middleware.auth_middleware import require_web_auth
 from data.persistence.sqlalchemy.repositories import (
     SQLAlchemyBotInfoRepository,
     SQLAlchemyTradeRepository,
@@ -74,6 +75,7 @@ def trade_template():
 
 
 @trade_bp.route('/save_trade', methods=['POST'])
+@require_web_auth
 def save_trade():
     """Trade 수정 저장"""
     portfolio_usecase = _get_dependencies()
@@ -102,6 +104,7 @@ def save_trade():
 
 
 @trade_bp.route('/add_history', methods=['POST'])
+@require_web_auth
 def add_history():
     """History 수동 추가"""
     portfolio_usecase = _get_dependencies()
@@ -139,6 +142,7 @@ def add_history():
 
 
 @trade_bp.route('/force_sell', methods=['POST'])
+@require_web_auth
 def force_sell():
     """강제 매도 실행"""
     try:

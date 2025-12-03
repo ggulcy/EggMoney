@@ -1,16 +1,24 @@
 """
 egg 프로젝트의 5개 DB 파일의 데이터를
-EggMoney 프로젝트의 egg_chan.db(또는 egg_[admin].db)로 통합하는 스크립트
+EggMoney 프로젝트의 egg_[admin].db로 통합하는 스크립트
 
 기존 egg 구조:
-- bot_info_chan.db (bot_info 테이블)
-- trade_chan.db (trade 테이블)
-- order_chan.db (trade 테이블 - tablename 오류)
-- history_chan.db (history 테이블)
-- status_chan.db (status 테이블)
+- bot_info_[admin].db (bot_info 테이블)
+- trade_[admin].db (trade 테이블)
+- order_[admin].db (trade 테이블 - tablename 오류)
+- history_[admin].db (history 테이블)
+- status_[admin].db (status 테이블)
 
 새로운 EggMoney 구조:
-- egg_chan.db (bot_info, trade, order, history, status 5개 테이블)
+- egg_[admin].db (bot_info, trade, order, history, status 5개 테이블)
+
+사용법:
+    python migrate_from_egg.py [admin]
+
+예시:
+    python migrate_from_egg.py chan
+    python migrate_from_egg.py choe
+    python migrate_from_egg.py sk
 """
 import sqlite3
 import os
@@ -18,19 +26,23 @@ import sys
 from pathlib import Path
 from datetime import datetime
 
+
+admin = "chan"
+
+
 # 프로젝트 경로 설정
 egg_project_path = Path(__file__).parent.parent / "egg" / "repository" / "db"
-bot_info_src_db_path = egg_project_path / "bot_info_chan.db"
-trade_src_db_path = egg_project_path / "trade_chan.db"
-order_src_db_path = egg_project_path / "order_chan.db"
-history_src_db_path = egg_project_path / "history_chan.db"
-status_src_db_path = egg_project_path / "status_chan.db"
+bot_info_src_db_path = egg_project_path / f"bot_info_{admin}.db"
+trade_src_db_path = egg_project_path / f"trade_{admin}.db"
+order_src_db_path = egg_project_path / f"order_{admin}.db"
+history_src_db_path = egg_project_path / f"history_{admin}.db"
+status_src_db_path = egg_project_path / f"status_{admin}.db"
 
 target_project_path = Path(__file__).parent / "data" / "persistence" / "sqlalchemy" / "db"
-target_db_path = target_project_path / "egg_chan.db"
+target_db_path = target_project_path / f"egg_{admin}.db"
 
 print("=" * 80)
-print("🔄 egg 프로젝트 DB 통합 시작")
+print(f"🔄 egg 프로젝트 DB 통합 시작 (admin: {admin})")
 print("=" * 80)
 
 # 소스 DB 파일 확인
@@ -65,10 +77,10 @@ target_project_path.mkdir(parents=True, exist_ok=True)
 if target_db_path.exists():
     backup_path = target_db_path.with_suffix(f".backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db")
     os.rename(target_db_path, backup_path)
-    print(f"📦 기존 egg_chan.db를 백업했습니다: {backup_path.name}")
+    print(f"📦 기존 egg_{admin}.db를 백업했습니다: {backup_path.name}")
 
-# 새로운 egg_chan.db 생성
-print("\n📝 새로운 egg_chan.db 생성 중...")
+# 새로운 egg_{admin}.db 생성
+print(f"\n📝 새로운 egg_{admin}.db 생성 중...")
 conn = sqlite3.connect(str(target_db_path))
 cursor = conn.cursor()
 
@@ -388,7 +400,7 @@ try:
 
     print("\n💡 다음 단계:")
     print("   1. EggMoney 프로젝트에서 session_factory.py의 DB 경로 확인")
-    print("   2. config/item.py에서 admin 값 확인 (chan/choe/sk)")
+    print(f"   2. config/item.py에서 admin 값이 '{admin}'인지 확인")
     print("   3. main_egg.py 실행하여 정상 작동 확인")
 
 except Exception as e:

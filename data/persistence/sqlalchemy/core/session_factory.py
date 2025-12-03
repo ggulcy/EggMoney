@@ -30,13 +30,10 @@ class SessionFactory:
         project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
         base_dir = os.path.join(project_root, "data", "persistence", "sqlalchemy", "db")
 
-        print(f"[SessionFactory] Project root: {project_root}")
-        print(f"[SessionFactory] DB directory: {base_dir}")
 
         os.makedirs(base_dir, exist_ok=True)
 
         db_path = os.path.join(base_dir, db_name)
-        print(f"[SessionFactory] DB path: {db_path}")
 
         database_url = f'sqlite:///{db_path}'
 

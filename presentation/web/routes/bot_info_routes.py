@@ -13,6 +13,7 @@ from data.external.hantoo.hantoo_service import HantooService
 from domain.value_objects import PointLoc
 from domain.entities import BotInfo
 from presentation.scheduler.scheduler_config import start_scheduler
+from presentation.web.middleware.auth_middleware import require_web_auth
 
 from presentation.web.routes import bot_info_bp
 
@@ -58,6 +59,7 @@ def bot_info_template():
 
 
 @bot_info_bp.route('/save_bot_info', methods=['POST'])
+@require_web_auth
 def save_bot_info():
     """개별 bot_info 저장/업데이트"""
     bot_management_usecase = _get_dependencies()
@@ -100,6 +102,7 @@ def save_bot_info():
 
 
 @bot_info_bp.route('/delete_bot_info', methods=['POST'])
+@require_web_auth
 def delete_bot_info():
     """개별 bot_info 삭제"""
     bot_management_usecase = _get_dependencies()
@@ -118,6 +121,7 @@ def delete_bot_info():
 
 
 @bot_info_bp.route('/add_bot_info', methods=['POST'])
+@require_web_auth
 def add_bot_info():
     """새로운 bot_info 추가"""
     bot_management_usecase = _get_dependencies()
@@ -162,6 +166,7 @@ def add_bot_info():
 
 
 @bot_info_bp.route('/save_all_settings', methods=['POST'])
+@require_web_auth
 def save_all_settings():
     """모든 설정을 한 번에 저장 (Trade Start, Trade End, TWAP Count)"""
     try:

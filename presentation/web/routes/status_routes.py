@@ -12,6 +12,7 @@ from flask import Blueprint, render_template, request, jsonify
 
 from config.item import BotAdmin, is_test
 from data.persistence.sqlalchemy.core.session_factory import SessionFactory
+from presentation.web.middleware.auth_middleware import require_web_auth
 from data.persistence.sqlalchemy.repositories import (
     SQLAlchemyBotInfoRepository,
     SQLAlchemyStatusRepository,
@@ -72,6 +73,7 @@ def status_template():
 
 
 @status_bp.route('/save_status', methods=['POST'])
+@require_web_auth
 def save_status():
     """입출금 정보 저장 (Fetch API)"""
     try:
@@ -100,6 +102,7 @@ def save_status():
 
 
 @status_bp.route('/send_trade_status', methods=['POST'])
+@require_web_auth
 def send_trade_status():
     """거래 상태 메시지 전송"""
     print("\n" + "=" * 80)
@@ -126,6 +129,7 @@ def send_trade_status():
 
 
 @status_bp.route('/send_history_status', methods=['POST'])
+@require_web_auth
 def send_history_status():
     """거래 기록 메시지 전송 (시트 동기화 포함)"""
     print("\n" + "=" * 80)

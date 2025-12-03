@@ -165,3 +165,5 @@ def print_all_db():
 if __name__ == "__main__":
     # print_db.py를 직접 실행할 때 DB 출력
     print_all_db()
+
+

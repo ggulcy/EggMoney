@@ -11,11 +11,6 @@ BASE_DIR = os.path.join(PROJECT_ROOT, "data", "persistence", "sqlalchemy", "db")
 os.makedirs(BASE_DIR, exist_ok=True)
 KEY_STORE_PATH = os.path.join(BASE_DIR, "key_store.json")
 
-print(f"[key_store] Initialized")
-print(f"[key_store] PROJECT_ROOT: {PROJECT_ROOT}")
-print(f"[key_store] BASE_DIR: {BASE_DIR}")
-print(f"[key_store] KEY_STORE_PATH: {KEY_STORE_PATH}")
-print(f"[key_store] File exists: {os.path.exists(KEY_STORE_PATH)}")
 
 # 파일 락 (동시 접근 방지)
 _lock = Lock()
@@ -94,7 +89,6 @@ def write(key, value):
 
 def read(key):
     """주어진 키에 해당하는 값을 JSON 파일에서 읽어 반환합니다."""
-    print(f"[key_store] read({key}) from {KEY_STORE_PATH}")
     with _lock:
         db = _load_db()
         if key == "TRADE_TIME":

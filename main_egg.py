@@ -15,12 +15,16 @@ from pathlib import Path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
+# .env 파일 로드 (로컬 개발 환경용, 시스템 환경변수가 우선)
+from dotenv import load_dotenv
+load_dotenv(override=False)  # 시스템 환경변수를 덮어쓰지 않음
+
 from flask import Flask, render_template
 from config.item import is_test, admin, BotAdmin
 
 # 환경 설정
 HOST = os.getenv('HOST', '0.0.0.0')
-PORT = int(os.getenv('PORT', 8080))
+PORT = int(os.getenv('PORT', 5000))
 
 
 def create_app():
@@ -30,6 +34,8 @@ def create_app():
     Returns:
         Flask 애플리케이션 인스턴스
     """
+    from datetime import timedelta
+
     app = Flask(
         __name__,
         template_folder='presentation/web/templates',
@@ -37,14 +43,18 @@ def create_app():
         static_url_path='/static'
     )
 
-    # 시크릿 키 설정 (CSRF 보호)
+    # 시크릿 키 설정 (CSRF 보호 및 세션 암호화)
     app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 
+    # 세션 설정 (2시간 동안 유지)
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)
+
     # 블루프린트 등록
-    from presentation.web.routes import bot_info_bp, status_bp, index_bp, trade_bp
+    from presentation.web.routes import bot_info_bp, status_bp, index_bp, trade_bp, auth_bp
     import presentation.web.routes.bot_info_routes
     import presentation.web.routes.trade_routes
 
+    app.register_blueprint(auth_bp)
     app.register_blueprint(index_bp)
     app.register_blueprint(bot_info_bp)
     app.register_blueprint(status_bp)
