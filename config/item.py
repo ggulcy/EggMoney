@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 # 프로젝트 루트의 .env 파일 로드
 project_root = Path(__file__).parent.parent
 dotenv_path = project_root / '.env'
-load_dotenv(dotenv_path=dotenv_path, override=False)
+load_dotenv(dotenv_path=dotenv_path, override=True)
 
 
 class BotAdmin(enum.Enum):

@@ -1,7 +1,7 @@
 """DB 데이터 출력 유틸리티"""
 import sys
 from pathlib import Path
-
+import config.item
 # 프로젝트 루트를 sys.path에 추가
 if __name__ == "__main__":
     project_root = Path(__file__).parent.parent
@@ -165,5 +165,4 @@ def print_all_db():
 if __name__ == "__main__":
     # print_db.py를 직접 실행할 때 DB 출력
     print_all_db()
-
 

@@ -15,16 +15,13 @@ from pathlib import Path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-# .env 파일 로드 (로컬 개발 환경용, 시스템 환경변수가 우선)
-from dotenv import load_dotenv
-load_dotenv(override=False)  # 시스템 환경변수를 덮어쓰지 않음
-
+# .env 파일은 config.item에서 로드됨
 from flask import Flask, render_template
 from config.item import is_test, admin, BotAdmin
 
 # 환경 설정
-HOST = os.getenv('HOST', '0.0.0.0')
-PORT = int(os.getenv('PORT', 5000))
+HOST = os.getenv('HOST')
+PORT = int(os.getenv('PORT'))
 
 
 def create_app():
@@ -44,7 +41,7 @@ def create_app():
     )
 
     # 시크릿 키 설정 (CSRF 보호 및 세션 암호화)
-    app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
+    app.secret_key = os.getenv('SECRET_KEY')
 
     # 세션 설정 (2시간 동안 유지)
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)

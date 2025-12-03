@@ -27,7 +27,7 @@ from pathlib import Path
 from datetime import datetime
 
 
-admin = "chan"
+admin = "choe"
 
 
 # 프로젝트 경로 설정
