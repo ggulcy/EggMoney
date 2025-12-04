@@ -227,6 +227,12 @@ body {
     gap: 10px;
 }
 
+.new-bot-toggle {
+    font-size: 1rem;
+    margin-right: 8px;
+    transition: transform 0.3s;
+}
+
 .bot-card-body {
     display: flex;
     flex-direction: column;
@@ -310,24 +316,91 @@ body {
 
 /* ===== 티커 그룹 (bot_info.html용) ===== */
 .ticker-group-header {
-    background: #f8f9fa;
-    color: #667eea;
-    border: 2px solid #e0e0e0;
+    background: #667eea;
+    color: white;
+    border: 2px solid #667eea;
     padding: 15px 20px;
     border-radius: 10px;
     margin-bottom: 15px;
     cursor: pointer;
     display: flex;
     align-items: center;
+    justify-content: flex-start;
     gap: 10px;
     font-weight: 600;
     transition: all 0.3s;
 }
 
-.ticker-group-header:hover {
-    background: #667eea;
+.ticker-group-header .ticker-symbol,
+.ticker-group-header .ticker-count,
+.ticker-group-header .toggle-icon {
     color: white;
+}
+
+.ticker-group-header:hover {
+    background: #f8f9fa;
+    color: #667eea !important;
     border-color: #667eea;
+}
+
+.ticker-group-header:hover .ticker-symbol,
+.ticker-group-header:hover .ticker-count,
+.ticker-group-header:hover .toggle-icon {
+    color: #667eea !important;
+}
+
+.ticker-group-header.new-bot-header {
+    background: #28a745 !important;
+    color: white !important;
+    border-color: #28a745 !important;
+    justify-content: flex-start !important;
+}
+
+.ticker-group-header.new-bot-header .ticker-name,
+.ticker-group-header.new-bot-header .new-bot-toggle {
+    color: white !important;
+}
+
+.ticker-group-header.new-bot-header:hover {
+    background: #f8f9fa !important;
+    color: #28a745 !important;
+    border-color: #28a745 !important;
+}
+
+.ticker-group-header.new-bot-header:hover .ticker-name,
+.ticker-group-header.new-bot-header:hover .new-bot-toggle {
+    color: #28a745 !important;
+}
+
+.new-bot-container {
+    margin-bottom: 20px;
+}
+
+.add-history-container {
+    margin-bottom: 20px;
+}
+
+.ticker-group-header.add-history-header {
+    background: #28a745 !important;
+    color: white !important;
+    border-color: #28a745 !important;
+    justify-content: flex-start !important;
+}
+
+.ticker-group-header.add-history-header .ticker-name,
+.ticker-group-header.add-history-header .add-history-toggle {
+    color: white !important;
+}
+
+.ticker-group-header.add-history-header:hover {
+    background: #f8f9fa !important;
+    color: #28a745 !important;
+    border-color: #28a745 !important;
+}
+
+.ticker-group-header.add-history-header:hover .ticker-name,
+.ticker-group-header.add-history-header:hover .add-history-toggle {
+    color: #28a745 !important;
 }
 
 .ticker-toggle {
@@ -336,16 +409,17 @@ body {
 
 .ticker-name {
     font-size: 1.1rem;
+    margin: 0;
+    flex-shrink: 0;
 }
 
 .ticker-count {
-    margin-left: auto;
     font-size: 0.9rem;
     opacity: 0.9;
 }
 
 .ticker-group-content {
-    padding-left: 20px;
+    padding-left: 0;
     margin-bottom: 20px;
 }
 
@@ -390,10 +464,18 @@ body {
 }
 
 .status-field label {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     font-weight: 600;
     color: #666;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
+}
+
+.status-field .status-display-value {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #2d3748;
+    padding: 8px 0;
+    background: transparent;
 }
 
 .status-field input {
@@ -734,35 +816,20 @@ input:checked + .slider:before {
 
 /* ===== Trade 페이지 스타일 ===== */
 
-/* Trade 티커 그룹 헤더 */
-.ticker-group-header {
-    background: rgba(102, 126, 234, 0.08);
-    border: 2px solid rgba(102, 126, 234, 0.2);
-    border-radius: 12px;
-    padding: 15px 20px;
-    margin-bottom: 15px;
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    transition: all 0.3s;
-}
-
-.ticker-group-header:hover {
-    background: rgba(102, 126, 234, 0.15);
-    border-color: rgba(102, 126, 234, 0.4);
-}
+/* Trade 티커 그룹 헤더 - 중복 정의 제거됨, 위의 공통 스타일 사용 */
 
 .ticker-info {
     display: flex;
     align-items: center;
     gap: 15px;
+    flex-shrink: 0;
 }
 
 .ticker-symbol {
     font-size: 1.1rem;
     font-weight: 700;
     color: #667eea;
+    margin: 0;
 }
 
 .ticker-count {
@@ -771,16 +838,19 @@ input:checked + .slider:before {
     background: rgba(102, 126, 234, 0.1);
     padding: 4px 12px;
     border-radius: 20px;
+    margin-left: 0;
 }
 
 .toggle-icon {
     font-size: 1.2rem;
     color: #667eea;
     transition: transform 0.3s;
+    margin: 0;
+    flex-shrink: 0;
 }
 
 .ticker-group-content {
-    padding-left: 20px;
+    padding-left: 0;
     margin-bottom: 20px;
 }
 

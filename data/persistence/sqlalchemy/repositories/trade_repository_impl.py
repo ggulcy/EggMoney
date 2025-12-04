@@ -103,10 +103,16 @@ class SQLAlchemyTradeRepository(TradeRepository):
         return self._to_entity(model) if model else None
 
     def find_all(self) -> List[Trade]:
-        """모든 Trade 조회 (name, date_added 오름차순)"""
+        """모든 Trade 조회 (RP는 맨 뒤, 나머지는 name, date_added 오름차순)"""
+        from sqlalchemy import case
+
         models = (
             self.session.query(TradeModel)
-            .order_by(TradeModel.name, TradeModel.date_added)
+            .order_by(
+                case((TradeModel.name == 'RP', 1), else_=0),  # RP는 1(뒤), 나머지는 0(앞)
+                TradeModel.name,
+                TradeModel.date_added
+            )
             .all()
         )
         return [self._to_entity(model) for model in models]

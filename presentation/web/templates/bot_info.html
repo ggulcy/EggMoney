@@ -110,50 +110,6 @@
             });
         }
 
-        // 새로운 bot 추가
-        function addNewBot(button) {
-            const card = button.closest('.bot-card');
-            const name = card.querySelector('input[name="name"]').value;
-            const symbol = card.querySelector('input[name="symbol"]').value;
-            const seed = parseCurrency(card.querySelector('input[name="seed"]').value);
-
-            if (!name) {
-                alert('이름을 입력해주세요.');
-                return;
-            }
-
-            if (!seed || seed <= 0) {
-                alert('Seed는 0보다 커야 합니다.');
-                return;
-            }
-
-            const data = {
-                name: name,
-                symbol: symbol,
-                seed: seed,
-                max_tier: parseInt(card.querySelector('input[name="max_tier"]').value) || 0,
-                profit_rate: parseFloat(card.querySelector('input[name="profit_rate"]').value) || 0,
-                t_div: parseInt(card.querySelector('input[name="t_div"]').value) || 0
-            };
-
-            showLoading();
-            fetch('/add_bot_info', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(data)
-            })
-            .then(response => response.json())
-            .then(data => {
-                hideLoading();
-                alert(data.message || data.error);
-                if (!data.error) location.reload();
-            })
-            .catch(error => {
-                hideLoading();
-                alert('Error: ' + error);
-            });
-        }
-
         // 모든 설정 저장
         function saveAllSettings() {
             const tradeStart = document.querySelector('input[name="trade_start"]').value.trim();
@@ -225,6 +181,64 @@
                 toggleBtn.textContent = '▶';
                 saveExpandedState(symbol, false);
             }
+        }
+
+        // 새 봇 추가 카드 토글
+        function toggleNewBotCard() {
+            const cardBody = document.querySelector('.new-bot-card-body');
+            const toggleBtn = document.querySelector('.new-bot-toggle');
+
+            if (cardBody.style.display === 'none') {
+                cardBody.style.display = 'block';
+                toggleBtn.textContent = '▼';
+            } else {
+                cardBody.style.display = 'none';
+                toggleBtn.textContent = '▶';
+            }
+        }
+
+        // 새 봇 추가 함수 수정
+        function addNewBot(button) {
+            const container = button.closest('.new-bot-container');
+            const name = container.querySelector('input[name="name"]').value;
+            const symbol = container.querySelector('input[name="symbol"]').value;
+            const seed = parseCurrency(container.querySelector('input[name="seed"]').value);
+
+            if (!name) {
+                alert('이름을 입력해주세요.');
+                return;
+            }
+
+            if (!seed || seed <= 0) {
+                alert('Seed는 0보다 커야 합니다.');
+                return;
+            }
+
+            const data = {
+                name: name,
+                symbol: symbol,
+                seed: seed,
+                max_tier: parseInt(container.querySelector('input[name="max_tier"]').value) || 0,
+                profit_rate: parseFloat(container.querySelector('input[name="profit_rate"]').value) || 0,
+                t_div: parseInt(container.querySelector('input[name="t_div"]').value) || 0
+            };
+
+            showLoading();
+            fetch('/add_bot_info', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                alert(data.message || data.error);
+                if (!data.error) location.reload();
+            })
+            .catch(error => {
+                hideLoading();
+                alert('Error: ' + error);
+            });
         }
 
         // 확장 상태 저장
@@ -324,9 +338,9 @@
         {% for symbol, bots in grouped_bots.items() %}
         <!-- 티커 그룹 헤더 -->
         <div class="ticker-group-header" onclick="toggleTickerGroup('{{ symbol }}')">
-            <span class="ticker-toggle" data-ticker-toggle="{{ symbol }}">▶</span>
-            <span class="ticker-name">{{ symbol }}</span>
-            <span class="ticker-count">({{ bots|length }}개)</span>
+            <span class="toggle-icon" data-ticker-toggle="{{ symbol }}">▶</span>
+            <span class="ticker-symbol">🤖 {{ symbol }}</span>
+            <span class="ticker-count">{{ bots|length }}개 봇</span>
         </div>
 
         <!-- 티커 그룹 내용 -->
@@ -442,9 +456,13 @@
         {% endfor %}
 
         <!-- 새로운 bot 추가 카드 -->
-        <div class="bot-card new-entry">
-            <div class="bot-card-header">➕ 새 봇 추가</div>
-            <div class="bot-card-body">
+        <div class="new-bot-container">
+            <div class="ticker-group-header new-bot-header" onclick="toggleNewBotCard()">
+                <span class="new-bot-toggle">▶</span>
+                <span class="ticker-name">새 봇 추가</span>
+            </div>
+            <div class="new-bot-card-body bot-card" style="display: none;">
+                <div class="bot-card-body">
                 <div class="bot-field-group">
                     <div class="bot-field">
                         <label>이름</label>
@@ -472,7 +490,8 @@
                     </div>
                 </div>
                 <div class="bot-card-actions">
-                    <button type="button" onclick="addNewBot(this)" class="btn-info">➕ Add Bot</button>
+                    <button type="button" onclick="addNewBot(this)" class="btn-success">💾 Add Bot</button>
+                </div>
                 </div>
             </div>
         </div>

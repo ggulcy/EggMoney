@@ -192,6 +192,20 @@
             }
         }
 
+        // Add History 토글
+        function toggleAddHistory() {
+            const cardBody = document.querySelector('.add-history-body');
+            const toggleBtn = document.querySelector('.add-history-toggle');
+
+            if (cardBody.style.display === 'none') {
+                cardBody.style.display = 'block';
+                toggleBtn.textContent = '▼';
+            } else {
+                cardBody.style.display = 'none';
+                toggleBtn.textContent = '▶';
+            }
+        }
+
         // 페이지 로드 시 이벤트 리스너 등록
         document.addEventListener('DOMContentLoaded', function () {
             // Trade 카드에 이벤트 리스너 등록
@@ -248,15 +262,13 @@
         {% for symbol, trades in grouped_trades.items() %}
         <!-- 티커 그룹 헤더 -->
         <div class="ticker-group-header" onclick="toggleTickerGroup('{{ symbol }}')">
-            <div class="ticker-info">
-                <span class="ticker-symbol">📊 {{ symbol }}</span>
-                <span class="ticker-count">{{ trades|length }}개 거래</span>
-            </div>
-            <span class="toggle-icon" id="toggle-{{ symbol }}">▶</span>
+            <span class="toggle-icon" id="toggle-{{ symbol }}">▼</span>
+            <span class="ticker-symbol">📊 {{ symbol }}</span>
+            <span class="ticker-count">{{ trades|length }}개 거래</span>
         </div>
 
-        <!-- 티커 그룹 콘텐츠 (기본: 접힌 상태) -->
-        <div class="ticker-group-content" id="group-{{ symbol }}" style="display: none;">
+        <!-- 티커 그룹 콘텐츠 (기본: 확장 상태) -->
+        <div class="ticker-group-content" id="group-{{ symbol }}" style="display: block;">
             {% for trade in trades %}
             <div class="trade-card">
                 <div class="trade-header">
@@ -325,7 +337,13 @@
     <!-- History 추가 섹션 -->
     <div class="card-section">
         <div class="section-title">➕ Add History</div>
-        <div class="history-add-card">
+        <div class="add-history-container">
+            <div class="ticker-group-header add-history-header" onclick="toggleAddHistory()">
+                <span class="add-history-toggle">▶</span>
+                <span class="ticker-name">히스토리 추가</span>
+            </div>
+            <div class="add-history-body history-add-card" style="display: none;">
+                <div class="bot-card-body">
             <div class="history-grid">
                 <div class="history-field">
                     <label>봇 이름</label>
@@ -352,7 +370,9 @@
                 </div>
             </div>
             <div class="history-actions">
-                <button type="button" onclick="addHistory()" class="btn-success">➕ Add History</button>
+                <button type="button" onclick="addHistory()" class="btn-success">💾 Add History</button>
+            </div>
+                </div>
             </div>
         </div>
     </div>

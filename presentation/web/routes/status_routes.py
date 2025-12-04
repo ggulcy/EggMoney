@@ -3,7 +3,7 @@ Status Routes - 입출금 관리 및 텔레그램 메시지 전송
 
 Clean Architecture Pattern:
 - GET /status - 입출금 정보 조회 화면
-- POST /save_status - 입출금 정보 저장 (Fetch API)
+- POST /sync_sheets - 시트 동기화 (Fetch API)
 - POST /send_trade_status - 거래 상태 메시지 전송
 - POST /send_history_status - 거래 기록 메시지 전송
 - POST /send_market_status - 마켓 상황 메시지 전송
@@ -72,33 +72,37 @@ def status_template():
     return render_template('status.html', status=status)
 
 
-@status_bp.route('/save_status', methods=['POST'])
+@status_bp.route('/sync_sheets', methods=['POST'])
 @require_web_auth
-def save_status():
-    """입출금 정보 저장 (Fetch API)"""
+def sync_sheets():
+    """시트 동기화 (Fetch API)"""
+    print("\n" + "=" * 80)
+    print("🔔 /sync_sheets 엔드포인트 호출됨")
+    print("=" * 80)
+
     try:
-        data = request.get_json()
+        _, message_jobs, _ = _initialize_dependencies()
 
-        deposit_won = float(data.get('deposit_won', 0))
-        deposit_dollar = float(data.get('deposit_dollar', 0))
-        withdraw_won = float(data.get('withdraw_won', 0))
-        withdraw_dollar = float(data.get('withdraw_dollar', 0))
+        # 시트 동기화 실행
+        success = message_jobs.sync_all_sheets()
 
-        _, _, portfolio_usecase = _initialize_dependencies()
-
-        # Status 저장 (Usecase 활용)
-        portfolio_usecase.save_status(
-            deposit_won=deposit_won,
-            deposit_dollar=deposit_dollar,
-            withdraw_won=withdraw_won,
-            withdraw_dollar=withdraw_dollar
-        )
-
-        return jsonify({'message': '✅ 입출금 정보가 저장되었습니다.'})
+        if success:
+            print("=" * 80)
+            print("✅ 시트 동기화 성공")
+            print("=" * 80 + "\n")
+            return jsonify({'message': '✅ 시트 동기화가 완료되었습니다.'})
+        else:
+            print("=" * 80)
+            print("❌ 시트 동기화 실패")
+            print("=" * 80 + "\n")
+            return jsonify({'error': '시트 동기화에 실패했습니다.'}), 500
 
     except Exception as e:
-        print(f"❌ Error saving status: {e}")
-        return jsonify({'error': f'저장 중 오류 발생: {str(e)}'}), 500
+        error_msg = f"❌ Error syncing sheets: {e}"
+        print(error_msg)
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': '시트 동기화 중 오류가 발생했습니다.'}), 500
 
 
 @status_bp.route('/send_trade_status', methods=['POST'])

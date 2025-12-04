@@ -15,57 +15,30 @@
             document.getElementById('loadingOverlay').classList.remove('active');
         }
 
-        // 숫자 포맷팅 함수
-        function formatCurrency(input, currencySymbol) {
-            let value = input.value.replace(/[^0-9.]/g, '');
-            if ((value.match(/\./g) || []).length > 1) {
-                value = value.replace(/\.+$/, '');
-            }
-            if (!isNaN(value) && value !== "") {
-                const parts = value.split('.');
-                parts[0] = parseInt(parts[0], 10).toLocaleString('en-US');
-                input.value = currencySymbol + parts.join('.');
-            } else {
-                input.value = currencySymbol;
-            }
-            input.selectionStart = input.selectionEnd = input.value.length;
-        }
-
-        function parseCurrency(value) {
-            return parseFloat(value.replace(/[^0-9.]/g, '')) || 0;
-        }
-
-        // 입출금 정보 저장
-        function saveDepositWithdraw() {
-            const depositWon = parseCurrency(document.getElementById('deposit_won').value);
-            const depositDollar = parseCurrency(document.getElementById('deposit_dollar').value);
-            const withdrawWon = parseCurrency(document.getElementById('withdraw_won').value);
-            const withdrawDollar = parseCurrency(document.getElementById('withdraw_dollar').value);
-
-            if (!confirm('입출금 정보를 저장하시겠습니까?')) {
+        // 시트 동기화
+        function syncWithSheet() {
+            if (!confirm('시트 동기화를 실행하시겠습니까?')) {
                 return;
             }
 
             showLoading();
-            fetch('/save_status', {
+            fetch('/sync_sheets', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    deposit_won: depositWon,
-                    deposit_dollar: depositDollar,
-                    withdraw_won: withdrawWon,
-                    withdraw_dollar: withdrawDollar
-                })
+                headers: {'Content-Type': 'application/json'}
             })
             .then(response => response.json())
             .then(data => {
                 hideLoading();
-                alert(data.message || data.error);
-                if (!data.error) location.reload();
+                if (data.error) {
+                    alert('❌ ' + data.error);
+                } else {
+                    alert(data.message);
+                    location.reload();
+                }
             })
             .catch(error => {
                 hideLoading();
-                alert('Error: ' + error);
+                alert('❌ Error: ' + error);
             });
         }
 
@@ -91,27 +64,6 @@
             });
         }
 
-        // 페이지 로드 시 초기화
-        document.addEventListener('DOMContentLoaded', function () {
-            // 초기값 포맷팅
-            const depositWon = document.getElementById('deposit_won');
-            const depositDollar = document.getElementById('deposit_dollar');
-            const withdrawWon = document.getElementById('withdraw_won');
-            const withdrawDollar = document.getElementById('withdraw_dollar');
-
-            if (depositWon.value && !depositWon.value.includes('₩')) {
-                formatCurrency(depositWon, '₩ ');
-            }
-            if (depositDollar.value && !depositDollar.value.includes('$')) {
-                formatCurrency(depositDollar, '$ ');
-            }
-            if (withdrawWon.value && !withdrawWon.value.includes('₩')) {
-                formatCurrency(withdrawWon, '₩ ');
-            }
-            if (withdrawDollar.value && !withdrawDollar.value.includes('$')) {
-                formatCurrency(withdrawDollar, '$ ');
-            }
-        });
     </script>
 </head>
 <body>
@@ -140,15 +92,11 @@
                     <div class="status-field-group">
                         <div class="status-field">
                             <label>원화 (KRW)</label>
-                            <input type="text" id="deposit_won" name="deposit_won"
-                                   value="₩ {{ '{:,.0f}'.format(status.deposit_won) if status.deposit_won else '0' }}"
-                                   oninput="formatCurrency(this, '₩ ')" placeholder="₩ 0">
+                            <div class="status-display-value">₩ {{ '{:,.0f}'.format(status.deposit_won) if status.deposit_won else '0' }}</div>
                         </div>
                         <div class="status-field">
                             <label>달러 (USD)</label>
-                            <input type="text" id="deposit_dollar" name="deposit_dollar"
-                                   value="$ {{ '{:,.0f}'.format(status.deposit_dollar) if status.deposit_dollar else '0' }}"
-                                   oninput="formatCurrency(this, '$ ')" placeholder="$ 0">
+                            <div class="status-display-value">$ {{ '{:,.0f}'.format(status.deposit_dollar) if status.deposit_dollar else '0' }}</div>
                         </div>
                     </div>
                 </div>
@@ -159,22 +107,18 @@
                     <div class="status-field-group">
                         <div class="status-field">
                             <label>원화 (KRW)</label>
-                            <input type="text" id="withdraw_won" name="withdraw_won"
-                                   value="₩ {{ '{:,.0f}'.format(status.withdraw_won) if status.withdraw_won else '0' }}"
-                                   oninput="formatCurrency(this, '₩ ')" placeholder="₩ 0">
+                            <div class="status-display-value">₩ {{ '{:,.0f}'.format(status.withdraw_won) if status.withdraw_won else '0' }}</div>
                         </div>
                         <div class="status-field">
                             <label>달러 (USD)</label>
-                            <input type="text" id="withdraw_dollar" name="withdraw_dollar"
-                                   value="$ {{ '{:,.0f}'.format(status.withdraw_dollar) if status.withdraw_dollar else '0' }}"
-                                   oninput="formatCurrency(this, '$ ')" placeholder="$ 0">
+                            <div class="status-display-value">$ {{ '{:,.0f}'.format(status.withdraw_dollar) if status.withdraw_dollar else '0' }}</div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div class="status-actions">
-                <button type="button" onclick="saveDepositWithdraw()" class="btn-success">💾 Save</button>
+                <button type="button" onclick="syncWithSheet()" class="btn-success">🔄 시트 동기화</button>
             </div>
         </div>
     </div>

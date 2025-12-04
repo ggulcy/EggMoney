@@ -10,6 +10,7 @@ from domain.repositories.bot_info_repository import BotInfoRepository
 from domain.repositories.trade_repository import TradeRepository
 from domain.repositories.history_repository import HistoryRepository
 from domain.repositories.status_repository import StatusRepository
+from domain.repositories.market_indicator_repository import MarketIndicatorRepository
 
 
 class PortfolioStatusUsecase:
@@ -22,7 +23,8 @@ class PortfolioStatusUsecase:
         history_repo: HistoryRepository,
         status_repo: StatusRepository,
         hantoo_service: HantooService,
-        sheets_service: SheetsService
+        sheets_service: SheetsService,
+        market_indicator_repo: Optional[MarketIndicatorRepository] = None
     ):
         """
         포트폴리오 상태 Usecase 초기화
@@ -34,6 +36,7 @@ class PortfolioStatusUsecase:
             status_repo: Status 리포지토리
             hantoo_service: 한투 서비스
             sheets_service: Sheets 서비스
+            market_indicator_repo: Market Indicator 리포지토리 (선택)
         """
         self.bot_info_repo = bot_info_repo
         self.trade_repo = trade_repo
@@ -41,6 +44,7 @@ class PortfolioStatusUsecase:
         self.status_repo = status_repo
         self.hantoo_service = hantoo_service
         self.sheets_service = sheets_service
+        self.market_indicator_repo = market_indicator_repo
 
     # ===== 조회 메서드 (Dict 반환) =====
 
@@ -163,17 +167,7 @@ class PortfolioStatusUsecase:
                 "t": t,
                 "point": point,
                 "progress_rate": progress_rate,
-                "progress_bar": progress_bar,
-                "settings": {
-                    "seed": bot_info.seed,
-                    "added_seed": bot_info.added_seed,
-                    "is_check_buy_avr_price": bot_info.is_check_buy_avr_price,
-                    "is_check_buy_t_div_price": bot_info.is_check_buy_t_div_price,
-                    "profit_rate_target": bot_info.profit_rate,
-                    "t_div": bot_info.t_div,
-                    "point_loc": bot_info.point_loc,
-                    "point_loc_text": util.get_point_loc_text(bot_info.point_loc)
-                }
+                "progress_bar": progress_bar
             }
 
         except Exception as e:
@@ -453,11 +447,13 @@ class PortfolioStatusUsecase:
                 emoji = "💰" if total_profit >= 0 else "🔻"
 
                 if year == current_year:
-                    # 현재 연도 → 월별 수익 포함
-                    monthly_profits = self.history_repo.get_monthly_profit_by_year(year)
+                    # 현재 연도 → 월별 수익 포함 (현재 월까지만 표시)
+                    monthly_profits_dict = {month: profit for month, profit in self.history_repo.get_monthly_profit_by_year(year)}
+                    current_month = datetime.now().month
 
                     result.append(f"📅 {year}년 월별 수익 💰")
-                    for month, profit in monthly_profits:
+                    for month in range(1, current_month + 1):  # 1월부터 현재 월까지
+                        profit = monthly_profits_dict.get(month, 0.0)
                         result.append(f"{month}월, 수익금 : {profit:,.2f}$")
                     result.append(f"\n{year}년 총 수익: {emoji} {total_profit:,.2f}$")
                 else:
@@ -530,6 +526,86 @@ class PortfolioStatusUsecase:
         except Exception as e:
             print(f"❌ Trade 업데이트 실패 ({name}): {str(e)}")
             return False
+
+    # ===== Market Indicator 조회 =====
+
+    def get_market_data(self) -> Optional[Dict[str, Any]]:
+        """
+        시장 지표 데이터 조회 (VIX + 등록된 봇들의 ticker RSI)
+
+        Returns:
+            Dict: 시장 지표 데이터
+                {
+                    "vix": {
+                        "value": float,
+                        "level": str,
+                        "cached_at": str,
+                        "elapsed_hours": float
+                    },
+                    "rsi_data": {
+                        "TQQQ": {
+                            "value": float,
+                            "level": str,
+                            "cached_at": str,
+                            "elapsed_hours": float
+                        },
+                        "SOXL": {
+                            "value": float,
+                            "level": str,
+                            "cached_at": str,
+                            "elapsed_hours": float
+                        },
+                        ...
+                    }
+                }
+                또는 None (Repository가 없거나 조회 실패 시)
+        """
+        if not self.market_indicator_repo:
+            print("⚠️ MarketIndicatorRepository가 설정되지 않았습니다")
+            return None
+
+        try:
+            result = {}
+
+            # VIX 조회
+            vix = self.market_indicator_repo.get_vix()
+            if vix:
+                result["vix"] = {
+                    "value": vix.value,
+                    "level": vix.level,
+                    "cached_at": vix.cached_at,
+                    "elapsed_hours": vix.elapsed_hours
+                }
+
+            # 등록된 봇들의 ticker 추출 (중복 제거)
+            bot_info_list = self.bot_info_repo.find_all()
+            unique_tickers = set()
+            for bot_info in bot_info_list:
+                if bot_info.symbol:  # symbol이 있는 경우만
+                    unique_tickers.add(bot_info.symbol)
+
+            # 각 ticker별 RSI 조회
+            rsi_data = {}
+            for ticker in sorted(unique_tickers):  # 알파벳 순 정렬
+                rsi = self.market_indicator_repo.get_rsi(ticker)
+                if rsi:
+                    rsi_data[ticker] = {
+                        "value": rsi.value,
+                        "level": rsi.level,
+                        "cached_at": rsi.cached_at,
+                        "elapsed_hours": rsi.elapsed_hours
+                    }
+
+            if rsi_data:
+                result["rsi_data"] = rsi_data
+
+            return result if result else None
+
+        except Exception as e:
+            print(f"❌ 시장 지표 조회 실패: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return None
 
     # ===== History 관리 메서드 =====
 

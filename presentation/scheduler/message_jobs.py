@@ -57,17 +57,6 @@ class MessageJobs:
                 days_passed = cur_trade["days_passed"]
                 trade_start_msg = f"{added_date.year}.{added_date.month}.{added_date.day} 시작 (+{days_passed}일)"
 
-                # 설정 메시지
-                settings = trade_status["settings"]
-                setting_msg = (
-                    f"📌️ 설정\n"
-                    f"시드 : {settings['seed']:,.0f}$ (복리 +{settings['added_seed']:,.0f}$)\n"
-                    f"조건 : {util.get_ox_emoji(settings['is_check_buy_avr_price'])}(평단),"
-                    f"{util.get_ox_emoji(settings['is_check_buy_t_div_price'])}(%지점)\n"
-                    f"수익률/TDIV : {settings['profit_rate_target'] * 100:,.0f}% / {settings['t_div']}\n"
-                    f"손절지점 : {settings['point_loc_text']}\n"
-                )
-
                 # 전체 메시지
                 msg = (
                     f"[{trade_status['name']}]\n\n"
@@ -77,12 +66,11 @@ class MessageJobs:
                     f"현재가 : {trade_status['cur_price']:,.2f}$\n"
                     f"평단가 : {cur_trade['purchase_price']:,.2f}$ ({cur_trade['amount']}개)\n\n"
                     f"📌 진행률\n"
-                    f"{added_msg}\n"
                     f"T : {trade_status['t']:.2f}T / {bot_info.max_tier:.2f}T\n"
                     f"%지점 : {point * 100:.2f}% ({cur_trade['purchase_price'] * (1 + point):,.2f}$)\n"
                     f"시드 소진률 : {trade_status['progress_rate']:,.2f}% ({cur_trade['total_price']:,.0f}/{trade_status['max_seed']:,.0f}$)\n"
-                    f"{trade_status['progress_bar']}\n\n"
-                    f"{setting_msg}"
+                    f"{trade_status['progress_bar']}\n"
+                    f"{added_msg}\n"
                 )
 
                 send_message_sync(msg)
@@ -283,11 +271,60 @@ class MessageJobs:
             import traceback
             traceback.print_exc()
 
+    def send_market_data_message(self) -> None:
+        """
+        시장 지표 데이터를 텔레그램으로 전송
+        VIX + 등록된 봇들의 ticker RSI 정보 포함
+        """
+        print("📨 시장 지표 메시지 전송...")
+
+        try:
+            market_data = self.portfolio_usecase.get_market_data()
+            if not market_data:
+                print("⚠️ 시장 지표 데이터 없음")
+                return
+
+            # 메시지 구성
+            msg_parts = ["📊 시장 지표\n"]
+
+            # VIX 정보
+            if "vix" in market_data:
+                vix = market_data["vix"]
+                msg_parts.append(
+                    f"🔥 VIX 공포 지수 (갱신: {vix['elapsed_hours']:.1f}시간 전)\n"
+                    f"  값: {vix['value']:.2f}\n"
+                    f"  상태: {vix['level']}\n"
+                )
+
+            # RSI 정보 (동적으로 ticker별 출력)
+            if "rsi_data" in market_data:
+                rsi_data = market_data["rsi_data"]
+                for ticker, rsi in rsi_data.items():
+                    msg_parts.append(
+                        f"\n📈 {ticker} RSI (갱신: {rsi['elapsed_hours']:.1f}시간 전)\n"
+                        f"  값: {rsi['value']:.2f}\n"
+                        f"  상태: {rsi['level']}"
+                    )
+                    # 마지막 항목이 아니면 줄바꿈 추가
+                    if ticker != list(rsi_data.keys())[-1]:
+                        msg_parts.append("\n")
+
+            full_msg = "".join(msg_parts)
+            send_message_sync(full_msg)
+
+            ticker_count = len(market_data.get("rsi_data", {}))
+            print(f"✅ 시장 지표 메시지 전송 완료 (VIX + {ticker_count}개 ticker)")
+
+        except Exception as e:
+            print(f"❌ 시장 지표 메시지 전송 실패: {str(e)}")
+            import traceback
+            traceback.print_exc()
+
     def daily_job(self) -> None:
         """
         일일 작업 (egg의 msg_job과 ValueRebalancing의 daily_job 통합)
 
-        1. 텔레그램 메시지 전송
+        1. 텔레그램 메시지 전송 (거래 상태, 포트폴리오 요약, 오늘 수익, 시장 지표)
         2. Google Sheets 동기화 (잔고 쓰기 + 입금액 읽기) - 실패해도 무시
         3. 봇 동기화 체크
         4. CSV 파일 정리
@@ -302,11 +339,14 @@ class MessageJobs:
         # 1. 텔레그램 메시지 전송
         self.send_all_status()
 
-        # 2. Google Sheets 동기화 (실패해도 무시 - API가 불안정함)
-        try:
-            self.sync_all_sheets()
-        except Exception as e:
-            print(f"⚠️ Sheets 동기화 실패 (무시): {str(e)}")
+        # 시장 지표 메시지 전송
+        self.send_market_data_message()
+
+        # # 2. Google Sheets 동기화 (실패해도 무시 - API가 불안정함)
+        # try:
+        #     self.sync_all_sheets()
+        # except Exception as e:
+        #     print(f"⚠️ Sheets 동기화 실패 (무시): {str(e)}")
 
         # 3. 봇 동기화 체크
         self.sync_bots()
