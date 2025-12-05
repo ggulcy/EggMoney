@@ -143,7 +143,8 @@ class OrderUsecase:
         if not order:
             return
 
-        send_message_sync(f"{order.name}의 {order.trade_count}/{order.total_count} 주문검사를 시작합니다")
+        current_num = order.total_count - order.trade_count + 1
+        send_message_sync(f"{order.name}의 {current_num}/{order.total_count} 주문검사를 시작합니다")
 
         if self._is_order_available(order):
             if self._is_buy(order):
@@ -225,7 +226,7 @@ class OrderUsecase:
             return order
 
         # 주문 요청 정보 계산
-        request_price = self.hantoo_service.get_price(order.symbol)
+        request_price = self.hantoo_service.get_available_buy(order.symbol)
         if not request_price:
             send_message_sync(f"❌ [{order.name}] 현재가 조회 실패")
             order.trade_result_list.append(None)
@@ -242,7 +243,7 @@ class OrderUsecase:
                         f"    - 심볼: {order.symbol}\n"
                         f"    - 수량: {request_amount}\n"
                         f"    - 총액: ${request_seed:,.0f}")
-
+        
         # 주문 실행
         trade_result = self.hantoo_service.buy(
             symbol=order.symbol,
@@ -255,6 +256,7 @@ class OrderUsecase:
 
         # 거래 결과 저장
         if trade_result:
+            trade_result.trade_type = TradeType(order.order_type.value)
             trade_result_dict = {
                 'trade_type': trade_result.trade_type.value,
                 'amount': trade_result.amount,
@@ -308,7 +310,7 @@ class OrderUsecase:
                         f"    - 수량: {request_amount}")
 
         # 주문 실행
-        request_price = self.hantoo_service.get_price(order.symbol)
+        request_price = self.hantoo_service.get_available_sell(order.symbol)
         if not request_price:
             send_message_sync(f"❌ [{order.name}] 현재가 조회 실패")
             order.trade_result_list.append(None)
@@ -326,6 +328,7 @@ class OrderUsecase:
 
         # 거래 결과 저장
         if trade_result:
+            trade_result.trade_type = TradeType(order.order_type.value)
             trade_result_dict = {
                 'trade_type': trade_result.trade_type.value,
                 'amount': trade_result.amount,

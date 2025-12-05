@@ -132,7 +132,7 @@ class HantooService:
             return self.get_price(symbol)
 
         origin_price = self.get_price(symbol)
-        request_price = round(origin_price * (1 + 0.005), 2)
+        request_price = round(origin_price * (1 + 0.02), 2)
         return request_price
 
     def get_available_sell(self, symbol: str) -> Optional[float]:
