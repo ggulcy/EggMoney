@@ -151,6 +151,17 @@ class HantooClient:
 
         return None
 
+    def _is_token_expired_error(self, response: requests.Response) -> bool:
+        """토큰 만료 에러인지 확인 (EGW00123)"""
+        if response.status_code in [401, 500]:
+            try:
+                data = response.json()
+                if data.get("msg_cd") == "EGW00123":
+                    return True
+            except json.JSONDecodeError:
+                pass
+        return False
+
     def _get_token(self) -> str:
         """
         유효한 토큰 조회 (만료 시 갱신)
@@ -196,7 +207,8 @@ class HantooClient:
         self,
         end_point_url: str,
         extra_headers: Optional[Dict[str, str]] = None,
-        extra_body: Optional[Dict[str, str]] = None
+        extra_body: Optional[Dict[str, str]] = None,
+        _retry: bool = False
     ) -> requests.Response:
         """
         POST 요청 전송
@@ -205,6 +217,7 @@ class HantooClient:
             end_point_url: API 엔드포인트
             extra_headers: 추가 헤더
             extra_body: 추가 바디
+            _retry: 재시도 여부 (내부 사용)
 
         Returns:
             requests.Response: API 응답
@@ -231,6 +244,14 @@ class HantooClient:
             msg = f"POST {url} - Status: {response.status_code}"
             logging.debug(msg)
             print(msg)
+
+            # 토큰 만료 에러 시 갱신 후 재시도 (1회만)
+            if not _retry and self._is_token_expired_error(response):
+                print("🔄 토큰 만료 감지, 갱신 후 재시도...")
+                logging.info("토큰 만료 감지, 갱신 후 재시도")
+                self._update_token()
+                return self.post_request(end_point_url, extra_headers, extra_body, _retry=True)
+
             # 에러 응답 시 본문 출력
             if response.status_code >= 400:
                 print(f"❌ Response Body: {response.text}")
@@ -245,7 +266,8 @@ class HantooClient:
         self,
         end_point: str,
         extra_header: Optional[Dict[str, str]] = None,
-        extra_param: Optional[Dict[str, str]] = None
+        extra_param: Optional[Dict[str, str]] = None,
+        _retry: bool = False
     ) -> requests.Response:
         """
         GET 요청 전송
@@ -254,6 +276,7 @@ class HantooClient:
             end_point: API 엔드포인트
             extra_header: 추가 헤더
             extra_param: URL 쿼리 파라미터
+            _retry: 재시도 여부 (내부 사용)
 
         Returns:
             requests.Response: API 응답
@@ -282,6 +305,14 @@ class HantooClient:
             msg = f"GET {url} - Status: {response.status_code}"
             logging.debug(msg)
             print(msg)
+
+            # 토큰 만료 에러 시 갱신 후 재시도 (1회만)
+            if not _retry and self._is_token_expired_error(response):
+                print("🔄 토큰 만료 감지, 갱신 후 재시도...")
+                logging.info("토큰 만료 감지, 갱신 후 재시도")
+                self._update_token()
+                return self.get_request(end_point, extra_header, extra_param, _retry=True)
+
             # 에러 응답 시 본문 출력
             if response.status_code >= 400:
                 print(f"❌ Response Body: {response.text}")
