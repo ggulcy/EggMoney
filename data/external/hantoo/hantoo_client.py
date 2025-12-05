@@ -61,9 +61,6 @@ class HantooClient:
     def __init__(self):
         """한국투자증권 클라이언트 초기화"""
         self.account_info = HantooAccountInfo()
-        # shelve DB에서 토큰 로드
-        self._token = key_store.read(key_store.AT_KEY)
-        self._token_expiration = key_store.read(key_store.AT_EX_DATE)
 
     def get_hantoo_exd(self, symbol: str) -> HantooExd:
         """
@@ -123,15 +120,12 @@ class HantooClient:
                 access_token = response_data.get('access_token')
                 expiration = response_data.get('access_token_token_expired')
 
-                # 토큰을 메모리와 영속 저장소에 저장 (메모리 + shelve DB)
-                self._token = access_token
-                self._token_expiration = expiration
-
-                # shelve DB에 저장하여 재시작 시에도 사용 가능하도록 함
+                # key_store에 저장
                 key_store.write(key_store.AT_KEY, access_token)
                 key_store.write(key_store.AT_EX_DATE, expiration)
 
-                logging.info(f"새로운 토큰 발급 완료 및 저장됨 (만료일: {expiration})")
+                print(f"✅ 새로운 토큰 발급 완료 (만료일: {expiration})")
+                logging.info(f"새로운 토큰 발급 완료 (만료일: {expiration})")
 
                 return access_token
             except json.JSONDecodeError:
@@ -143,9 +137,10 @@ class HantooClient:
                 response_data = response.json()
                 error_code = response_data.get('error_code')
                 if error_code == "EGW00133":
+                    print("토큰 발급 횟수 초과, 65초 대기 후 재시도합니다")
                     logging.info("토큰 발급 횟수 초과, 65초 대기 후 재시도합니다")
                     time.sleep(65)
-                    return self._update_token()  # 재귀 호출로 재시도
+                    return self._update_token()
                 else:
                     logging.error("알 수 없는 403 에러: 응답 내용 확인 필요")
             except json.JSONDecodeError:
@@ -159,32 +154,42 @@ class HantooClient:
     def _get_token(self) -> str:
         """
         유효한 토큰 조회 (만료 시 갱신)
+        - 매번 key_store에서 읽어서 최신 토큰 사용
 
         Returns:
             str: 유효한 토큰
         """
+        # 매번 key_store에서 토큰과 만료일 읽기 (egg 프로젝트 방식)
+        token = key_store.read(key_store.AT_KEY)
+        token_expiration = key_store.read(key_store.AT_EX_DATE)
+
         # 토큰이 없으면 새로 발급
-        if self._token is None:
+        if token is None:
             logging.info("토큰이 없습니다. 토큰을 발급합니다.")
+            print("토큰이 없습니다. 토큰을 발급합니다.")
             return self._update_token()
 
         # 토큰 만료 여부 체크
-        if self._token_expiration:
+        if token_expiration:
             try:
-                expiration_datetime = datetime.strptime(self._token_expiration, "%Y-%m-%d %H:%M:%S")
+                expiration_datetime = datetime.strptime(token_expiration, "%Y-%m-%d %H:%M:%S")
                 current_time = datetime.now()
 
-                # 현재 시간이 만료 시간보다 이전이면 기존 토큰 사용
-                if current_time < expiration_datetime:
-                    return self._token
+                # 만료 1시간 전에 갱신 (egg 프로젝트 방식)
+                from datetime import timedelta
+                if current_time < (expiration_datetime - timedelta(hours=1)):
+                    return token
                 else:
                     logging.info("토큰이 만료되었습니다. 새로운 토큰을 발급합니다.")
+                    print("토큰이 만료되었습니다. 새로운 토큰을 발급합니다.")
                     return self._update_token()
             except ValueError:
                 logging.error("유효하지 않은 만료일 형식입니다. 새로운 토큰을 발급합니다.")
+                print("유효하지 않은 만료일 형식입니다. 새로운 토큰을 발급합니다.")
                 return self._update_token()
         else:
             logging.warning("유효하지 않은 만료일 정보입니다. 새로운 토큰을 발급합니다.")
+            print("유효하지 않은 만료일 정보입니다. 새로운 토큰을 발급합니다.")
             return self._update_token()
 
     def post_request(
@@ -225,6 +230,11 @@ class HantooClient:
             response = requests.post(url, headers=headers, data=json.dumps(body))
             msg = f"POST {url} - Status: {response.status_code}"
             logging.debug(msg)
+            print(msg)
+            # 에러 응답 시 본문 출력
+            if response.status_code >= 400:
+                print(f"❌ Response Body: {response.text}")
+                logging.error(f"Response Body: {response.text}")
             return response
         except requests.exceptions.RequestException as e:
             msg = f"POST Request Failed: {e}"
@@ -272,6 +282,10 @@ class HantooClient:
             msg = f"GET {url} - Status: {response.status_code}"
             logging.debug(msg)
             print(msg)
+            # 에러 응답 시 본문 출력
+            if response.status_code >= 400:
+                print(f"❌ Response Body: {response.text}")
+                logging.error(f"Response Body: {response.text}")
             return response
         except requests.exceptions.RequestException as e:
             msg = f"GET Request Failed: {e}"
