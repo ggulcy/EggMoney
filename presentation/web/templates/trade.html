@@ -162,6 +162,249 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
         }
+
+        /* Trade 아코디언 스타일 */
+        .trade-accordion-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .trade-accordion-header:hover {
+            background: #f8f9ff;
+            border-color: #667eea;
+        }
+
+        .trade-accordion-header.active {
+            border-color: #667eea;
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+            margin-bottom: 0;
+        }
+
+        .trade-accordion-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .trade-accordion-toggle {
+            font-size: 0.8rem;
+            color: #667eea;
+            transition: transform 0.2s;
+        }
+
+        .trade-accordion-header.active .trade-accordion-toggle {
+            transform: rotate(90deg);
+        }
+
+        .trade-accordion-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 1rem;
+        }
+
+        .trade-accordion-symbol {
+            background: #667eea;
+            color: #fff;
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .trade-accordion-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .trade-accordion-amount {
+            font-size: 0.85rem;
+            color: #666;
+            font-weight: 600;
+        }
+
+        .trade-accordion-total {
+            font-size: 0.9rem;
+            color: #333;
+            font-weight: 700;
+        }
+
+        /* Trade Status 스타일 */
+        .trade-accordion-status {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-left: 8px;
+            padding-left: 12px;
+            border-left: 1px solid #e0e0e0;
+        }
+
+        .trade-status-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .trade-status-label {
+            font-size: 0.65rem;
+            color: #999;
+            font-weight: 500;
+        }
+
+        .trade-status-value {
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
+        .trade-status-value.profit {
+            color: #c62828;
+        }
+
+        .trade-status-value.loss {
+            color: #1565c0;
+        }
+
+        /* 시드소진율 프로그레스 바 */
+        .trade-progress-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .trade-progress-bar {
+            width: 80px;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .trade-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .trade-progress-text {
+            font-size: 0.7rem;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .trade-accordion-status {
+                display: none;
+            }
+        }
+
+        /* 카드 내부 수익 현황 스타일 */
+        .trade-status-section {
+            background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .trade-status-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .trade-status-card {
+            background: white;
+            border-radius: 10px;
+            padding: 14px;
+            text-align: center;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .trade-status-card.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .trade-status-card .label {
+            font-size: 0.75rem;
+            color: #888;
+            margin-bottom: 6px;
+        }
+
+        .trade-status-card .value {
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        .trade-status-card .value.profit {
+            color: #c62828;
+        }
+
+        .trade-status-card .value.loss {
+            color: #1565c0;
+        }
+
+        .trade-status-card .sub-value {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        /* 시드소진율 프로그레스 (카드 내부용) */
+        .trade-seed-progress {
+            margin-top: 8px;
+        }
+
+        .trade-seed-progress .progress-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #666;
+            margin-bottom: 6px;
+        }
+
+        .trade-seed-progress .progress-bar-large {
+            width: 100%;
+            height: 12px;
+            background: #e0e0e0;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .trade-seed-progress .progress-fill-large {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 6px;
+            transition: width 0.3s ease;
+        }
+
+        .trade-accordion-content {
+            display: none;
+            background: #fff;
+            border: 1px solid #667eea;
+            border-top: none;
+            border-radius: 0 0 12px 12px !important;
+            margin-bottom: 8px;
+            margin-top: 0 !important;
+        }
+
+        .trade-accordion-content.active {
+            display: block;
+        }
+
+        .trade-accordion-content .trade-header {
+            display: none;
+        }
     </style>
     <script>
         // 로딩 표시
@@ -203,10 +446,10 @@
         }
 
         // Total Price 계산
-        function calculateTotalPrice(card) {
-            const priceInput = card.querySelector('input[name="purchase_price"]');
-            const amountInput = card.querySelector('input[name="amount"]');
-            const totalInput = card.querySelector('input[name="total_price"]');
+        function calculateTotalPrice(container) {
+            const priceInput = container.querySelector('input[name="purchase_price"]');
+            const amountInput = container.querySelector('input[name="amount"]');
+            const totalInput = container.querySelector('input[name="total_price"]');
 
             if (!priceInput || !amountInput || !totalInput) return;
 
@@ -222,7 +465,7 @@
 
         // Trade 저장
         function saveTrade(button) {
-            const card = button.closest('.trade-card');
+            const card = button.closest('.trade-accordion-content');
             const name = card.querySelector('input[name="name"]').value;
             const purchasePrice = parseCurrency(card.querySelector('input[name="purchase_price"]').value);
             const amount = parseCurrency(card.querySelector('input[name="amount"]').value);
@@ -383,17 +626,39 @@
                 });
         }
 
-        // 티커 그룹 토글
-        function toggleTickerGroup(symbol) {
-            const content = document.getElementById('group-' + symbol);
-            const icon = document.getElementById('toggle-' + symbol);
+        // Trade 아코디언 토글
+        function toggleTradeAccordion(tradeName) {
+            const header = document.querySelector(`[data-trade-header="${tradeName}"]`);
+            const content = document.querySelector(`[data-trade-content="${tradeName}"]`);
 
-            if (content.style.display === 'none') {
-                content.style.display = 'block';
-                icon.textContent = '▼';
-            } else {
-                content.style.display = 'none';
-                icon.textContent = '▶';
+            if (header && content) {
+                header.classList.toggle('active');
+                content.classList.toggle('active');
+                saveTradeExpandedState(tradeName, content.classList.contains('active'));
+            }
+        }
+
+        // 확장 상태 저장
+        function saveTradeExpandedState(tradeName, isExpanded) {
+            let expandedTrades = JSON.parse(localStorage.getItem('expandedTrades') || '{}');
+            expandedTrades[tradeName] = isExpanded;
+            localStorage.setItem('expandedTrades', JSON.stringify(expandedTrades));
+        }
+
+        // 확장 상태 복원
+        function restoreTradeExpandedStates() {
+            const expandedTrades = JSON.parse(localStorage.getItem('expandedTrades') || '{}');
+
+            for (const tradeName in expandedTrades) {
+                if (expandedTrades[tradeName]) {
+                    const header = document.querySelector(`[data-trade-header="${tradeName}"]`);
+                    const content = document.querySelector(`[data-trade-content="${tradeName}"]`);
+
+                    if (header && content) {
+                        header.classList.add('active');
+                        content.classList.add('active');
+                    }
+                }
             }
         }
 
@@ -424,7 +689,7 @@
         // 페이지 로드 시 이벤트 리스너 등록
         document.addEventListener('DOMContentLoaded', function () {
             // Trade 카드에 이벤트 리스너 등록
-            document.querySelectorAll('.trade-card').forEach(function (card) {
+            document.querySelectorAll('.trade-accordion-content').forEach(function (card) {
                 const priceInput = card.querySelector('input[name="purchase_price"]');
                 const amountInput = card.querySelector('input[name="amount"]');
 
@@ -442,6 +707,9 @@
                     });
                 }
             });
+
+            // 확장 상태 복원
+            restoreTradeExpandedStates();
 
             // 모달 외부 클릭 시 닫기
             document.querySelectorAll('.modal-overlay').forEach(modal => {
@@ -549,90 +817,146 @@
 
     <!-- Trade 리스트 섹션 -->
     <div class="card-section">
-        <div class="section-title">💼 Trade List</div>
+        <div class="section-title">💼 Trade List ({{ trade_list|length }}개)</div>
 
-        <!-- 티커별 그룹화 -->
-        {% set grouped_trades = {} %}
         {% for trade in trade_list %}
-            {% set symbol = trade.symbol %}
-            {% if symbol not in grouped_trades %}
-                {% set _ = grouped_trades.__setitem__(symbol, []) %}
-            {% endif %}
-            {% set _ = grouped_trades[symbol].append(trade) %}
-        {% endfor %}
+        {% set status = trade_status_map.get(trade.name) %}
+        <!-- Trade 아코디언 헤더 -->
+        <div class="trade-accordion-header" data-trade-header="{{ trade.name }}" onclick="toggleTradeAccordion('{{ trade.name }}')">
+            <div class="trade-accordion-left">
+                <span class="trade-accordion-toggle">▶</span>
+                <span class="trade-accordion-name">{{ trade.name }}</span>
+                <span class="trade-accordion-symbol">{{ trade.symbol }}</span>
+            </div>
+            <div class="trade-accordion-right">
+                <span class="trade-accordion-amount">{{ '{:,.0f}'.format(trade.amount) if trade.amount else '0' }}주</span>
+                <span class="trade-accordion-total">$ {{ '{:,.2f}'.format(trade.total_price) if trade.total_price else '0' }}</span>
 
-        {% for symbol, trades in grouped_trades.items() %}
-        <!-- 티커 그룹 헤더 -->
-        <div class="ticker-group-header" onclick="toggleTickerGroup('{{ symbol }}')">
-            <span class="toggle-icon" id="toggle-{{ symbol }}">▼</span>
-            <span class="ticker-symbol">📊 {{ symbol }}</span>
-            <span class="ticker-count">{{ trades|length }}개 거래</span>
+                {% if status and trade.amount > 0 and trade.name != 'RP' %}
+                <div class="trade-accordion-status">
+                    <!-- 수익금 -->
+                    <span class="trade-status-value {{ 'profit' if status.profit >= 0 else 'loss' }}">
+                        {% if status.profit >= 0 %}+{% endif %}${{ '{:,.2f}'.format(status.profit) }}
+                    </span>
+                    <!-- 수익률 -->
+                    <span class="trade-status-value {{ 'profit' if status.profit_rate >= 0 else 'loss' }}">
+                        ({% if status.profit_rate >= 0 %}+{% endif %}{{ '{:.2f}'.format(status.profit_rate) }}%)
+                    </span>
+                    <!-- 시드소진율 프로그레스 -->
+                    <div class="trade-progress-bar">
+                        <div class="trade-progress-fill" style="width: {{ status.progress_rate }}%;"></div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
         </div>
 
-        <!-- 티커 그룹 콘텐츠 (기본: 확장 상태) -->
-        <div class="ticker-group-content" id="group-{{ symbol }}" style="display: block;">
-            {% for trade in trades %}
-            <div class="trade-card">
-                <div class="trade-header">
-                    <div class="trade-name">{{ trade.name }}</div>
-                    <div class="trade-symbol">{{ trade.symbol }}</div>
-                </div>
+        <!-- Trade 아코디언 컨텐츠 -->
+        <div class="trade-accordion-content trade-card" data-trade-content="{{ trade.name }}">
+            <div class="trade-header">
+                <div class="trade-name">{{ trade.name }}</div>
+                <div class="trade-symbol">{{ trade.symbol }}</div>
+            </div>
 
-                <div class="trade-grid">
-                    <!-- 날짜 정보 -->
-                    <div class="trade-section">
-                        <div class="trade-section-title">📅 거래 날짜</div>
-                        <div class="trade-field-group">
-                            <div class="trade-field">
-                                <label>첫 구매</label>
-                                <input type="text" value="{{ trade.date_added.strftime('%Y-%m-%d %H:%M') if trade.date_added else '' }}"
-                                       readonly>
-                            </div>
-                            <div class="trade-field">
-                                <label>마지막 거래</label>
-                                <input type="text"
-                                       value="{{ trade.latest_date_trade.strftime('%Y-%m-%d %H:%M') if trade.latest_date_trade else '' }}"
-                                       readonly>
-                            </div>
+            {% if status and trade.amount > 0 and trade.name != 'RP' %}
+            <!-- 수익 현황 섹션 -->
+            <div class="trade-status-section">
+                <div class="trade-status-grid">
+                    <!-- 현재가 -->
+                    <div class="trade-status-card">
+                        <div class="label">현재가</div>
+                        <div class="value">$ {{ '{:,.2f}'.format(status.cur_price) }}</div>
+                    </div>
+                    <!-- 평균 매수가 -->
+                    <div class="trade-status-card">
+                        <div class="label">평균 매수가</div>
+                        <div class="value">$ {{ '{:,.2f}'.format(status.cur_trade.purchase_price) }}</div>
+                    </div>
+                    <!-- 수익금 -->
+                    <div class="trade-status-card">
+                        <div class="label">수익금</div>
+                        <div class="value {{ 'profit' if status.profit >= 0 else 'loss' }}">
+                            {% if status.profit >= 0 %}+{% endif %}$ {{ '{:,.2f}'.format(status.profit) }}
                         </div>
                     </div>
-
-                    <!-- 거래 정보 -->
-                    <div class="trade-section">
-                        <div class="trade-section-title">💰 거래 정보</div>
-                        <div class="trade-field-group">
-                            <input type="hidden" name="name" value="{{ trade.name }}">
-                            <div class="trade-field">
-                                <label>구매가</label>
-                                <input type="text" name="purchase_price"
-                                       value="$ {{ '{:,.2f}'.format(trade.purchase_price) if trade.purchase_price else '0' }}"
-                                       oninput="formatCurrency(this, '$ ')">
-                            </div>
-                            <div class="trade-field">
-                                <label>수량</label>
-                                <input type="text" name="amount"
-                                       value="{{ '{:,.0f}'.format(trade.amount) if trade.amount else '0' }}"
-                                       oninput="formatAmount(this)">
-                            </div>
-                            <div class="trade-field">
-                                <label>총액</label>
-                                <input type="text" name="total_price"
-                                       value="$ {{ '{:,.2f}'.format(trade.total_price) if trade.total_price else '0' }}"
-                                       readonly>
-                            </div>
+                    <!-- 수익률 -->
+                    <div class="trade-status-card">
+                        <div class="label">수익률</div>
+                        <div class="value {{ 'profit' if status.profit_rate >= 0 else 'loss' }}">
+                            {% if status.profit_rate >= 0 %}+{% endif %}{{ '{:.2f}'.format(status.profit_rate) }}%
                         </div>
                     </div>
-                </div>
-
-                <div class="trade-actions">
-                    <button type="button" onclick="saveTrade(this)" class="btn-success">💾 Save</button>
-                    {% if trade.symbol != 'RP' %}
-                    <button type="button" onclick="handleForceSell('{{ trade.name }}')" class="btn-warning">📉 Force Sell</button>
-                    {% endif %}
-                    <button type="button" onclick="deleteTrade('{{ trade.name }}')" class="btn-danger">🗑️ Delete</button>
+                    <!-- 시드 소진율 -->
+                    <div class="trade-status-card full-width">
+                        <div class="label">시드 소진율</div>
+                        <div class="trade-seed-progress">
+                            <div class="progress-info">
+                                <span>$ {{ '{:,.0f}'.format(status.cur_trade.total_price) }}</span>
+                                <span>$ {{ '{:,.0f}'.format(status.max_seed) }}</span>
+                            </div>
+                            <div class="progress-bar-large">
+                                <div class="progress-fill-large" style="width: {{ status.progress_rate }}%;"></div>
+                            </div>
+                        </div>
+                        <div class="sub-value">{{ '{:.1f}'.format(status.progress_rate) }}% 소진</div>
+                    </div>
                 </div>
             </div>
-            {% endfor %}
+            {% endif %}
+
+            <div class="trade-grid">
+                <!-- 날짜 정보 -->
+                <div class="trade-section">
+                    <div class="trade-section-title">📅 거래 날짜</div>
+                    <div class="trade-field-group">
+                        <div class="trade-field">
+                            <label>첫 구매</label>
+                            <input type="text" value="{{ trade.date_added.strftime('%Y-%m-%d %H:%M') if trade.date_added else '' }}"
+                                   readonly>
+                        </div>
+                        <div class="trade-field">
+                            <label>마지막 거래</label>
+                            <input type="text"
+                                   value="{{ trade.latest_date_trade.strftime('%Y-%m-%d %H:%M') if trade.latest_date_trade else '' }}"
+                                   readonly>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 거래 정보 -->
+                <div class="trade-section">
+                    <div class="trade-section-title">💰 거래 정보</div>
+                    <div class="trade-field-group">
+                        <input type="hidden" name="name" value="{{ trade.name }}">
+                        <div class="trade-field">
+                            <label>구매가</label>
+                            <input type="text" name="purchase_price"
+                                   value="$ {{ '{:,.2f}'.format(trade.purchase_price) if trade.purchase_price else '0' }}"
+                                   oninput="formatCurrency(this, '$ ')">
+                        </div>
+                        <div class="trade-field">
+                            <label>수량</label>
+                            <input type="text" name="amount"
+                                   value="{{ '{:,.0f}'.format(trade.amount) if trade.amount else '0' }}"
+                                   oninput="formatAmount(this)">
+                        </div>
+                        <div class="trade-field">
+                            <label>총액</label>
+                            <input type="text" name="total_price"
+                                   value="$ {{ '{:,.2f}'.format(trade.total_price) if trade.total_price else '0' }}"
+                                   readonly>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="trade-actions">
+                <button type="button" onclick="saveTrade(this)" class="btn-success">💾 Save</button>
+                {% if trade.symbol != 'RP' %}
+                <button type="button" onclick="handleForceSell('{{ trade.name }}')" class="btn-warning">📉 Force Sell</button>
+                {% endif %}
+                <button type="button" onclick="deleteTrade('{{ trade.name }}')" class="btn-danger">🗑️ Delete</button>
+            </div>
         </div>
         {% endfor %}
     </div>

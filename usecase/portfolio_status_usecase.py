@@ -174,6 +174,64 @@ class PortfolioStatusUsecase:
             print(f"❌ 거래 상태 조회 실패 ({bot_info.name}): {str(e)}")
             return None
 
+    def get_portfolio_overview(self) -> Dict[str, Any]:
+        """
+        포트폴리오 개요 조회 (index 페이지용)
+
+        Returns:
+            Dict: 포트폴리오 개요
+        """
+        try:
+            hantoo_balance = self.hantoo_service.get_balance() or 0.0
+
+            invest = 0.0
+            total_buy = 0.0
+            active_bots = 0
+            total_max_seed = 0.0
+
+            bot_info_list = self.bot_info_repo.find_all()
+            for bot_info in bot_info_list:
+                total_max_seed += bot_info.seed * bot_info.max_tier
+
+                if bot_info.active:
+                    active_bots += 1
+
+                trade = self.trade_repo.find_by_name(bot_info.name)
+                if not trade or trade.amount <= 0:
+                    continue
+
+                price = self.hantoo_service.get_price(bot_info.symbol)
+                if price is None:
+                    price = trade.purchase_price
+                invest += trade.amount * price
+                total_buy += trade.total_price
+
+            rp = self._get_rp()
+            total_balance = hantoo_balance + invest + rp
+
+            # 현재 손익
+            current_profit = invest - total_buy
+            profit_rate = (current_profit / total_buy * 100) if total_buy > 0 else 0
+
+            # 환율
+            usd_krw = util.get_naver_exchange_rate()
+
+            return {
+                "total_balance": total_balance,
+                "total_buy": total_buy,
+                "invest": invest,
+                "current_profit": current_profit,
+                "profit_rate": profit_rate,
+                "usd_krw": usd_krw,
+                "active_bots": active_bots,
+                "total_bots": len(bot_info_list),
+                "total_max_seed": total_max_seed,
+            }
+
+        except Exception as e:
+            print(f"❌ 포트폴리오 개요 조회 실패: {str(e)}")
+            return None
+
     def get_portfolio_summary(self) -> Dict[str, Any]:
         """
         전체 포트폴리오 요약 조회
@@ -603,6 +661,75 @@ class PortfolioStatusUsecase:
 
         except Exception as e:
             print(f"❌ 시장 지표 조회 실패: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return None
+
+    def get_market_history_data(self, days: int = 30) -> Optional[Dict[str, Any]]:
+        """
+        시장 지표 히스토리 데이터 조회 (VIX + 활성 봇들의 ticker RSI + 가격)
+
+        Args:
+            days: 조회 기간 (일수, 기본 30일)
+
+        Returns:
+            Dict: 시장 지표 히스토리 데이터
+                {
+                    "vix_history": [{"date": "2025-12-01", "value": 15.78}, ...],
+                    "rsi_history": {
+                        "TQQQ": [{"date": "2025-12-01", "value": 56.26}, ...],
+                        ...
+                    },
+                    "price_history": {
+                        "TQQQ": [{"date": "2025-12-01", "value": 85.50}, ...],
+                        ...
+                    }
+                }
+                또는 None (Repository가 없거나 조회 실패 시)
+        """
+        if not self.market_indicator_repo:
+            print("⚠️ MarketIndicatorRepository가 설정되지 않았습니다")
+            return None
+
+        try:
+            result = {}
+
+            # VIX 히스토리 조회
+            vix_history = self.market_indicator_repo.get_vix_history(days=days)
+            if vix_history:
+                result["vix_history"] = vix_history
+
+            # 활성화된 봇들의 ticker 추출 (중복 제거)
+            bot_info_list = self.bot_info_repo.find_all()
+            unique_tickers = set()
+            for bot_info in bot_info_list:
+                if bot_info.active and bot_info.symbol:
+                    unique_tickers.add(bot_info.symbol)
+
+            # 각 ticker별 RSI 히스토리 조회
+            rsi_history = {}
+            for ticker in sorted(unique_tickers):
+                rsi_data = self.market_indicator_repo.get_rsi_history(ticker, days=days)
+                if rsi_data:
+                    rsi_history[ticker] = rsi_data
+
+            if rsi_history:
+                result["rsi_history"] = rsi_history
+
+            # 각 ticker별 가격 히스토리 조회
+            price_history = {}
+            for ticker in sorted(unique_tickers):
+                price_data = self.market_indicator_repo.get_price_history(ticker, days=days)
+                if price_data:
+                    price_history[ticker] = price_data
+
+            if price_history:
+                result["price_history"] = price_history
+
+            return result if result else None
+
+        except Exception as e:
+            print(f"❌ 시장 지표 히스토리 조회 실패: {str(e)}")
             import traceback
             traceback.print_exc()
             return None

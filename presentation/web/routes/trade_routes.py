@@ -59,9 +59,18 @@ def trade_template():
         trade_list = portfolio_usecase.get_all_trades()
         history_list = portfolio_usecase.get_history_by_filter(year, month, symbol)
 
+        # 각 trade에 대한 status 정보 조회
+        trade_status_map = {}
+        bot_info_list = portfolio_usecase.get_all_bot_info()
+        for bot_info in bot_info_list:
+            status = portfolio_usecase.get_trade_status(bot_info)
+            if status:
+                trade_status_map[bot_info.name] = status
+
         return render_template(
             'trade.html',
             trade_list=trade_list,
+            trade_status_map=trade_status_map,
             history_list=history_list,
             year=year,
             month=month,

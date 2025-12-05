@@ -279,6 +279,12 @@ body {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
+    background: #f8f9fa;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    min-width: 120px;
+    gap: 12px;
 }
 
 .bot-field-radio {

@@ -17,6 +17,7 @@ nohup.out
 *.dat
 *.dir
 *.bak
+key_store.json
 
 # Python
 __pycache__/

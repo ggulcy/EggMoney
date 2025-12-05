@@ -105,7 +105,7 @@ def main():
     # Flask 앱 생성
     app = create_app()
 
-    # 프로덕션 모드에서만 스케줄러 시작
+    # # 프로덕션 모드에서만 스케줄러 시작
     if not is_test:
         set_scheduler()
     else:

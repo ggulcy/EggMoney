@@ -162,6 +162,129 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
         }
+
+        /* 봇 아코디언 스타일 */
+        .bot-accordion-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .bot-accordion-header:hover {
+            background: #f8f9ff;
+            border-color: #667eea;
+        }
+
+        .bot-accordion-header.active {
+            border-color: #667eea;
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+            margin-bottom: 0;
+        }
+
+        .bot-accordion-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .bot-accordion-toggle {
+            font-size: 0.8rem;
+            color: #667eea;
+            transition: transform 0.2s;
+        }
+
+        .bot-accordion-header.active .bot-accordion-toggle {
+            transform: rotate(90deg);
+        }
+
+        .bot-accordion-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 1rem;
+        }
+
+        .bot-accordion-symbol {
+            background: #667eea;
+            color: #fff;
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .bot-accordion-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .bot-accordion-progress {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .bot-accordion-progress-bar {
+            width: 100px;
+            height: 10px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .bot-accordion-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 5px;
+            transition: width 0.3s;
+        }
+
+        .bot-accordion-progress-text {
+            font-size: 0.9rem;
+            color: #333;
+            font-weight: 700;
+            min-width: 50px;
+        }
+
+        .bot-accordion-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ccc;
+        }
+
+        .bot-accordion-status.active {
+            background: #4caf50;
+        }
+
+        .bot-accordion-content {
+            display: none;
+            background: #fff;
+            border: 1px solid #667eea;
+            border-top: none;
+            border-radius: 0 0 12px 12px !important;
+            margin-bottom: 8px;
+            margin-top: 0 !important;
+        }
+
+        .bot-accordion-content.active {
+            display: block;
+        }
+
+        .bot-accordion-content .bot-card-header {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 16px;
+            margin-bottom: 16px;
+        }
     </style>
     <script>
         // 로딩 표시
@@ -194,10 +317,10 @@
         }
 
         // 총 시드 계산
-        function updateTotalSeed(card) {
-            const seedInput = card.querySelector('input[name="seed"]');
-            const maxTierInput = card.querySelector('input[name="max_tier"]');
-            const totalSeedInput = card.querySelector('input[name="total_seed"]');
+        function updateTotalSeed(container) {
+            const seedInput = container.querySelector('input[name="seed"]');
+            const maxTierInput = container.querySelector('input[name="max_tier"]');
+            const totalSeedInput = container.querySelector('input[name="total_seed"]');
 
             if (!seedInput || !maxTierInput || !totalSeedInput) return;
 
@@ -210,7 +333,7 @@
 
         // 개별 bot 저장
         function saveBotInfo(button) {
-            const card = button.closest('.bot-card');
+            const card = button.closest('.bot-accordion-content');
             const data = {
                 name: card.querySelector('input[name="name"]').value,
                 symbol: card.querySelector('input[name="symbol"]').value,
@@ -322,19 +445,15 @@
             return hour * 60 + minute;
         }
 
-        // 티커 그룹 토글
-        function toggleTickerGroup(symbol) {
-            const group = document.querySelector(`[data-ticker-group="${symbol}"]`);
-            const toggleBtn = document.querySelector(`[data-ticker-toggle="${symbol}"]`);
+        // 봇 아코디언 토글
+        function toggleBotAccordion(botName) {
+            const header = document.querySelector(`[data-bot-header="${botName}"]`);
+            const content = document.querySelector(`[data-bot-content="${botName}"]`);
 
-            if (group.style.display === 'none') {
-                group.style.display = 'block';
-                toggleBtn.textContent = '▼';
-                saveExpandedState(symbol, true);
-            } else {
-                group.style.display = 'none';
-                toggleBtn.textContent = '▶';
-                saveExpandedState(symbol, false);
+            if (header && content) {
+                header.classList.toggle('active');
+                content.classList.toggle('active');
+                saveExpandedState(botName, content.classList.contains('active'));
             }
         }
 
@@ -399,24 +518,24 @@
         }
 
         // 확장 상태 저장
-        function saveExpandedState(symbol, isExpanded) {
-            let expandedGroups = JSON.parse(localStorage.getItem('expandedTickerGroups') || '{}');
-            expandedGroups[symbol] = isExpanded;
-            localStorage.setItem('expandedTickerGroups', JSON.stringify(expandedGroups));
+        function saveExpandedState(botName, isExpanded) {
+            let expandedBots = JSON.parse(localStorage.getItem('expandedBots') || '{}');
+            expandedBots[botName] = isExpanded;
+            localStorage.setItem('expandedBots', JSON.stringify(expandedBots));
         }
 
         // 확장 상태 복원
         function restoreExpandedStates() {
-            const expandedGroups = JSON.parse(localStorage.getItem('expandedTickerGroups') || '{}');
+            const expandedBots = JSON.parse(localStorage.getItem('expandedBots') || '{}');
 
-            for (const symbol in expandedGroups) {
-                if (expandedGroups[symbol]) {
-                    const group = document.querySelector(`[data-ticker-group="${symbol}"]`);
-                    const toggleBtn = document.querySelector(`[data-ticker-toggle="${symbol}"]`);
+            for (const botName in expandedBots) {
+                if (expandedBots[botName]) {
+                    const header = document.querySelector(`[data-bot-header="${botName}"]`);
+                    const content = document.querySelector(`[data-bot-content="${botName}"]`);
 
-                    if (group && toggleBtn) {
-                        group.style.display = 'block';
-                        toggleBtn.textContent = '▼';
+                    if (header && content) {
+                        header.classList.add('active');
+                        content.classList.add('active');
                     }
                 }
             }
@@ -433,7 +552,7 @@
                 });
             });
 
-            const botCards = document.querySelectorAll('.bot-card:not(.new-entry)');
+            const botCards = document.querySelectorAll('.bot-accordion-content');
             botCards.forEach(updateTotalSeed);
 
             // 확장 상태 복원
@@ -537,28 +656,30 @@
 
     <!-- 봇 정보 섹션 -->
     <div class="card-section">
-        <div class="section-title">🎯 봇 목록</div>
-        {% set grouped_bots = {} %}
-        {% for bot_info, tier in bot_info_with_tiers %}
-            {% set symbol = bot_info.symbol %}
-            {% if symbol not in grouped_bots %}
-                {% set _ = grouped_bots.__setitem__(symbol, []) %}
-            {% endif %}
-            {% set _ = grouped_bots[symbol].append((bot_info, tier)) %}
-        {% endfor %}
+        <div class="section-title">🎯 봇 목록 ({{ bot_info_with_tiers|length }}개)</div>
 
-        {% for symbol, bots in grouped_bots.items() %}
-        <!-- 티커 그룹 헤더 -->
-        <div class="ticker-group-header" onclick="toggleTickerGroup('{{ symbol }}')">
-            <span class="toggle-icon" data-ticker-toggle="{{ symbol }}">▶</span>
-            <span class="ticker-symbol">🤖 {{ symbol }}</span>
-            <span class="ticker-count">{{ bots|length }}개 봇</span>
+        {% for bot_info, tier in bot_info_with_tiers %}
+        {% set progress_percent = ((tier / bot_info.max_tier) * 100) if bot_info.max_tier > 0 else 0 %}
+        <!-- 봇 아코디언 헤더 -->
+        <div class="bot-accordion-header" data-bot-header="{{ bot_info.name }}" onclick="toggleBotAccordion('{{ bot_info.name }}')">
+            <div class="bot-accordion-left">
+                <span class="bot-accordion-toggle">▶</span>
+                <span class="bot-accordion-name">{{ bot_info.name }}</span>
+                <span class="bot-accordion-symbol">{{ bot_info.symbol }}</span>
+            </div>
+            <div class="bot-accordion-right">
+                <div class="bot-accordion-progress">
+                    <div class="bot-accordion-progress-bar">
+                        <div class="bot-accordion-progress-fill" style="width: {{ progress_percent }}%"></div>
+                    </div>
+                    <span class="bot-accordion-progress-text">{{ tier|int }}/{{ bot_info.max_tier }}</span>
+                </div>
+                <span class="bot-accordion-status {% if bot_info.active %}active{% endif %}"></span>
+            </div>
         </div>
 
-        <!-- 티커 그룹 내용 -->
-        <div class="ticker-group-content" data-ticker-group="{{ symbol }}" style="display: none;">
-        {% for bot_info, tier in bots %}
-        <div class="bot-card">
+        <!-- 봇 아코디언 컨텐츠 -->
+        <div class="bot-accordion-content bot-card" data-bot-content="{{ bot_info.name }}">
             <div class="bot-card-header">
                 <span>{{ bot_info.name }}</span>
                 <div class="bot-header-toggle">
@@ -596,12 +717,12 @@
                         <label>1회시드</label>
                         <input type="text" name="seed"
                                value="$ {{ '{:,.0f}'.format(bot_info.seed) if bot_info.seed else '' }}"
-                               oninput="formatCurrency(this, '$ '); updateTotalSeed(this.closest('.bot-card'))">
+                               oninput="formatCurrency(this, '$ '); updateTotalSeed(this.closest('.bot-accordion-content'))">
                     </div>
                     <div class="bot-field">
                         <label>Max티어</label>
                         <input type="number" name="max_tier" value="{{ bot_info.max_tier }}"
-                               oninput="updateTotalSeed(this.closest('.bot-card'))">
+                               oninput="updateTotalSeed(this.closest('.bot-accordion-content'))">
                     </div>
                     <div class="bot-field">
                         <label>수익률</label>
@@ -663,8 +784,6 @@
                 </div>
             </div>
         </div>
-        {% endfor %}
-        </div> <!-- ticker-group-content 닫기 -->
         {% endfor %}
     </div>
 
