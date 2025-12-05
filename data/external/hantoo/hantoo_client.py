@@ -2,13 +2,14 @@
 """한국투자증권 API 클라이언트"""
 import json
 import logging
+import os
 import time
 from datetime import datetime
 from typing import Dict, Optional
 
 import requests
 
-from config import item, key_store
+from config import key_store
 from data.external.hantoo.hantoo_models import HantooExd
 
 # 로거 설정
@@ -21,51 +22,18 @@ logging.basicConfig(
 
 
 class HantooAccountInfo:
-    """한국투자증권 계좌 정보"""
-
-    # 박찬형 (Chan) 계좌
-    CANO_CHAN = "64280842"
-    ACNT_PRDT_CD_CHAN = "01"
-    API_URL_CHAN = "https://openapi.koreainvestment.com:9443"
-    APP_KEY_CHAN = "PS5Vx7eE1sLLn2YMpObiKzf2QYy2eZtvWC3d"
-    APP_SECRET_CHAN = "TbGvojUiTkY6lDUwJbusOSTbvEdhdurGqRC+50eW58iBKZTGZ/Dhida4q5/kDRDpnoVNYKFdKsBpAmwb4DH+I5+WxmPDmho35lAA7dFCWGWo/InVd+ZUatfQ/NmAqSeW70uJC/ktG0T6d/ngrD58XW/WfyblKAOPmRLi5gqZuoFLiMmQiKk="
-
-    # 최태성 (Choe) 계좌
-    CANO_CHOE = "64448134"
-    ACNT_PRDT_CD_CHOE = "01"
-    API_URL_CHOE = "https://openapi.koreainvestment.com:9443"
-    APP_KEY_CHOE = "PS9aRz6JtS5kKyIKIzCISVH0DBQIyMhTaYoH"
-    APP_SECRET_CHOE = "SgQMd2mkPBdMXOlIVfh7rkatvgo/34s6OQcAy3PSORNvXBSjZs3Vpm1FilMjo5iqq26N0tqeLaBwfR1ZcMl0Z971q+rtiuFgkF1tdLX8SVoe/Ea/Ydo3HTy9uEkayi4I3HLj3q8B8pvqUpTRbiR8aq2WZDK3ykOCs93lbACYiOfipKMUDmg="
-
-    # SK 계좌
-    CANO_SK = "74585335"
-    ACNT_PRDT_CD_SK = "01"
-    API_URL_SK = "https://openapi.koreainvestment.com:9443"
-    APP_KEY_SK = "PSn7Xy7gG9Lsel4fdBT5JFosFoIWCzU7Ys4u"
-    APP_SECRET_SK = "qcOgCU/WBfOlrbuGk6ABFo8AHl1OhZFNz/YbAQSv6wFxYKE9uQV7ZPSKUbYyJrJqUIt5VMJRP+3Oz8rfiFXP7LHlgI8o4MxAA7ZL/Q8n7QNBr7BsRuX6Wg3BbmZko2tqmIF6IcV3xevb4l5hvNkR2Jz5IHLxla0jQQRSLBuRfVvVblla8tM="
+    """한국투자증권 계좌 정보 (환경변수에서 로드)"""
 
     def __init__(self):
-        """현재 관리자에 따라 계좌 정보 초기화"""
-        if item.admin == item.BotAdmin.Chan:
-            self.cano = self.CANO_CHAN
-            self.acnt_prdt_cd = self.ACNT_PRDT_CD_CHAN
-            self.api_url = self.API_URL_CHAN
-            self.app_key = self.APP_KEY_CHAN
-            self.app_secret = self.APP_SECRET_CHAN
-        elif item.admin == item.BotAdmin.Choe:
-            self.cano = self.CANO_CHOE
-            self.acnt_prdt_cd = self.ACNT_PRDT_CD_CHOE
-            self.api_url = self.API_URL_CHOE
-            self.app_key = self.APP_KEY_CHOE
-            self.app_secret = self.APP_SECRET_CHOE
-        elif item.admin == item.BotAdmin.SK:
-            self.cano = self.CANO_SK
-            self.acnt_prdt_cd = self.ACNT_PRDT_CD_SK
-            self.api_url = self.API_URL_SK
-            self.app_key = self.APP_KEY_SK
-            self.app_secret = self.APP_SECRET_SK
-        else:
-            raise ValueError(f"Unknown admin: {item.admin}")
+        """환경변수에서 계좌 정보 초기화"""
+        self.cano = os.getenv('HANTOO_CANO')
+        self.acnt_prdt_cd = os.getenv('HANTOO_ACNT_PRDT_CD', '01')
+        self.api_url = os.getenv('HANTOO_API_URL', 'https://openapi.koreainvestment.com:9443')
+        self.app_key = os.getenv('HANTOO_APP_KEY')
+        self.app_secret = os.getenv('HANTOO_APP_SECRET')
+
+        if not self.cano or not self.app_key or not self.app_secret:
+            raise ValueError("HANTOO_CANO, HANTOO_APP_KEY, HANTOO_APP_SECRET 환경변수가 필요합니다.")
 
 
 class HantooClient:

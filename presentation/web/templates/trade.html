@@ -5,6 +5,164 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trade Management</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* 모달 스타일 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-card {
+            background: #fff;
+            border-radius: 15px;
+            padding: 28px;
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            border: 1px solid #e0e0e0;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .modal-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #999;
+            font-size: 1.8rem;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+
+        .modal-close:hover {
+            color: #333;
+        }
+
+        .modal-body {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .modal-field {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .modal-field label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #666;
+        }
+
+        .modal-field input {
+            padding: 12px 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            background: #fafafa;
+            color: #333;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .modal-field input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .modal-actions button {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .modal-btn-cancel {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .modal-btn-cancel:hover {
+            background: #e0e0e0;
+        }
+
+        .modal-btn-submit {
+            background: #667eea;
+            color: #fff;
+        }
+
+        .modal-btn-submit:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        /* 추가 버튼 영역 */
+        .add-buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .add-btn {
+            flex: 1;
+            padding: 16px 24px;
+            border: 2px dashed #667eea;
+            border-radius: 12px;
+            background: rgba(102, 126, 234, 0.05);
+            color: #667eea;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .add-btn:hover {
+            border-style: solid;
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+    </style>
     <script>
         // 로딩 표시
         function showLoading() {
@@ -100,20 +258,67 @@
                 });
         }
 
-        // History 추가
-        function addHistory() {
-            const name = document.getElementById('history_name').value.trim();
-            const symbol = document.getElementById('history_symbol').value.trim();
-            const buyPrice = parseCurrency(document.getElementById('history_buy_price').value);
-            const sellPrice = parseCurrency(document.getElementById('history_sell_price').value);
-            const amount = parseCurrency(document.getElementById('history_amount').value);
+        // 모달 열기/닫기
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+            // 입력 필드 초기화
+            const modal = document.getElementById(modalId);
+            modal.querySelectorAll('input').forEach(input => {
+                if (input.type === 'text') {
+                    input.value = '';
+                }
+            });
+        }
+
+        // Trade 추가
+        function submitAddTrade() {
+            const name = document.getElementById('modal_trade_name').value.trim();
+            const symbol = document.getElementById('modal_trade_symbol').value.trim();
+            const purchasePrice = parseCurrency(document.getElementById('modal_trade_price').value);
+            const amount = parseCurrency(document.getElementById('modal_trade_amount').value);
 
             if (!name || !symbol) {
                 alert('이름과 심볼을 입력해주세요.');
                 return;
             }
 
-            if (!confirm('History를 추가하시겠습니까?')) {
+            showLoading();
+            fetch('/add_trade', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    name: name,
+                    symbol: symbol,
+                    purchase_price: purchasePrice,
+                    amount: amount
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    hideLoading();
+                    alert(data.message || data.error);
+                    if (!data.error) location.reload();
+                })
+                .catch(error => {
+                    hideLoading();
+                    alert('Error: ' + error);
+                });
+        }
+
+        // History 추가
+        function submitAddHistory() {
+            const name = document.getElementById('modal_history_name').value.trim();
+            const symbol = document.getElementById('modal_history_symbol').value.trim();
+            const buyPrice = parseCurrency(document.getElementById('modal_history_buy_price').value);
+            const sellPrice = parseCurrency(document.getElementById('modal_history_sell_price').value);
+            const amount = parseCurrency(document.getElementById('modal_history_amount').value);
+
+            if (!name || !symbol) {
+                alert('이름과 심볼을 입력해주세요.');
                 return;
             }
 
@@ -192,18 +397,28 @@
             }
         }
 
-        // Add History 토글
-        function toggleAddHistory() {
-            const cardBody = document.querySelector('.add-history-body');
-            const toggleBtn = document.querySelector('.add-history-toggle');
-
-            if (cardBody.style.display === 'none') {
-                cardBody.style.display = 'block';
-                toggleBtn.textContent = '▼';
-            } else {
-                cardBody.style.display = 'none';
-                toggleBtn.textContent = '▶';
+        // Trade 삭제
+        function deleteTrade(name) {
+            if (!confirm(`${name} Trade를 삭제하시겠습니까?`)) {
+                return;
             }
+
+            showLoading();
+            fetch('/delete_trade', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name: name})
+            })
+                .then(response => response.json())
+                .then(data => {
+                    hideLoading();
+                    alert(data.message || data.error);
+                    if (!data.error) location.reload();
+                })
+                .catch(error => {
+                    hideLoading();
+                    alert('Error: ' + error);
+                });
         }
 
         // 페이지 로드 시 이벤트 리스너 등록
@@ -227,6 +442,15 @@
                     });
                 }
             });
+
+            // 모달 외부 클릭 시 닫기
+            document.querySelectorAll('.modal-overlay').forEach(modal => {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        this.classList.remove('active');
+                    }
+                });
+            });
         });
     </script>
 </head>
@@ -236,6 +460,79 @@
     <div class="loading-spinner"></div>
 </div>
 
+<!-- Trade 추가 모달 -->
+<div id="addTradeModal" class="modal-overlay">
+    <div class="modal-card">
+        <div class="modal-header">
+            <span class="modal-title">➕ Trade 추가</span>
+            <button class="modal-close" onclick="closeModal('addTradeModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-field">
+                <label>봇 이름</label>
+                <input type="text" id="modal_trade_name" placeholder="Enter name">
+            </div>
+            <div class="modal-field">
+                <label>심볼</label>
+                <input type="text" id="modal_trade_symbol" placeholder="Enter symbol">
+            </div>
+            <div class="modal-field">
+                <label>구매가</label>
+                <input type="text" id="modal_trade_price" placeholder="$ 0.00"
+                       oninput="formatCurrency(this, '$ ')">
+            </div>
+            <div class="modal-field">
+                <label>수량</label>
+                <input type="text" id="modal_trade_amount" placeholder="0"
+                       oninput="formatAmount(this)">
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn-cancel" onclick="closeModal('addTradeModal')">취소</button>
+                <button class="modal-btn-submit" onclick="submitAddTrade()">추가</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- History 추가 모달 -->
+<div id="addHistoryModal" class="modal-overlay">
+    <div class="modal-card">
+        <div class="modal-header">
+            <span class="modal-title">📜 History 추가</span>
+            <button class="modal-close" onclick="closeModal('addHistoryModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-field">
+                <label>봇 이름</label>
+                <input type="text" id="modal_history_name" placeholder="Enter name">
+            </div>
+            <div class="modal-field">
+                <label>심볼</label>
+                <input type="text" id="modal_history_symbol" placeholder="Enter symbol">
+            </div>
+            <div class="modal-field">
+                <label>구매가</label>
+                <input type="text" id="modal_history_buy_price" placeholder="$ 0.00"
+                       oninput="formatCurrency(this, '$ ')">
+            </div>
+            <div class="modal-field">
+                <label>판매가</label>
+                <input type="text" id="modal_history_sell_price" placeholder="$ 0.00"
+                       oninput="formatCurrency(this, '$ ')">
+            </div>
+            <div class="modal-field">
+                <label>수량</label>
+                <input type="text" id="modal_history_amount" placeholder="0"
+                       oninput="formatAmount(this)">
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn-cancel" onclick="closeModal('addHistoryModal')">취소</button>
+                <button class="modal-btn-submit" onclick="submitAddHistory()">추가</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="bot-container">
     <!-- 페이지 헤더 -->
     <div class="page-header">
@@ -243,6 +540,11 @@
             <h1>📊 Trade 관리</h1>
         </div>
         <a href="/" class="back-link">← 메인으로</a>
+    </div>
+
+    <!-- Trade 추가 버튼 -->
+    <div class="add-buttons">
+        <button class="add-btn" onclick="openModal('addTradeModal')">➕ Trade 추가</button>
     </div>
 
     <!-- Trade 리스트 섹션 -->
@@ -327,6 +629,7 @@
                     {% if trade.symbol != 'RP' %}
                     <button type="button" onclick="handleForceSell('{{ trade.name }}')" class="btn-warning">📉 Force Sell</button>
                     {% endif %}
+                    <button type="button" onclick="deleteTrade('{{ trade.name }}')" class="btn-danger">🗑️ Delete</button>
                 </div>
             </div>
             {% endfor %}
@@ -334,52 +637,14 @@
         {% endfor %}
     </div>
 
-    <!-- History 추가 섹션 -->
-    <div class="card-section">
-        <div class="section-title">➕ Add History</div>
-        <div class="add-history-container">
-            <div class="ticker-group-header add-history-header" onclick="toggleAddHistory()">
-                <span class="add-history-toggle">▶</span>
-                <span class="ticker-name">히스토리 추가</span>
-            </div>
-            <div class="add-history-body history-add-card" style="display: none;">
-                <div class="bot-card-body">
-            <div class="history-grid">
-                <div class="history-field">
-                    <label>봇 이름</label>
-                    <input type="text" id="history_name" placeholder="Enter name">
-                </div>
-                <div class="history-field">
-                    <label>심볼</label>
-                    <input type="text" id="history_symbol" placeholder="Enter symbol">
-                </div>
-                <div class="history-field">
-                    <label>구매가</label>
-                    <input type="text" id="history_buy_price" placeholder="$ 0.00"
-                           oninput="formatCurrency(this, '$ ')">
-                </div>
-                <div class="history-field">
-                    <label>판매가</label>
-                    <input type="text" id="history_sell_price" placeholder="$ 0.00"
-                           oninput="formatCurrency(this, '$ ')">
-                </div>
-                <div class="history-field">
-                    <label>수량</label>
-                    <input type="text" id="history_amount" placeholder="0"
-                           oninput="formatAmount(this)">
-                </div>
-            </div>
-            <div class="history-actions">
-                <button type="button" onclick="addHistory()" class="btn-success">💾 Add History</button>
-            </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- History 필터 및 리스트 섹션 -->
     <div class="card-section">
         <div class="section-title">📜 History List</div>
+
+        <!-- History 추가 버튼 -->
+        <div class="add-buttons" style="margin-bottom: 15px;">
+            <button class="add-btn" onclick="openModal('addHistoryModal')">📜 History 추가</button>
+        </div>
 
         <!-- 필터 폼 -->
         <form method="POST" action="/trade" class="history-filter-form">

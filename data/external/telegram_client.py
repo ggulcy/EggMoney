@@ -9,27 +9,21 @@ from telegram import Bot
 from telegram.request import HTTPXRequest
 from telegram.error import TimedOut, NetworkError
 
-from config import admin, BotAdmin, is_test
+from config import is_test
 
 
 def _get_bot_config() -> tuple[str, str]:
     """
-    관리자별 Telegram Bot 설정 반환
+    환경변수에서 Telegram Bot 설정 반환
 
     Returns:
         tuple[bot_token, chat_id]
     """
-    if admin == BotAdmin.Chan:
-        bot_token = '7407356385:AAEfmw9M5U5MQbbjfGQklVw4ZbMOk3JkOx4'
-        chat_id = '533693680'
-    elif admin == BotAdmin.Choe:
-        bot_token = '7896143878:AAGAUn1y-dW97sQlDRMN4SFTNfs6ugQxp_Y'
-        chat_id = '533693680'
-    elif admin == BotAdmin.SK:
-        bot_token = '7911228166:AAGX8ie8geeDkPIgy73CLtWot-cSuca0xPo'
-        chat_id = '5002736632'
-    else:
-        raise ValueError(f"Unknown admin: {admin}")
+    bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
+    chat_id = os.getenv('TELEGRAM_CHAT_ID')
+
+    if not bot_token or not chat_id:
+        raise ValueError("TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID 환경변수가 필요합니다.")
 
     return bot_token, chat_id
 

@@ -351,30 +351,8 @@ class MessageJobs:
         # 3. 봇 동기화 체크
         self.sync_bots()
 
-        # 4. CSV 파일 정리
-        self._cleanup_csv()
 
         print("=" * 80)
         print("✅ 일일 작업 완료")
         print("=" * 80)
 
-    def _cleanup_csv(self, root_path="./data") -> None:
-        """CSV 파일 정리"""
-        import os
-
-        if not os.path.exists(root_path):
-            print(f"⚠️ 경로 없음: {root_path}")
-            return
-
-        deleted_count = 0
-        for filename in os.listdir(root_path):
-            file_path = os.path.join(root_path, filename)
-            if os.path.isfile(file_path):
-                try:
-                    os.remove(file_path)
-                    deleted_count += 1
-                except Exception as e:
-                    print(f"  ⚠️ 삭제 실패: {filename}")
-
-        if deleted_count > 0:
-            print(f"✅ {deleted_count}개 CSV 파일 삭제")

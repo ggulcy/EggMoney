@@ -6,7 +6,162 @@
     <title>Bot Info Management</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
-        /* bot_info 페이지 전용 스타일 (나머지는 style.css 참조) */
+        /* 모달 스타일 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-card {
+            background: #fff;
+            border-radius: 15px;
+            padding: 28px;
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            border: 1px solid #e0e0e0;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .modal-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #999;
+            font-size: 1.8rem;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+
+        .modal-close:hover {
+            color: #333;
+        }
+
+        .modal-body {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .modal-field {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .modal-field label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #666;
+        }
+
+        .modal-field input {
+            padding: 12px 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            background: #fafafa;
+            color: #333;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .modal-field input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .modal-actions button {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .modal-btn-cancel {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .modal-btn-cancel:hover {
+            background: #e0e0e0;
+        }
+
+        .modal-btn-submit {
+            background: #667eea;
+            color: #fff;
+        }
+
+        .modal-btn-submit:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        /* 추가 버튼 영역 */
+        .add-buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .add-btn {
+            flex: 1;
+            padding: 16px 24px;
+            border: 2px dashed #667eea;
+            border-radius: 12px;
+            background: rgba(102, 126, 234, 0.05);
+            color: #667eea;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .add-btn:hover {
+            border-style: solid;
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
     </style>
     <script>
         // 로딩 표시
@@ -183,26 +338,30 @@
             }
         }
 
-        // 새 봇 추가 카드 토글
-        function toggleNewBotCard() {
-            const cardBody = document.querySelector('.new-bot-card-body');
-            const toggleBtn = document.querySelector('.new-bot-toggle');
-
-            if (cardBody.style.display === 'none') {
-                cardBody.style.display = 'block';
-                toggleBtn.textContent = '▼';
-            } else {
-                cardBody.style.display = 'none';
-                toggleBtn.textContent = '▶';
-            }
+        // 모달 열기/닫기
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
         }
 
-        // 새 봇 추가 함수 수정
-        function addNewBot(button) {
-            const container = button.closest('.new-bot-container');
-            const name = container.querySelector('input[name="name"]').value;
-            const symbol = container.querySelector('input[name="symbol"]').value;
-            const seed = parseCurrency(container.querySelector('input[name="seed"]').value);
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+            // 입력 필드 초기화
+            const modal = document.getElementById(modalId);
+            modal.querySelectorAll('input').forEach(input => {
+                if (input.type === 'text' || input.type === 'number') {
+                    input.value = '';
+                }
+            });
+        }
+
+        // 새 봇 추가
+        function submitAddBot() {
+            const name = document.getElementById('modal_bot_name').value.trim();
+            const symbol = document.getElementById('modal_bot_symbol').value.trim();
+            const seed = parseCurrency(document.getElementById('modal_bot_seed').value);
+            const maxTier = parseInt(document.getElementById('modal_bot_max_tier').value) || 0;
+            const profitRate = parseFloat(document.getElementById('modal_bot_profit_rate').value) || 0;
+            const tDiv = parseInt(document.getElementById('modal_bot_t_div').value) || 0;
 
             if (!name) {
                 alert('이름을 입력해주세요.');
@@ -214,20 +373,18 @@
                 return;
             }
 
-            const data = {
-                name: name,
-                symbol: symbol,
-                seed: seed,
-                max_tier: parseInt(container.querySelector('input[name="max_tier"]').value) || 0,
-                profit_rate: parseFloat(container.querySelector('input[name="profit_rate"]').value) || 0,
-                t_div: parseInt(container.querySelector('input[name="t_div"]').value) || 0
-            };
-
             showLoading();
             fetch('/add_bot_info', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(data)
+                body: JSON.stringify({
+                    name: name,
+                    symbol: symbol,
+                    seed: seed,
+                    max_tier: maxTier,
+                    profit_rate: profitRate,
+                    t_div: tDiv
+                })
             })
             .then(response => response.json())
             .then(data => {
@@ -281,6 +438,15 @@
 
             // 확장 상태 복원
             restoreExpandedStates();
+
+            // 모달 외부 클릭 시 닫기
+            document.querySelectorAll('.modal-overlay').forEach(modal => {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        this.classList.remove('active');
+                    }
+                });
+            });
         });
     </script>
 </head>
@@ -290,6 +456,47 @@
     <div class="loading-spinner"></div>
 </div>
 
+<!-- 봇 추가 모달 -->
+<div id="addBotModal" class="modal-overlay">
+    <div class="modal-card">
+        <div class="modal-header">
+            <span class="modal-title">🤖 새 봇 추가</span>
+            <button class="modal-close" onclick="closeModal('addBotModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-field">
+                <label>이름</label>
+                <input type="text" id="modal_bot_name" placeholder="Enter bot name">
+            </div>
+            <div class="modal-field">
+                <label>티커</label>
+                <input type="text" id="modal_bot_symbol" placeholder="Enter symbol">
+            </div>
+            <div class="modal-field">
+                <label>1회 시드</label>
+                <input type="text" id="modal_bot_seed" placeholder="$ 0"
+                       oninput="formatCurrency(this, '$ ')">
+            </div>
+            <div class="modal-field">
+                <label>Max 티어</label>
+                <input type="number" id="modal_bot_max_tier" placeholder="Enter max tier">
+            </div>
+            <div class="modal-field">
+                <label>수익률</label>
+                <input type="text" id="modal_bot_profit_rate" placeholder="Enter profit rate">
+            </div>
+            <div class="modal-field">
+                <label>T Div</label>
+                <input type="text" id="modal_bot_t_div" placeholder="Enter T div">
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn-cancel" onclick="closeModal('addBotModal')">취소</button>
+                <button class="modal-btn-submit" onclick="submitAddBot()">추가</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="bot-container">
     <!-- 페이지 헤더 -->
     <div class="page-header">
@@ -297,6 +504,11 @@
             <h1>🤖 봇 정보 관리</h1>
         </div>
         <a href="/" class="back-link">← 메인으로</a>
+    </div>
+
+    <!-- 추가 버튼 영역 -->
+    <div class="add-buttons">
+        <button class="add-btn" onclick="openModal('addBotModal')">🤖 새 봇 추가</button>
     </div>
 
     <!-- 스케줄 설정 섹션 -->
@@ -454,47 +666,6 @@
         {% endfor %}
         </div> <!-- ticker-group-content 닫기 -->
         {% endfor %}
-
-        <!-- 새로운 bot 추가 카드 -->
-        <div class="new-bot-container">
-            <div class="ticker-group-header new-bot-header" onclick="toggleNewBotCard()">
-                <span class="new-bot-toggle">▶</span>
-                <span class="ticker-name">새 봇 추가</span>
-            </div>
-            <div class="new-bot-card-body bot-card" style="display: none;">
-                <div class="bot-card-body">
-                <div class="bot-field-group">
-                    <div class="bot-field">
-                        <label>이름</label>
-                        <input type="text" name="name" placeholder="Enter new name">
-                    </div>
-                    <div class="bot-field">
-                        <label>티커</label>
-                        <input type="text" name="symbol" placeholder="Enter new symbol">
-                    </div>
-                    <div class="bot-field">
-                        <label>1회시드</label>
-                        <input type="text" name="seed" placeholder="Enter Seed" oninput="formatCurrency(this, '$ ')">
-                    </div>
-                    <div class="bot-field">
-                        <label>Max티어</label>
-                        <input type="number" name="max_tier" placeholder="Enter Max Tier">
-                    </div>
-                    <div class="bot-field">
-                        <label>수익률</label>
-                        <input type="text" name="profit_rate" placeholder="Enter profit rate">
-                    </div>
-                    <div class="bot-field">
-                        <label>TDiv</label>
-                        <input type="text" name="t_div" placeholder="Enter T Div">
-                    </div>
-                </div>
-                <div class="bot-card-actions">
-                    <button type="button" onclick="addNewBot(this)" class="btn-success">💾 Add Bot</button>
-                </div>
-                </div>
-            </div>
-        </div>
     </div>
 
 </div>

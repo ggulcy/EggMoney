@@ -316,60 +316,60 @@ body {
 
 /* ===== 티커 그룹 (bot_info.html용) ===== */
 .ticker-group-header {
-    background: #667eea;
-    color: white;
-    border: 2px solid #667eea;
-    padding: 15px 20px;
-    border-radius: 10px;
+    background: white;
+    color: #333;
+    border: none;
+    border-left: 4px solid #667eea;
+    padding: 16px 20px;
+    border-radius: 12px;
     margin-bottom: 15px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    gap: 10px;
+    gap: 12px;
     font-weight: 600;
-    transition: all 0.3s;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
 }
 
-.ticker-group-header .ticker-symbol,
-.ticker-group-header .ticker-count,
+.ticker-group-header .ticker-symbol {
+    color: #333;
+    font-weight: 700;
+}
+
+.ticker-group-header .ticker-count {
+    color: #666;
+    font-weight: 500;
+}
+
 .ticker-group-header .toggle-icon {
-    color: white;
+    color: #667eea;
 }
 
 .ticker-group-header:hover {
-    background: #f8f9fa;
-    color: #667eea !important;
-    border-color: #667eea;
-}
-
-.ticker-group-header:hover .ticker-symbol,
-.ticker-group-header:hover .ticker-count,
-.ticker-group-header:hover .toggle-icon {
-    color: #667eea !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    border-left-color: #5568d3;
 }
 
 .ticker-group-header.new-bot-header {
-    background: #28a745 !important;
-    color: white !important;
-    border-color: #28a745 !important;
+    border-left-color: #28a745 !important;
     justify-content: flex-start !important;
 }
 
-.ticker-group-header.new-bot-header .ticker-name,
+.ticker-group-header.new-bot-header .ticker-name {
+    color: #333 !important;
+}
+
 .ticker-group-header.new-bot-header .new-bot-toggle {
-    color: white !important;
+    color: #28a745 !important;
 }
 
 .ticker-group-header.new-bot-header:hover {
-    background: #f8f9fa !important;
-    color: #28a745 !important;
-    border-color: #28a745 !important;
-}
-
-.ticker-group-header.new-bot-header:hover .ticker-name,
-.ticker-group-header.new-bot-header:hover .new-bot-toggle {
-    color: #28a745 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    border-left-color: #218838 !important;
 }
 
 .new-bot-container {
@@ -381,26 +381,22 @@ body {
 }
 
 .ticker-group-header.add-history-header {
-    background: #28a745 !important;
-    color: white !important;
-    border-color: #28a745 !important;
+    border-left-color: #28a745 !important;
     justify-content: flex-start !important;
 }
 
-.ticker-group-header.add-history-header .ticker-name,
+.ticker-group-header.add-history-header .ticker-name {
+    color: #333 !important;
+}
+
 .ticker-group-header.add-history-header .add-history-toggle {
-    color: white !important;
+    color: #28a745 !important;
 }
 
 .ticker-group-header.add-history-header:hover {
-    background: #f8f9fa !important;
-    color: #28a745 !important;
-    border-color: #28a745 !important;
-}
-
-.ticker-group-header.add-history-header:hover .ticker-name,
-.ticker-group-header.add-history-header:hover .add-history-toggle {
-    color: #28a745 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    border-left-color: #218838 !important;
 }
 
 .ticker-toggle {

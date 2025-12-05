@@ -635,6 +635,78 @@ class PortfolioStatusUsecase:
             print(f"❌ History 조회 실패: {str(e)}")
             return []
 
+    def add_manual_trade(
+        self,
+        name: str,
+        symbol: str,
+        purchase_price: float,
+        amount: float
+    ) -> bool:
+        """
+        Trade 수동 추가
+
+        Args:
+            name: 봇 이름
+            symbol: 심볼
+            purchase_price: 구매가
+            amount: 수량
+
+        Returns:
+            bool: 성공 여부
+        """
+        try:
+            from domain.entities import Trade
+            from domain.value_objects import TradeType
+
+            total_price = purchase_price * amount
+
+            trade = Trade(
+                name=name,
+                symbol=symbol,
+                purchase_price=round(purchase_price, 2),
+                amount=amount,
+                trade_type=TradeType.BUY,
+                total_price=round(total_price, 2),
+                date_added=datetime.now(),
+                latest_date_trade=datetime.now()
+            )
+
+            self.trade_repo.save(trade)
+            print(f"✅ Trade 수동 추가 완료: {name}, {symbol}, {purchase_price:.2f}$ x {amount:.0f} = {total_price:.2f}$")
+            return True
+
+        except Exception as e:
+            print(f"❌ Trade 추가 실패: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return False
+
+    def delete_trade(self, name: str) -> bool:
+        """
+        Trade 삭제
+
+        Args:
+            name: 봇 이름
+
+        Returns:
+            bool: 성공 여부
+        """
+        try:
+            trade = self.trade_repo.find_by_name(name)
+            if not trade:
+                print(f"❌ Trade not found: {name}")
+                return False
+
+            self.trade_repo.delete_by_name(name)
+            print(f"✅ Trade 삭제 완료: {name}")
+            return True
+
+        except Exception as e:
+            print(f"❌ Trade 삭제 실패 ({name}): {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return False
+
     def add_manual_history(
         self,
         name: str,

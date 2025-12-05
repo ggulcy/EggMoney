@@ -103,6 +103,66 @@ def save_trade():
         return jsonify({"error": str(e)}), 500
 
 
+@trade_bp.route('/add_trade', methods=['POST'])
+@require_web_auth
+def add_trade():
+    """Trade 수동 추가"""
+    portfolio_usecase = _get_dependencies()
+    try:
+        data = request.get_json()
+        name = data.get('name', '').strip()
+        symbol = data.get('symbol', '').strip()
+        purchase_price = float(data.get('purchase_price', 0))
+        amount = float(data.get('amount', 0))
+
+        if not name or not symbol:
+            return jsonify({"error": "Name and Symbol required"}), 400
+
+        success = portfolio_usecase.add_manual_trade(
+            name=name,
+            symbol=symbol,
+            purchase_price=purchase_price,
+            amount=amount
+        )
+
+        if success:
+            return jsonify({"message": f"Trade added: {name}"}), 200
+        else:
+            return jsonify({"error": "Failed to add trade"}), 500
+
+    except Exception as e:
+        print(f"Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@trade_bp.route('/delete_trade', methods=['POST'])
+@require_web_auth
+def delete_trade():
+    """Trade 삭제"""
+    portfolio_usecase = _get_dependencies()
+    try:
+        data = request.get_json()
+        name = data.get('name', '').strip()
+
+        if not name:
+            return jsonify({"error": "Name required"}), 400
+
+        success = portfolio_usecase.delete_trade(name=name)
+
+        if success:
+            return jsonify({"message": f"Trade deleted: {name}"}), 200
+        else:
+            return jsonify({"error": f"Failed to delete trade: {name}"}), 500
+
+    except Exception as e:
+        print(f"Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
 @trade_bp.route('/add_history', methods=['POST'])
 @require_web_auth
 def add_history():

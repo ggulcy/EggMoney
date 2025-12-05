@@ -32,7 +32,6 @@ def login() -> tuple[Response, int]:
 
         # 디버깅: 환경변수 확인
         print(f"🔍 환경변수 API_KEY 존재 여부: {api_key is not None}")
-        print(f"🔍 API_KEY 값 (마스킹): {api_key[:4] + '***' if api_key else 'None'}")
 
         if not api_key:
             return jsonify({
