@@ -109,8 +109,8 @@ EggMoney/
 │
 ├── usecase/                                # 비즈니스 유스케이스
 │   ├── __init__.py
-│   ├── trading_usecase.py                  # 매매 조건 판단 (execute_trading, force_sell)
-│   ├── order_usecase.py                    # TWAP 주문 실행 + DB 저장
+│   ├── order_usecase.py                    # 매매 조건 판단 + 주문서 생성/저장 (create_order)
+│   ├── trading_usecase.py                  # TWAP 주문 실행 + DB 저장 (execute_twap, force_sell)
 │   ├── market_analysis_usecase.py          # 시장 지표 분석 (VIX, RSI)
 │   ├── bot_management_usecase.py           # 봇 관리 (check_bot_sync, update)
 │   └── portfolio_status_usecase.py         # 포트폴리오 조회 + 시트 동기화
@@ -176,8 +176,8 @@ Domain ← Data ← Usecase ← Presentation
 
 | Usecase | 역할 | 주요 메서드 |
 |---------|------|------------|
-| **TradingUsecase** | 매매 조건 판단 | `execute_trading()`, `force_sell()` |
-| **OrderUsecase** | TWAP 주문 실행 | `create_buy_order()`, `create_sell_order()`, `execute_order()` |
+| **OrderUsecase** | 매매 조건 판단 + 주문서 생성/저장 | `create_order()`, `save_buy_order()`, `save_sell_order()` |
+| **TradingUsecase** | TWAP 주문 실행 + DB 저장 | `execute_twap()`, `force_sell()` |
 | **BotManagementUsecase** | 봇 관리 | `check_bot_sync()`, `get_all_bot_info_with_t()`, `update_bot_info()` |
 | **PortfolioStatusUsecase** | 포트폴리오 조회 | `get_portfolio_summary()`, `sync_balance_to_sheets()` |
 | **MarketAnalysisUsecase** | 시장 지표 분석 | `get_vix_indicator()`, `get_rsi_indicator()` |
@@ -214,21 +214,21 @@ Domain ← Data ← Usecase ← Presentation
 scheduler/trade_job (정해진 시간에 실행)
     │
     ▼
-TradingUsecase.execute_trading()
-    ├── _execute_sell() → 매도 조건 체크
+OrderUsecase.create_order()
+    ├── _create_sell_order() → 매도 조건 체크
     │   └── _calculate_sell_amount() → 매도 수량 결정
-    └── _execute_buy() → 매수 조건 체크
+    └── _create_buy_order() → 매수 조건 체크
         └── _check_big_drop() → 급락 시 시드 조정
     │
     ▼
-OrderUsecase.create_buy/sell_order()
+OrderUsecase.save_buy/sell_order()
     └── Order 테이블에 주문 저장
     │
     ▼
-scheduler/twap_job (5분마다 실행)
+scheduler/twap_job (설정된 간격으로 실행)
     │
     ▼
-OrderUsecase.execute_order()
+TradingUsecase.execute_twap()
     ├── HantooService.buy/sell() → 실제 매매 실행
     └── Trade/History DB 업데이트
 ```

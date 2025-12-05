@@ -1,4 +1,4 @@
-"""Trading Jobs - 거래 작업 (TradingUsecase + OrderUsecase 조합)
+"""Trading Jobs - 거래 작업 (OrderUsecase + TradingUsecase 조합)
 
 egg/main.py의 job(), twap_job() 이관
 - job() → trade_job(): 매매 조건 판단 + 주문서 생성
@@ -14,33 +14,33 @@ from data.external import send_message_sync
 from domain.entities.bot_info import BotInfo
 from domain.repositories.bot_info_repository import BotInfoRepository
 from domain.repositories.order_repository import OrderRepository
-from usecase.trading_usecase import TradingUsecase
 from usecase.order_usecase import OrderUsecase
+from usecase.trading_usecase import TradingUsecase
 
 
 class TradingJobs:
     """
     거래 작업 클래스
 
-    TradingUsecase와 OrderUsecase를 조합하여 전체 거래 플로우 구현
+    OrderUsecase와 TradingUsecase를 조합하여 전체 거래 플로우 구현
     """
 
     def __init__(
         self,
-        trading_usecase: TradingUsecase,
         order_usecase: OrderUsecase,
+        trading_usecase: TradingUsecase,
         bot_info_repo: BotInfoRepository,
         order_repo: OrderRepository
     ):
         """
         Args:
-            trading_usecase: 매매 조건 판단 Usecase
-            order_usecase: TWAP 주문 실행 Usecase
+            order_usecase: 주문서 생성 Usecase
+            trading_usecase: 거래 실행 Usecase
             bot_info_repo: BotInfo 저장소
             order_repo: Order 저장소
         """
-        self.trading_usecase = trading_usecase
         self.order_usecase = order_usecase
+        self.trading_usecase = trading_usecase
         self.bot_info_repo = bot_info_repo
         self.order_repo = order_repo
 
@@ -87,8 +87,8 @@ class TradingJobs:
 
         참고: egg/trade_module.py의 trade() (25-34번 줄)
         """
-        # TradingUsecase를 통해 매매 조건 판단 + 주문 정보 반환
-        result = self.trading_usecase.execute_trading(bot_info)
+        # OrderUsecase를 통해 매매 조건 판단 + 주문 정보 반환
+        result = self.order_usecase.create_order(bot_info)
 
         # 결과가 없으면 종료 (매도/매수 조건 불충족)
         if not result:
@@ -98,11 +98,11 @@ class TradingJobs:
         trade_type, value = result
 
         if trade_type.is_buy():
-            # 매수 주문서 생성 (value = seed)
-            self.order_usecase.create_buy_order(bot_info, value, trade_type)
+            # 매수 주문서 DB 저장 (value = seed)
+            self.order_usecase.save_buy_order(bot_info, value, trade_type)
         elif trade_type.is_sell():
-            # 매도 주문서 생성 (value = amount)
-            self.order_usecase.create_sell_order(bot_info, int(value), trade_type)
+            # 매도 주문서 DB 저장 (value = amount)
+            self.order_usecase.save_sell_order(bot_info, int(value), trade_type)
 
     def twap_job(self) -> None:
         """
@@ -123,5 +123,5 @@ class TradingJobs:
 
             order = self.order_repo.find_by_name(bot_info.name)
             if order:
-                # OrderUsecase를 통해 TWAP 주문 1회 실행
-                self.order_usecase.execute_order(bot_info)
+                # TradingUsecase를 통해 TWAP 주문 1회 실행
+                self.trading_usecase.execute_twap(bot_info)

@@ -6,7 +6,7 @@ from data.persistence.sqlalchemy.repositories import (
     SQLAlchemyHistoryRepository,
     SQLAlchemyOrderRepository,
 )
-from usecase import BotManagementUsecase, TradingUsecase
+from usecase import BotManagementUsecase
 from config import item, key_store
 from data.external import send_message_sync
 from data.external.hantoo.hantoo_service import HantooService

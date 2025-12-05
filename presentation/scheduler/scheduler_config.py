@@ -16,8 +16,8 @@ from data.external import send_message_sync
 from data.persistence.sqlalchemy.core.session_factory import SessionFactory
 from presentation.scheduler.trading_jobs import TradingJobs
 from presentation.scheduler.message_jobs import MessageJobs
-from usecase.trading_usecase import TradingUsecase
 from usecase.order_usecase import OrderUsecase
+from usecase.trading_usecase import TradingUsecase
 from usecase.portfolio_status_usecase import PortfolioStatusUsecase
 from usecase.bot_management_usecase import BotManagementUsecase
 
@@ -70,14 +70,14 @@ def _initialize_dependencies() -> tuple[SessionFactory, TradingJobs, MessageJobs
     market_indicator_repo = MarketIndicatorRepositoryImpl()
 
     # Usecase 초기화
-    trading_usecase = TradingUsecase(
+    order_usecase = OrderUsecase(
         bot_info_repo=bot_info_repo,
         trade_repo=trade_repo,
         history_repo=history_repo,
         order_repo=order_repo,
         hantoo_service=hantoo_service,
     )
-    order_usecase = OrderUsecase(
+    trading_usecase = TradingUsecase(
         bot_info_repo=bot_info_repo,
         trade_repo=trade_repo,
         history_repo=history_repo,
@@ -87,8 +87,8 @@ def _initialize_dependencies() -> tuple[SessionFactory, TradingJobs, MessageJobs
 
     # TradingJobs 초기화
     trading_jobs = TradingJobs(
-        trading_usecase=trading_usecase,
         order_usecase=order_usecase,
+        trading_usecase=trading_usecase,
         bot_info_repo=bot_info_repo,
         order_repo=order_repo,
     )
@@ -130,9 +130,9 @@ def _create_trade_job(trading_jobs: TradingJobs):
         try:
             trading_jobs.trade_job()
         except Exception as e:
-            error_message = f"❌ [trade_job] 치명적 오류 발생!\n{e}\n{traceback.format_exc()}"
+            error_message = f"❌ [trade_job] 거래중 문제가 발생하였습니다. 문제를 확인하세요.\n{e}\n{traceback.format_exc()}"
             send_message_sync(error_message)
-            raise  # ← 스케줄러가 job을 disable하도록
+            stop_scheduler()
 
         print(f"✅ trade_job() completed at {datetime.now()}\n")
 
@@ -153,9 +153,9 @@ def _create_twap_job(trading_jobs: TradingJobs):
         try:
             trading_jobs.twap_job()
         except Exception as e:
-            error_message = f"❌ [twap_job] 치명적 오류 발생!\n{e}\n{traceback.format_exc()}"
+            error_message = f"❌ [twap_job] 거래중 문제가 발생하였습니다. 문제를 확인하세요.\n{e}\n{traceback.format_exc()}"
             send_message_sync(error_message)
-            raise  # ← 스케줄러가 job을 disable하도록
+            stop_scheduler()
 
         print(f"✅ twap_job() completed at {datetime.now()}\n")
 
