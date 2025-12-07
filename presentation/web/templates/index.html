@@ -386,16 +386,16 @@
         .today-filter-checkbox {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
             cursor: pointer;
-            font-size: 0.9em;
+            font-size: 0.8em;
             color: #666;
             user-select: none;
         }
 
         .today-filter-checkbox input[type="checkbox"] {
-            width: 16px;
-            height: 16px;
+            width: 14px;
+            height: 14px;
             cursor: pointer;
         }
 
@@ -533,16 +533,16 @@
                     <!-- 현재 수익 (메인) -->
                     <div style="text-align: center; padding-bottom: 18px; margin-bottom: 18px; border-bottom: 1px solid #eee;">
                         <div style="font-size: 0.8em; color: #888; margin-bottom: 6px;">현재 수익</div>
-                        <div style="font-size: 2.2em; font-weight: 700; color: {% if overview.current_profit >= 0 %}#c62828{% else %}#1565c0{% endif %};">
-                            {% if overview.current_profit >= 0 %}+{% endif %}$ {{ '{:,.2f}'.format(overview.current_profit) }}
+                        <div style="font-size: 1.8em; font-weight: 700; color: {% if overview.current_profit >= 0 %}#c62828{% else %}#1565c0{% endif %};">
+                            {% if overview.current_profit >= 0 %}+{% endif %}{{ '{:,.0f}'.format(overview.current_profit * overview.usd_krw) }}원
                         </div>
                         <div style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 4px;">
-                            <span style="font-size: 1em; font-weight: 600; color: {% if overview.current_profit >= 0 %}#d32f2f{% else %}#1976d2{% endif %};">
+                            <span style="font-size: 0.95em; font-weight: 600; color: {% if overview.current_profit >= 0 %}#d32f2f{% else %}#1976d2{% endif %};">
                                 {% if overview.profit_rate >= 0 %}+{% endif %}{{ '{:.2f}'.format(overview.profit_rate) }}%
                             </span>
                             <span style="color: #ccc;">|</span>
-                            <span style="font-size: 0.9em; color: {% if overview.current_profit >= 0 %}#d32f2f{% else %}#1976d2{% endif %};">
-                                {% if overview.current_profit >= 0 %}+{% endif %}₩ {{ '{:,.0f}'.format(overview.current_profit * overview.usd_krw) }}
+                            <span style="font-size: 0.85em; color: {% if overview.current_profit >= 0 %}#d32f2f{% else %}#1976d2{% endif %};">
+                                {% if overview.current_profit >= 0 %}+{% endif %}$ {{ '{:,.2f}'.format(overview.current_profit) }}
                             </span>
                         </div>
                     </div>
@@ -552,8 +552,8 @@
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <span style="font-size: 0.8em; color: #666;">총 자산</span>
                             <div style="text-align: right;">
-                                <span style="font-size: 1em; font-weight: 600; color: #333;">$ {{ '{:,.2f}'.format(overview.total_balance) }}</span>
-                                <span style="font-size: 0.75em; color: #999; margin-left: 4px;">₩ {{ '{:,.0f}'.format(overview.total_balance * overview.usd_krw) }}</span>
+                                <span style="font-size: 1em; font-weight: 600; color: #333;">{{ '{:,.0f}'.format(overview.total_balance * overview.usd_krw) }}원</span>
+                                <span style="font-size: 0.75em; color: #999; margin-left: 4px;">$ {{ '{:,.2f}'.format(overview.total_balance) }}</span>
                             </div>
                         </div>
                     </div>
@@ -563,7 +563,7 @@
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                             <span style="background: #667eea; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 0.7em; font-weight: 600;">봇 {{ overview.active_bots }}/{{ overview.total_bots }}</span>
                             <span style="font-size: 0.8em; color: #666;">
-                                <span style="font-weight: 600; color: #667eea;">{{ '{:.1f}'.format(seed_usage_rate) }}%</span> / ${{ '{:,.0f}'.format(overview.total_max_seed) }}
+                                <span style="font-weight: 600; color: #667eea;">{{ '{:.1f}'.format(seed_usage_rate) }}%</span> / {{ '{:,.0f}'.format(overview.total_max_seed * overview.usd_krw) }}원
                             </span>
                         </div>
                         <div style="background: #e0e0e0; border-radius: 6px; height: 10px; overflow: hidden;">
@@ -575,14 +575,14 @@
                     <div style="display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px;">
                         <div style="background: #f8f9fa; border-radius: 10px; padding: 10px; text-align: center;">
                             <div style="font-size: 0.7em; color: #888; margin-bottom: 2px;">투자원금</div>
-                            <div style="font-size: 1em; font-weight: 600; color: #333;">$ {{ '{:,.0f}'.format(overview.total_buy) }}</div>
+                            <div style="font-size: 1em; font-weight: 600; color: #333;">{{ '{:,.0f}'.format(overview.total_buy * overview.usd_krw) }}원</div>
                         </div>
                         <div style="font-size: 1em; color: {% if overview.current_profit >= 0 %}#c62828{% else %}#1565c0{% endif %};">
                             {% if overview.current_profit >= 0 %}▶{% else %}◀{% endif %}
                         </div>
                         <div style="background: #f8f9fa; border-radius: 10px; padding: 10px; text-align: center;">
                             <div style="font-size: 0.7em; color: #888; margin-bottom: 2px;">현재가치</div>
-                            <div style="font-size: 1em; font-weight: 600; color: #333;">$ {{ '{:,.0f}'.format(overview.invest) }}</div>
+                            <div style="font-size: 1em; font-weight: 600; color: #333;">{{ '{:,.0f}'.format(overview.invest * overview.usd_krw) }}원</div>
                         </div>
                     </div>
                 </div>
@@ -718,35 +718,41 @@
             {% if current_year_profit %}
             <div>
                 <div class="card-section">
-                    <div class="section-title">💰 {{ current_year_profit.year }}년 수익 요약</div>
-
-                    <div class="profit-year-summary">
-                        <div class="profit-summary-total">
-                            <div class="profit-summary-label">총 수익</div>
-                            <div class="profit-summary-krw {% if current_year_profit.total_profit > 0 %}profit-positive{% elif current_year_profit.total_profit < 0 %}profit-negative{% else %}profit-zero{% endif %}">
-                                {% if current_year_profit.total_profit > 0 %}+{% elif current_year_profit.total_profit < 0 %}{% endif %}{{ '{:,.0f}'.format(current_year_profit.total_profit_krw) }}원
+                    <div class="profit-year-card" id="year-card-{{ current_year_profit.year }}" data-year="{{ current_year_profit.year }}">
+                        <div class="profit-year-header" onclick="toggleYearAccordion({{ current_year_profit.year }})">
+                            <div class="profit-year-title">
+                                <span class="profit-year-toggle">▶</span>
+                                <span class="profit-year-name">{{ current_year_profit.year }}년 수익</span>
+                                <span class="current-year-badge">현재</span>
                             </div>
-                            <div class="profit-summary-usd {% if current_year_profit.total_profit > 0 %}profit-positive{% elif current_year_profit.total_profit < 0 %}profit-negative{% else %}profit-zero{% endif %}">
-                                {% if current_year_profit.total_profit > 0 %}+{% elif current_year_profit.total_profit < 0 %}{% endif %}${{ '{:,.2f}'.format(current_year_profit.total_profit) }}
-                            </div>
-                        </div>
-                    </div>
-
-                    {% if current_year_profit.monthly_profits %}
-                    <div class="profit-monthly-grid">
-                        {% for month_data in current_year_profit.monthly_profits %}
-                        <div class="profit-month-card">
-                            <div class="profit-month-label">{{ month_data.month }}월 ({{ '{:,.0f}'.format(month_data.exchange_rate) }}원)</div>
-                            <div class="profit-month-krw {% if month_data.profit > 0 %}profit-positive{% elif month_data.profit < 0 %}profit-negative{% else %}profit-zero{% endif %}">
-                                {% if month_data.profit > 0 %}+{% elif month_data.profit < 0 %}{% endif %}{{ '{:,.0f}'.format(month_data.profit_krw) }}원
-                            </div>
-                            <div class="profit-month-value {% if month_data.profit > 0 %}profit-positive{% elif month_data.profit < 0 %}profit-negative{% else %}profit-zero{% endif %}">
-                                {% if month_data.profit > 0 %}+{% elif month_data.profit < 0 %}{% endif %}${{ '{:,.2f}'.format(month_data.profit) }}
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <span class="profit-year-krw {% if current_year_profit.total_profit > 0 %}profit-positive{% elif current_year_profit.total_profit < 0 %}profit-negative{% else %}profit-zero{% endif %}">
+                                    {% if current_year_profit.total_profit > 0 %}+{% elif current_year_profit.total_profit < 0 %}{% endif %}{{ '{:,.0f}'.format(current_year_profit.total_profit_krw) }}원
+                                </span>
+                                <span class="profit-year-total {% if current_year_profit.total_profit > 0 %}profit-positive{% elif current_year_profit.total_profit < 0 %}profit-negative{% else %}profit-zero{% endif %}">
+                                    {% if current_year_profit.total_profit > 0 %}+{% elif current_year_profit.total_profit < 0 %}{% endif %}${{ '{:,.2f}'.format(current_year_profit.total_profit) }}
+                                </span>
                             </div>
                         </div>
-                        {% endfor %}
+
+                        {% if current_year_profit.monthly_profits %}
+                        <div class="profit-year-content">
+                            <div class="profit-monthly-grid">
+                                {% for month_data in current_year_profit.monthly_profits %}
+                                <div class="profit-month-card">
+                                    <div class="profit-month-label">{{ month_data.month }}월 ({{ '{:,.0f}'.format(month_data.exchange_rate) }}원)</div>
+                                    <div class="profit-month-krw {% if month_data.profit > 0 %}profit-positive{% elif month_data.profit < 0 %}profit-negative{% else %}profit-zero{% endif %}">
+                                        {% if month_data.profit > 0 %}+{% elif month_data.profit < 0 %}{% endif %}{{ '{:,.0f}'.format(month_data.profit_krw) }}원
+                                    </div>
+                                    <div class="profit-month-value {% if month_data.profit > 0 %}profit-positive{% elif month_data.profit < 0 %}profit-negative{% else %}profit-zero{% endif %}">
+                                        {% if month_data.profit > 0 %}+{% elif month_data.profit < 0 %}{% endif %}${{ '{:,.2f}'.format(month_data.profit) }}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
-                    {% endif %}
                 </div>
             </div>
             {% endif %}
@@ -933,47 +939,101 @@
                 }
 
                 /* 수익 요약 스타일 */
-                .profit-year-summary {
-                    background: #fff;
-                    border-radius: 12px;
-                    padding: 20px;
-                    margin-bottom: 20px;
-                    border: 1px solid #e0e0e0;
-                    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-                }
-
-                .profit-summary-total {
-                    text-align: center;
-                }
-
-                .profit-summary-label {
-                    font-size: 0.9rem;
-                    color: #666;
+                .profit-year-card {
                     margin-bottom: 8px;
+                }
+
+                .profit-year-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 14px 18px;
+                    background: #fff;
+                    border: 1px solid #e0e0e0;
+                    border-radius: 10px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+
+                .profit-year-header:hover {
+                    background: #f8f9ff;
+                    border-color: #667eea;
+                }
+
+                .profit-year-card.active .profit-year-header {
+                    border-color: #667eea;
+                    border-bottom-left-radius: 0;
+                    border-bottom-right-radius: 0;
+                    margin-bottom: 0;
+                }
+
+                .profit-year-toggle {
+                    font-size: 0.7rem;
+                    color: #667eea;
+                    margin-right: 10px;
+                    transition: transform 0.2s;
+                }
+
+                .profit-year-card.active .profit-year-toggle {
+                    transform: rotate(90deg);
+                }
+
+                .profit-year-title {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                }
+
+                .profit-year-name {
+                    font-size: 1rem;
+                    font-weight: 600;
+                    color: #333;
+                }
+
+                .current-year-badge {
+                    background: linear-gradient(135deg, #667eea, #764ba2);
+                    color: #fff;
+                    padding: 3px 10px;
+                    border-radius: 10px;
+                    font-size: 0.65rem;
                     font-weight: 600;
                 }
 
-                .profit-summary-krw {
-                    font-size: 1.8rem;
-                    font-weight: 700;
-                    margin-bottom: 6px;
+                .profit-year-total {
+                    font-size: 0.85rem;
+                    font-weight: 400;
                 }
 
-                .profit-summary-usd {
-                    font-size: 1.1rem;
-                    font-weight: 400;
+                .profit-year-krw {
+                    font-size: 1.2rem;
+                    font-weight: 700;
+                    margin-bottom: 4px;
+                }
+
+                .profit-year-content {
+                    display: none;
+                    background: #fff;
+                    border: 1px solid #667eea;
+                    border-top: none;
+                    border-radius: 0 0 10px 10px;
+                    padding: 15px;
+                    margin-bottom: 8px;
+                }
+
+                .profit-year-card.active .profit-year-content {
+                    display: block;
                 }
 
                 .profit-monthly-grid {
                     display: grid;
                     grid-template-columns: repeat(3, 1fr);
-                    gap: 16px;
+                    gap: 12px;
                 }
 
                 .profit-month-card {
                     background: #f8f9fa;
                     border-radius: 10px;
-                    padding: 14px;
+                    padding: 12px;
                     text-align: center;
                     border: 1px solid #e0e0e0;
                     transition: all 0.2s;
@@ -987,19 +1047,19 @@
                 }
 
                 .profit-month-label {
-                    font-size: 0.85rem;
+                    font-size: 0.75rem;
                     color: #666;
                     margin-bottom: 6px;
                     font-weight: 600;
                 }
 
                 .profit-month-value {
-                    font-size: 0.9rem;
+                    font-size: 0.8rem;
                     font-weight: 400;
                 }
 
                 .profit-month-krw {
-                    font-size: 1.1rem;
+                    font-size: 0.95rem;
                     font-weight: 700;
                     margin-bottom: 4px;
                 }
@@ -1019,30 +1079,34 @@
                 @media (max-width: 768px) {
                     .profit-monthly-grid {
                         grid-template-columns: repeat(2, 1fr);
-                        gap: 12px;
+                        gap: 10px;
                     }
 
-                    .profit-summary-krw {
-                        font-size: 1.5rem;
+                    .profit-year-title {
+                        font-size: 0.9rem;
                     }
 
-                    .profit-summary-usd {
+                    .profit-year-total {
+                        font-size: 0.75rem;
+                    }
+
+                    .profit-year-krw {
                         font-size: 1rem;
                     }
 
                     .profit-month-value {
-                        font-size: 0.8rem;
+                        font-size: 0.75rem;
                     }
 
                     .profit-month-krw {
-                        font-size: 1rem;
+                        font-size: 0.85rem;
                     }
                 }
 
                 @media (max-width: 480px) {
                     .profit-monthly-grid {
                         grid-template-columns: 1fr;
-                        gap: 10px;
+                        gap: 8px;
                     }
                 }
             </style>
@@ -1522,6 +1586,18 @@
             const tradeCountElement = document.getElementById('tradeCount');
             if (tradeCountElement) {
                 tradeCountElement.textContent = `${visibleBuyCount}매수 / ${visibleSellCount}매도`;
+            }
+        }
+
+        // ===== 년도별 아코디언 토글 =====
+        function toggleYearAccordion(year) {
+            const card = document.getElementById('year-card-' + year);
+            if (card) {
+                card.classList.toggle('active');
+
+                // 확장 상태 저장
+                const isExpanded = card.classList.contains('active');
+                localStorage.setItem('yearExpanded_' + year, isExpanded);
             }
         }
     </script>

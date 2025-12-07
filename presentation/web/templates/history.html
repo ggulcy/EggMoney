@@ -165,33 +165,35 @@
 
         /* 수익 요약 카드 스타일 */
         .profit-year-card {
-            background: #fff;
-            border-radius: 12px;
-            margin-bottom: 16px;
-            border: 1px solid #e0e0e0;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+            margin-bottom: 8px;
         }
 
         .profit-year-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 20px;
+            padding: 14px 18px;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
             cursor: pointer;
             transition: all 0.2s;
         }
 
         .profit-year-header:hover {
             background: #f8f9ff;
+            border-color: #667eea;
         }
 
         .profit-year-card.active .profit-year-header {
-            border-bottom: 2px solid #f0f0f0;
-            margin-bottom: 16px;
+            border-color: #667eea;
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+            margin-bottom: 0;
         }
 
         .profit-year-toggle {
-            font-size: 0.8rem;
+            font-size: 0.7rem;
             color: #667eea;
             margin-right: 10px;
             transition: transform 0.2s;
@@ -202,7 +204,7 @@
         }
 
         .profit-year-title {
-            font-size: 1.2rem;
+            font-size: 1rem;
             font-weight: 700;
             color: #333;
             display: flex;
@@ -213,26 +215,31 @@
         .current-year-badge {
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: #fff;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 0.75rem;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 0.65rem;
             font-weight: 600;
         }
 
         .profit-year-total {
-            font-size: 1rem;
+            font-size: 0.85rem;
             font-weight: 400;
         }
 
         .profit-year-krw {
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             font-weight: 700;
             margin-bottom: 4px;
         }
 
         .profit-year-content {
             display: none;
-            padding: 0 20px 20px 20px;
+            background: #fff;
+            border: 1px solid #667eea;
+            border-top: none;
+            border-radius: 0 0 10px 10px;
+            padding: 15px;
+            margin-bottom: 8px;
         }
 
         .profit-year-card.active .profit-year-content {
@@ -242,13 +249,13 @@
         .profit-monthly-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 16px;
+            gap: 12px;
         }
 
         .profit-month-card {
             background: #f8f9fa;
             border-radius: 10px;
-            padding: 14px;
+            padding: 12px;
             text-align: center;
             border: 1px solid #e0e0e0;
             transition: all 0.2s;
@@ -262,19 +269,19 @@
         }
 
         .profit-month-label {
-            font-size: 0.85rem;
+            font-size: 0.75rem;
             color: #666;
             margin-bottom: 6px;
             font-weight: 600;
         }
 
         .profit-month-value {
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             font-weight: 400;
         }
 
         .profit-month-krw {
-            font-size: 1.1rem;
+            font-size: 0.95rem;
             font-weight: 700;
             margin-bottom: 4px;
         }
@@ -294,34 +301,34 @@
         @media (max-width: 768px) {
             .profit-monthly-grid {
                 grid-template-columns: repeat(2, 1fr);
-                gap: 12px;
+                gap: 10px;
             }
 
             .profit-year-title {
-                font-size: 1rem;
+                font-size: 0.9rem;
             }
 
             .profit-year-total {
-                font-size: 0.85rem;
+                font-size: 0.75rem;
             }
 
             .profit-year-krw {
-                font-size: 1.2rem;
+                font-size: 1rem;
             }
 
             .profit-month-value {
-                font-size: 0.8rem;
+                font-size: 0.75rem;
             }
 
             .profit-month-krw {
-                font-size: 1rem;
+                font-size: 0.85rem;
             }
         }
 
         @media (max-width: 480px) {
             .profit-monthly-grid {
                 grid-template-columns: 1fr;
-                gap: 10px;
+                gap: 8px;
             }
         }
     </style>
