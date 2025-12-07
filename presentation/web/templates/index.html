@@ -714,48 +714,6 @@
             <!-- 오버레이 배경 -->
             <div id="menuOverlay" class="menu-overlay"></div>
 
-            <!-- 현재 년도 수익 요약 섹션 -->
-            {% if current_year_profit %}
-            <div>
-                <div class="card-section">
-                    <div class="profit-year-card" id="year-card-{{ current_year_profit.year }}" data-year="{{ current_year_profit.year }}">
-                        <div class="profit-year-header" onclick="toggleYearAccordion({{ current_year_profit.year }})">
-                            <div class="profit-year-title">
-                                <span class="profit-year-toggle">▶</span>
-                                <span class="profit-year-name">{{ current_year_profit.year }}년 수익</span>
-                                <span class="current-year-badge">현재</span>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 15px;">
-                                <span class="profit-year-krw {% if current_year_profit.total_profit > 0 %}profit-positive{% elif current_year_profit.total_profit < 0 %}profit-negative{% else %}profit-zero{% endif %}">
-                                    {% if current_year_profit.total_profit > 0 %}+{% elif current_year_profit.total_profit < 0 %}{% endif %}{{ '{:,.0f}'.format(current_year_profit.total_profit_krw) }}원
-                                </span>
-                                <span class="profit-year-total {% if current_year_profit.total_profit > 0 %}profit-positive{% elif current_year_profit.total_profit < 0 %}profit-negative{% else %}profit-zero{% endif %}">
-                                    {% if current_year_profit.total_profit > 0 %}+{% elif current_year_profit.total_profit < 0 %}{% endif %}${{ '{:,.2f}'.format(current_year_profit.total_profit) }}
-                                </span>
-                            </div>
-                        </div>
-
-                        {% if current_year_profit.monthly_profits %}
-                        <div class="profit-year-content">
-                            <div class="profit-monthly-grid">
-                                {% for month_data in current_year_profit.monthly_profits %}
-                                <div class="profit-month-card">
-                                    <div class="profit-month-label">{{ month_data.month }}월 ({{ '{:,.0f}'.format(month_data.exchange_rate) }}원)</div>
-                                    <div class="profit-month-krw {% if month_data.profit > 0 %}profit-positive{% elif month_data.profit < 0 %}profit-negative{% else %}profit-zero{% endif %}">
-                                        {% if month_data.profit > 0 %}+{% elif month_data.profit < 0 %}{% endif %}{{ '{:,.0f}'.format(month_data.profit_krw) }}원
-                                    </div>
-                                    <div class="profit-month-value {% if month_data.profit > 0 %}profit-positive{% elif month_data.profit < 0 %}profit-negative{% else %}profit-zero{% endif %}">
-                                        {% if month_data.profit > 0 %}+{% elif month_data.profit < 0 %}{% endif %}${{ '{:,.2f}'.format(month_data.profit) }}
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endif %}
 
             <!-- 시장 지표 차트 섹션 -->
             <div>
@@ -802,6 +760,68 @@
                     transition: all 0.2s;
                 }
 
+                @media (max-width: 768px) {
+                    .ticker-accordion-header {
+                        padding: 12px 14px;
+                    }
+
+                    .ticker-accordion-left {
+                        gap: 8px;
+                    }
+
+                    .ticker-accordion-right {
+                        gap: 10px;
+                    }
+
+                    .ticker-accordion-name {
+                        font-size: 0.9rem;
+                    }
+
+                    .ticker-accordion-badge {
+                        font-size: 0.65rem;
+                        padding: 2px 6px;
+                    }
+
+                    .ticker-value-highlight {
+                        font-size: 0.8rem;
+                    }
+
+                    .ticker-price-value {
+                        font-size: 0.75rem;
+                    }
+                }
+
+                @media (max-width: 480px) {
+                    .ticker-accordion-header {
+                        padding: 10px 12px;
+                    }
+
+                    .ticker-accordion-left {
+                        gap: 6px;
+                    }
+
+                    .ticker-accordion-right {
+                        gap: 8px;
+                    }
+
+                    .ticker-accordion-name {
+                        font-size: 0.85rem;
+                    }
+
+                    .ticker-accordion-badge {
+                        font-size: 0.6rem;
+                        padding: 2px 5px;
+                    }
+
+                    .ticker-value-highlight {
+                        font-size: 0.7rem;
+                    }
+
+                    .ticker-price-value {
+                        font-size: 0.7rem;
+                    }
+                }
+
                 .ticker-accordion-header:hover {
                     background: #f8f9ff;
                     border-color: #667eea;
@@ -818,12 +838,14 @@
                     display: flex;
                     align-items: center;
                     gap: 10px;
+                    flex: 1;
                 }
 
                 .ticker-accordion-toggle {
                     font-size: 0.8rem;
                     color: #667eea;
                     transition: transform 0.2s;
+                    flex-shrink: 0;
                 }
 
                 .ticker-accordion-header.active .ticker-accordion-toggle {
@@ -834,15 +856,17 @@
                     font-weight: 600;
                     color: #333;
                     font-size: 1rem;
+                    line-height: 1.5;
                 }
 
                 .ticker-accordion-badge {
                     padding: 3px 8px;
                     border-radius: 5px;
-                    font-size: 0.75rem;
+                    font-size: 0.7rem;
                     font-weight: 600;
                     background: #667eea;
                     color: #fff;
+                    white-space: nowrap;
                 }
 
                 .ticker-accordion-badge.fear {
@@ -861,27 +885,25 @@
                 }
 
                 .ticker-accordion-emoji {
-                    font-size: 1.1em;
+                    font-size: 1.1rem;
                 }
 
                 .ticker-accordion-right {
                     display: flex;
                     align-items: center;
-                    gap: 15px;
-                    font-size: 0.9em;
-                    color: #666;
+                    gap: 12px;
                 }
 
                 .ticker-accordion-value {
                     font-weight: 700;
                     color: #333;
-                    font-size: 1.1em;
+                    font-size: 0.9rem;
                 }
 
                 /* 강조 표시 스타일 */
                 .ticker-value-highlight {
                     font-weight: 600;
-                    font-size: 0.85em;
+                    font-size: 0.9rem;
                     padding: 3px 8px;
                     border-radius: 6px;
                     background: #f0f4ff;
@@ -904,7 +926,7 @@
 
                 .ticker-price-value {
                     font-weight: 600;
-                    font-size: 0.85em;
+                    font-size: 0.85rem;
                     color: #2e7d32;
                 }
 
@@ -938,177 +960,6 @@
                     font-weight: 500;
                 }
 
-                /* 수익 요약 스타일 */
-                .profit-year-card {
-                    margin-bottom: 8px;
-                }
-
-                .profit-year-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    padding: 14px 18px;
-                    background: #fff;
-                    border: 1px solid #e0e0e0;
-                    border-radius: 10px;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                }
-
-                .profit-year-header:hover {
-                    background: #f8f9ff;
-                    border-color: #667eea;
-                }
-
-                .profit-year-card.active .profit-year-header {
-                    border-color: #667eea;
-                    border-bottom-left-radius: 0;
-                    border-bottom-right-radius: 0;
-                    margin-bottom: 0;
-                }
-
-                .profit-year-toggle {
-                    font-size: 0.7rem;
-                    color: #667eea;
-                    margin-right: 10px;
-                    transition: transform 0.2s;
-                }
-
-                .profit-year-card.active .profit-year-toggle {
-                    transform: rotate(90deg);
-                }
-
-                .profit-year-title {
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                }
-
-                .profit-year-name {
-                    font-size: 1rem;
-                    font-weight: 600;
-                    color: #333;
-                }
-
-                .current-year-badge {
-                    background: linear-gradient(135deg, #667eea, #764ba2);
-                    color: #fff;
-                    padding: 3px 10px;
-                    border-radius: 10px;
-                    font-size: 0.65rem;
-                    font-weight: 600;
-                }
-
-                .profit-year-total {
-                    font-size: 0.85rem;
-                    font-weight: 400;
-                }
-
-                .profit-year-krw {
-                    font-size: 1.2rem;
-                    font-weight: 700;
-                    margin-bottom: 4px;
-                }
-
-                .profit-year-content {
-                    display: none;
-                    background: #fff;
-                    border: 1px solid #667eea;
-                    border-top: none;
-                    border-radius: 0 0 10px 10px;
-                    padding: 15px;
-                    margin-bottom: 8px;
-                }
-
-                .profit-year-card.active .profit-year-content {
-                    display: block;
-                }
-
-                .profit-monthly-grid {
-                    display: grid;
-                    grid-template-columns: repeat(3, 1fr);
-                    gap: 12px;
-                }
-
-                .profit-month-card {
-                    background: #f8f9fa;
-                    border-radius: 10px;
-                    padding: 12px;
-                    text-align: center;
-                    border: 1px solid #e0e0e0;
-                    transition: all 0.2s;
-                }
-
-                .profit-month-card:hover {
-                    background: #fff;
-                    border-color: #667eea;
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
-                }
-
-                .profit-month-label {
-                    font-size: 0.75rem;
-                    color: #666;
-                    margin-bottom: 6px;
-                    font-weight: 600;
-                }
-
-                .profit-month-value {
-                    font-size: 0.8rem;
-                    font-weight: 400;
-                }
-
-                .profit-month-krw {
-                    font-size: 0.95rem;
-                    font-weight: 700;
-                    margin-bottom: 4px;
-                }
-
-                .profit-positive {
-                    color: #c62828;
-                }
-
-                .profit-negative {
-                    color: #1565c0;
-                }
-
-                .profit-zero {
-                    color: #333;
-                }
-
-                @media (max-width: 768px) {
-                    .profit-monthly-grid {
-                        grid-template-columns: repeat(2, 1fr);
-                        gap: 10px;
-                    }
-
-                    .profit-year-title {
-                        font-size: 0.9rem;
-                    }
-
-                    .profit-year-total {
-                        font-size: 0.75rem;
-                    }
-
-                    .profit-year-krw {
-                        font-size: 1rem;
-                    }
-
-                    .profit-month-value {
-                        font-size: 0.75rem;
-                    }
-
-                    .profit-month-krw {
-                        font-size: 0.85rem;
-                    }
-                }
-
-                @media (max-width: 480px) {
-                    .profit-monthly-grid {
-                        grid-template-columns: 1fr;
-                        gap: 8px;
-                    }
-                }
             </style>
         </div>
     </div>

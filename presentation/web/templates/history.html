@@ -193,9 +193,8 @@
         }
 
         .profit-year-toggle {
-            font-size: 0.7rem;
+            font-size: 0.8rem;
             color: #667eea;
-            margin-right: 10px;
             transition: transform 0.2s;
         }
 
@@ -215,21 +214,24 @@
         .current-year-badge {
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: #fff;
-            padding: 3px 10px;
-            border-radius: 10px;
-            font-size: 0.65rem;
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-size: 0.7rem;
             font-weight: 600;
+            white-space: nowrap;
         }
 
         .profit-year-total {
             font-size: 0.85rem;
-            font-weight: 400;
+            font-weight: 600;
+            white-space: nowrap;
         }
 
         .profit-year-krw {
-            font-size: 1.2rem;
+            font-size: 0.9rem;
             font-weight: 700;
             margin-bottom: 4px;
+            white-space: nowrap;
         }
 
         .profit-year-content {
@@ -304,8 +306,18 @@
                 gap: 10px;
             }
 
+            .profit-year-header {
+                padding: 12px 14px;
+            }
+
             .profit-year-title {
+                gap: 8px;
                 font-size: 0.9rem;
+            }
+
+            .current-year-badge {
+                font-size: 0.65rem;
+                padding: 2px 6px;
             }
 
             .profit-year-total {
@@ -313,7 +325,7 @@
             }
 
             .profit-year-krw {
-                font-size: 1rem;
+                font-size: 0.8rem;
             }
 
             .profit-month-value {
@@ -329,6 +341,28 @@
             .profit-monthly-grid {
                 grid-template-columns: 1fr;
                 gap: 8px;
+            }
+
+            .profit-year-header {
+                padding: 10px 12px;
+            }
+
+            .profit-year-title {
+                gap: 6px;
+                font-size: 0.85rem;
+            }
+
+            .current-year-badge {
+                font-size: 0.6rem;
+                padding: 2px 5px;
+            }
+
+            .profit-year-total {
+                font-size: 0.7rem;
+            }
+
+            .profit-year-krw {
+                font-size: 0.75rem;
             }
         }
     </style>

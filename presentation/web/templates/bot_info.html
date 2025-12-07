@@ -168,10 +168,10 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 16px 20px;
+            padding: 14px 18px;
             background: #fff;
             border: 1px solid #e0e0e0;
-            border-radius: 12px;
+            border-radius: 10px;
             margin-bottom: 8px;
             cursor: pointer;
             transition: all 0.2s;
@@ -209,6 +209,7 @@
             font-weight: 600;
             color: #333;
             font-size: 1rem;
+            white-space: nowrap;
         }
 
         .bot-accordion-symbol {
@@ -218,6 +219,7 @@
             border-radius: 5px;
             font-size: 0.75rem;
             font-weight: 600;
+            white-space: nowrap;
         }
 
         .bot-accordion-right {
@@ -266,12 +268,76 @@
             background: #4caf50;
         }
 
+        @media (max-width: 768px) {
+            .bot-accordion-header {
+                padding: 12px 14px;
+            }
+
+            .bot-accordion-left {
+                gap: 8px;
+            }
+
+            .bot-accordion-right {
+                gap: 10px;
+            }
+
+            .bot-accordion-name {
+                font-size: 0.9rem;
+            }
+
+            .bot-accordion-symbol {
+                font-size: 0.7rem;
+                padding: 2px 6px;
+            }
+
+            .bot-accordion-progress-bar {
+                width: 80px;
+            }
+
+            .bot-accordion-progress-text {
+                font-size: 0.85rem;
+                min-width: 45px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .bot-accordion-header {
+                padding: 10px 12px;
+            }
+
+            .bot-accordion-left {
+                gap: 6px;
+            }
+
+            .bot-accordion-right {
+                gap: 8px;
+            }
+
+            .bot-accordion-name {
+                font-size: 0.85rem;
+            }
+
+            .bot-accordion-symbol {
+                font-size: 0.65rem;
+                padding: 2px 5px;
+            }
+
+            .bot-accordion-progress-bar {
+                width: 70px;
+            }
+
+            .bot-accordion-progress-text {
+                font-size: 0.8rem;
+                min-width: 40px;
+            }
+        }
+
         .bot-accordion-content {
             display: none;
             background: #fff;
             border: 1px solid #667eea;
             border-top: none;
-            border-radius: 0 0 12px 12px !important;
+            border-radius: 0 0 10px 10px !important;
             margin-bottom: 8px;
             margin-top: 0 !important;
         }
