@@ -174,10 +174,17 @@ class HantooClient:
         token = key_store.read(key_store.AT_KEY)
         token_expiration = key_store.read(key_store.AT_EX_DATE)
 
+        # [DEBUG] 토큰 상태 로깅
+        token_preview = token[:20] + "..." if token else None
+        print(f"\n[DEBUG] _get_token() 호출")
+        print(f"[DEBUG] 토큰 존재 여부: {token is not None} (preview: {token_preview})")
+        print(f"[DEBUG] 만료일 존재 여부: {token_expiration is not None} (value: {token_expiration})")
+        logging.info(f"[DEBUG] 토큰={token is not None}, 만료일={token_expiration}")
+
         # 토큰이 없으면 새로 발급
         if token is None:
             logging.info("토큰이 없습니다. 토큰을 발급합니다.")
-            print("토큰이 없습니다. 토큰을 발급합니다.")
+            print("[DEBUG] ❌ 토큰이 없습니다. 토큰을 발급합니다.")
             return self._update_token()
 
         # 토큰 만료 여부 체크
@@ -188,19 +195,29 @@ class HantooClient:
 
                 # 만료 1시간 전에 갱신 (egg 프로젝트 방식)
                 from datetime import timedelta
-                if current_time < (expiration_datetime - timedelta(hours=1)):
+                expiration_with_buffer = expiration_datetime - timedelta(hours=1)
+
+                # [DEBUG] 시간 비교 로깅
+                print(f"[DEBUG] 현재 시간: {current_time}")
+                print(f"[DEBUG] 만료 시간: {expiration_datetime}")
+                print(f"[DEBUG] 만료 1시간 전: {expiration_with_buffer}")
+                print(f"[DEBUG] 토큰 유효 여부: {current_time < expiration_with_buffer}")
+                logging.info(f"[DEBUG] 현재={current_time}, 만료={expiration_datetime}, 유효={current_time < expiration_with_buffer}")
+
+                if current_time < expiration_with_buffer:
+                    print(f"[DEBUG] ✅ 토큰 유효 (만료까지 {expiration_with_buffer - current_time} 남음)")
                     return token
                 else:
                     logging.info("토큰이 만료되었습니다. 새로운 토큰을 발급합니다.")
-                    print("토큰이 만료되었습니다. 새로운 토큰을 발급합니다.")
+                    print(f"[DEBUG] ⏰ 토큰이 만료 1시간 전입니다. 새로운 토큰을 발급합니다.")
                     return self._update_token()
-            except ValueError:
-                logging.error("유효하지 않은 만료일 형식입니다. 새로운 토큰을 발급합니다.")
-                print("유효하지 않은 만료일 형식입니다. 새로운 토큰을 발급합니다.")
+            except ValueError as e:
+                logging.error(f"유효하지 않은 만료일 형식입니다: {e}")
+                print(f"[DEBUG] ❌ 유효하지 않은 만료일 형식입니다: {e}")
                 return self._update_token()
         else:
             logging.warning("유효하지 않은 만료일 정보입니다. 새로운 토큰을 발급합니다.")
-            print("유효하지 않은 만료일 정보입니다. 새로운 토큰을 발급합니다.")
+            print("[DEBUG] ❌ 유효하지 않은 만료일 정보입니다. 새로운 토큰을 발급합니다.")
             return self._update_token()
 
     def post_request(
