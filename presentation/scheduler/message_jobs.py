@@ -123,12 +123,6 @@ class MessageJobs:
             )
 
             send_message_sync(msg)
-
-            # 누적 수익 요약 전송
-            profit_summary = self.portfolio_usecase.get_profit_summary()
-            if profit_summary:
-                send_message_sync(profit_summary)
-
             print("✅ 포트폴리오 요약 메시지 전송 완료")
 
         except Exception as e:
@@ -340,7 +334,7 @@ class MessageJobs:
         self.send_all_status()
 
         # 시장 지표 메시지 전송
-        self.send_market_data_message()
+        # self.send_market_data_message()
 
         # # 2. Google Sheets 동기화 (실패해도 무시 - API가 불안정함)
         # try:
