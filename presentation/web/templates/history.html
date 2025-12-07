@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>History Management</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* 모달 스타일 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-card {
+            background: #fff;
+            border-radius: 15px;
+            padding: 28px;
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            border: 1px solid #e0e0e0;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .modal-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #999;
+            font-size: 1.8rem;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+
+        .modal-close:hover {
+            color: #333;
+        }
+
+        .modal-body {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .modal-field {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .modal-field label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #666;
+        }
+
+        .modal-field input {
+            padding: 12px 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            background: #fafafa;
+            color: #333;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .modal-field input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .modal-actions button {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .modal-btn-cancel {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .modal-btn-cancel:hover {
+            background: #e0e0e0;
+        }
+
+        .modal-btn-submit {
+            background: #667eea;
+            color: #fff;
+        }
+
+        .modal-btn-submit:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        /* 추가 버튼 영역 */
+        .add-buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .add-btn {
+            flex: 1;
+            padding: 16px 24px;
+            border: 2px dashed #28a745;
+            border-radius: 12px;
+            background: rgba(40, 167, 69, 0.05);
+            color: #28a745;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .add-btn:hover {
+            border-style: solid;
+            background: rgba(40, 167, 69, 0.1);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.2);
+        }
+
+        /* 수익 요약 카드 스타일 */
+        .profit-year-card {
+            background: #fff;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .profit-year-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .profit-year-header:hover {
+            background: #f8f9ff;
+        }
+
+        .profit-year-card.active .profit-year-header {
+            border-bottom: 2px solid #f0f0f0;
+            margin-bottom: 16px;
+        }
+
+        .profit-year-toggle {
+            font-size: 0.8rem;
+            color: #667eea;
+            margin-right: 10px;
+            transition: transform 0.2s;
+        }
+
+        .profit-year-card.active .profit-year-toggle {
+            transform: rotate(90deg);
+        }
+
+        .profit-year-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .current-year-badge {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .profit-year-total {
+            font-size: 1rem;
+            font-weight: 400;
+        }
+
+        .profit-year-krw {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .profit-year-content {
+            display: none;
+            padding: 0 20px 20px 20px;
+        }
+
+        .profit-year-card.active .profit-year-content {
+            display: block;
+        }
+
+        .profit-monthly-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .profit-month-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 14px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+            transition: all 0.2s;
+        }
+
+        .profit-month-card:hover {
+            background: #fff;
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+
+        .profit-month-label {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .profit-month-value {
+            font-size: 0.9rem;
+            font-weight: 400;
+        }
+
+        .profit-month-krw {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .profit-positive {
+            color: #c62828;
+        }
+
+        .profit-negative {
+            color: #1565c0;
+        }
+
+        .profit-zero {
+            color: #333;
+        }
+
+        @media (max-width: 768px) {
+            .profit-monthly-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+
+            .profit-year-title {
+                font-size: 1rem;
+            }
+
+            .profit-year-total {
+                font-size: 0.85rem;
+            }
+
+            .profit-year-krw {
+                font-size: 1.2rem;
+            }
+
+            .profit-month-value {
+                font-size: 0.8rem;
+            }
+
+            .profit-month-krw {
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .profit-monthly-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+        }
+    </style>
+    <script>
+        // 로딩 표시
+        function showLoading() {
+            document.getElementById('loadingOverlay').classList.add('active');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('active');
+        }
+
+        // 숫자 포맷팅 함수
+        function formatCurrency(input, currencySymbol) {
+            let value = input.value.replace(/[^0-9.]/g, '');
+            if ((value.match(/\./g) || []).length > 1) {
+                value = value.replace(/\.+$/, '');
+            }
+            if (!isNaN(value) && value !== "") {
+                const parts = value.split('.');
+                parts[0] = parseInt(parts[0], 10).toLocaleString('en-US');
+                input.value = currencySymbol + parts.join('.');
+            } else {
+                input.value = currencySymbol;
+            }
+            input.selectionStart = input.selectionEnd = input.value.length;
+        }
+
+        function formatAmount(input) {
+            let value = input.value.replace(/[^0-9]/g, '');
+            if (!isNaN(value) && value !== "") {
+                input.value = parseFloat(value).toLocaleString('en-US');
+            } else {
+                input.value = '';
+            }
+        }
+
+        function parseCurrency(value) {
+            return parseFloat(value.replace(/[^0-9.]/g, '')) || 0;
+        }
+
+        // 모달 열기/닫기
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+            // 입력 필드 초기화
+            const modal = document.getElementById(modalId);
+            modal.querySelectorAll('input').forEach(input => {
+                if (input.type === 'text') {
+                    input.value = '';
+                }
+            });
+        }
+
+        // History 추가
+        function submitAddHistory() {
+            const name = document.getElementById('modal_history_name').value.trim();
+            const symbol = document.getElementById('modal_history_symbol').value.trim();
+            const buyPrice = parseCurrency(document.getElementById('modal_history_buy_price').value);
+            const sellPrice = parseCurrency(document.getElementById('modal_history_sell_price').value);
+            const amount = parseCurrency(document.getElementById('modal_history_amount').value);
+
+            if (!name || !symbol) {
+                alert('이름과 심볼을 입력해주세요.');
+                return;
+            }
+
+            showLoading();
+            fetch('/add_history', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    name: name,
+                    symbol: symbol,
+                    buy_price: buyPrice,
+                    sell_price: sellPrice,
+                    amount: amount
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    hideLoading();
+                    alert(data.message || data.error);
+                    if (!data.error) location.reload();
+                })
+                .catch(error => {
+                    hideLoading();
+                    alert('Error: ' + error);
+                });
+        }
+
+        // 년도별 아코디언 토글
+        function toggleYearAccordion(year) {
+            const card = document.getElementById('year-card-' + year);
+            if (card) {
+                card.classList.toggle('active');
+
+                // 확장 상태 저장
+                const isExpanded = card.classList.contains('active');
+                localStorage.setItem('yearExpanded_' + year, isExpanded);
+            }
+        }
+
+        // 페이지 로드 시 이벤트 리스너 등록
+        document.addEventListener('DOMContentLoaded', function () {
+            // 모달 외부 클릭 시 닫기
+            document.querySelectorAll('.modal-overlay').forEach(modal => {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        this.classList.remove('active');
+                    }
+                });
+            });
+
+            // 저장된 년도별 확장 상태 복원 (기본값: 현재 년도만 열림)
+            document.querySelectorAll('.profit-year-card').forEach(card => {
+                const year = card.getAttribute('data-year');
+                const isCurrentYear = card.getAttribute('data-current') === 'true';
+                const savedState = localStorage.getItem('yearExpanded_' + year);
+
+                // 저장된 상태가 있으면 그대로, 없으면 현재 년도만 열림
+                if (savedState !== null) {
+                    if (savedState === 'true') {
+                        card.classList.add('active');
+                    }
+                } else if (isCurrentYear) {
+                    card.classList.add('active');
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+<!-- 로딩 오버레이 -->
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-spinner"></div>
+</div>
+
+<!-- History 추가 모달 -->
+<div id="addHistoryModal" class="modal-overlay">
+    <div class="modal-card">
+        <div class="modal-header">
+            <span class="modal-title">📜 History 추가</span>
+            <button class="modal-close" onclick="closeModal('addHistoryModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-field">
+                <label>봇 이름</label>
+                <input type="text" id="modal_history_name" placeholder="Enter name">
+            </div>
+            <div class="modal-field">
+                <label>심볼</label>
+                <input type="text" id="modal_history_symbol" placeholder="Enter symbol">
+            </div>
+            <div class="modal-field">
+                <label>구매가</label>
+                <input type="text" id="modal_history_buy_price" placeholder="$ 0.00"
+                       oninput="formatCurrency(this, '$ ')">
+            </div>
+            <div class="modal-field">
+                <label>판매가</label>
+                <input type="text" id="modal_history_sell_price" placeholder="$ 0.00"
+                       oninput="formatCurrency(this, '$ ')">
+            </div>
+            <div class="modal-field">
+                <label>수량</label>
+                <input type="text" id="modal_history_amount" placeholder="0"
+                       oninput="formatAmount(this)">
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn-cancel" onclick="closeModal('addHistoryModal')">취소</button>
+                <button class="modal-btn-submit" onclick="submitAddHistory()">추가</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="bot-container" style="max-width: 1200px;">
+    <!-- 페이지 헤더 -->
+    <div class="page-header">
+        <div class="page-title">
+            <h1>📜 History 관리</h1>
+        </div>
+        <a href="/" class="back-link">← 메인으로</a>
+    </div>
+
+    <!-- 수익 요약 섹션 -->
+    {% if profit_summary and profit_summary.has_data %}
+    <div class="card-section">
+        <div class="section-title">💰 년도별 수익 요약</div>
+
+        {% for year_data in profit_summary.years %}
+        <div class="profit-year-card" id="year-card-{{ year_data.year }}" data-year="{{ year_data.year }}" data-current="{{ 'true' if year_data.is_current_year else 'false' }}">
+            <div class="profit-year-header" onclick="toggleYearAccordion({{ year_data.year }})">
+                <div class="profit-year-title">
+                    <span class="profit-year-toggle">▶</span>
+                    📅 {{ year_data.year }}년
+                    {% if year_data.is_current_year %}
+                    <span class="current-year-badge">현재</span>
+                    {% endif %}
+                </div>
+                <div style="text-align: right;">
+                    <div class="profit-year-krw {% if year_data.total_profit > 0 %}profit-positive{% elif year_data.total_profit < 0 %}profit-negative{% else %}profit-zero{% endif %}">
+                        {% if year_data.total_profit > 0 %}+{% elif year_data.total_profit < 0 %}{% endif %}{{ '{:,.0f}'.format(year_data.total_profit_krw) }}원
+                    </div>
+                    <div class="profit-year-total {% if year_data.total_profit > 0 %}profit-positive{% elif year_data.total_profit < 0 %}profit-negative{% else %}profit-zero{% endif %}">
+                        {% if year_data.total_profit > 0 %}+{% elif year_data.total_profit < 0 %}{% endif %}${{ '{:,.2f}'.format(year_data.total_profit) }}
+                    </div>
+                </div>
+            </div>
+
+            {% if year_data.monthly_profits %}
+            <div class="profit-year-content">
+                <div class="profit-monthly-grid">
+                    {% for month_data in year_data.monthly_profits %}
+                    <div class="profit-month-card">
+                        <div class="profit-month-label">{{ month_data.month }}월 ({{ '{:,.0f}'.format(month_data.exchange_rate) }}원)</div>
+                        <div class="profit-month-krw {% if month_data.profit > 0 %}profit-positive{% elif month_data.profit < 0 %}profit-negative{% else %}profit-zero{% endif %}">
+                            {% if month_data.profit > 0 %}+{% elif month_data.profit < 0 %}{% endif %}{{ '{:,.0f}'.format(month_data.profit_krw) }}원
+                        </div>
+                        <div class="profit-month-value {% if month_data.profit > 0 %}profit-positive{% elif month_data.profit < 0 %}profit-negative{% else %}profit-zero{% endif %}">
+                            {% if month_data.profit > 0 %}+{% elif month_data.profit < 0 %}{% endif %}${{ '{:,.2f}'.format(month_data.profit) }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- History 필터 및 리스트 섹션 -->
+    <div class="card-section">
+        <div class="section-title">📜 History List</div>
+
+        <!-- History 추가 버튼 -->
+        <div class="add-buttons" style="margin-bottom: 15px;">
+            <button class="add-btn" onclick="openModal('addHistoryModal')">📜 History 추가</button>
+        </div>
+
+        <!-- 필터 폼 -->
+        <form method="POST" action="/history" class="history-filter-form">
+            <div class="filter-group">
+                <div class="filter-field">
+                    <label for="year">Year</label>
+                    <input type="number" id="year" name="year" value="{{ year }}" min="2000" max="2100">
+                </div>
+                <div class="filter-field">
+                    <label for="month">Month</label>
+                    <input type="number" id="month" name="month" value="{{ month }}" min="1" max="12">
+                </div>
+                <div class="filter-field">
+                    <label for="symbol">Symbol</label>
+                    <input type="text" id="symbol" name="symbol" value="{{ symbol or '' }}"
+                           placeholder="Enter Symbol (optional)">
+                </div>
+                <div class="filter-actions">
+                    <button type="submit" class="btn-primary">🔍 Search</button>
+                </div>
+            </div>
+        </form>
+
+        <!-- History 리스트 -->
+        {% if history_list %}
+        <div class="history-list">
+            {% for history in history_list %}
+            <div class="history-card">
+                <div class="history-header">
+                    <div class="history-name">{{ history.name }}</div>
+                    <div class="history-symbol">{{ history.symbol }}</div>
+                    <div class="history-type">{{ history.trade_type.name }}</div>
+                </div>
+
+                <div class="history-content">
+                    <div class="history-field">
+                        <label>구매일</label>
+                        <span>{{ history.date_added.strftime('%Y-%m-%d %H:%M') if history.date_added else '' }}</span>
+                    </div>
+                    <div class="history-field">
+                        <label>판매일</label>
+                        <span>{{ history.sell_date.strftime('%Y-%m-%d %H:%M') if history.sell_date else '' }}</span>
+                    </div>
+                    <div class="history-field">
+                        <label>구매가</label>
+                        <span>$ {{ '{:,.2f}'.format(history.buy_price) if history.buy_price else '0' }}</span>
+                    </div>
+                    <div class="history-field">
+                        <label>판매가</label>
+                        <span>$ {{ '{:,.2f}'.format(history.sell_price) if history.sell_price else '0' }}</span>
+                    </div>
+                    <div class="history-field">
+                        <label>수익금</label>
+                        <span class="{{ 'profit-positive' if history.profit >= 0 else 'profit-negative' }}">
+                            {{ '{:,.2f}'.format(history.profit) if history.profit else '0' }}$
+                        </span>
+                    </div>
+                    <div class="history-field">
+                        <label>수익률</label>
+                        <span class="{{ 'profit-positive' if history.profit_rate >= 0 else 'profit-negative' }}">
+                            {{ '{:,.2f}'.format(history.profit_rate) if history.profit_rate else '0' }}%
+                        </span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-data">조회된 History가 없습니다.</div>
+        {% endif %}
+    </div>
+</div>
+</body>
+</html>

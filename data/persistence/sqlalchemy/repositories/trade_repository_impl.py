@@ -314,3 +314,35 @@ class SQLAlchemyTradeRepository(TradeRepository):
             date_added=entity.date_added,
             latest_date_trade=entity.latest_date_trade
         )
+
+    def find_today_buys(self) -> List[Trade]:
+        """
+        오늘 매수한 Trade 리스트 조회
+
+        SQLAlchemy의 extract()를 사용하여 latest_date_trade의
+        year, month, day가 오늘과 일치하는 레코드 조회
+
+        Returns:
+            List[Trade]: 오늘 매수한 Trade 엔티티 리스트
+        """
+        from datetime import datetime
+        from sqlalchemy import extract, and_
+
+        today = datetime.now().date()
+
+        # SQLAlchemy 쿼리: latest_date_trade가 오늘인 것
+        models = (
+            self.session.query(TradeModel)
+            .filter(
+                and_(
+                    extract('year', TradeModel.latest_date_trade) == today.year,
+                    extract('month', TradeModel.latest_date_trade) == today.month,
+                    extract('day', TradeModel.latest_date_trade) == today.day
+                )
+            )
+            .order_by(TradeModel.latest_date_trade.desc())  # 최신순 정렬
+            .all()
+        )
+
+        # ORM Model → Domain Entity 변환 (Mapper 패턴)
+        return [self._to_entity(model) for model in models]

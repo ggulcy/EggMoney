@@ -47,15 +47,17 @@ def create_app():
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)
 
     # 블루프린트 등록
-    from presentation.web.routes import bot_info_bp, status_bp, index_bp, trade_bp, auth_bp
+    from presentation.web.routes import bot_info_bp, status_bp, index_bp, trade_bp, auth_bp, history_bp
     import presentation.web.routes.bot_info_routes
     import presentation.web.routes.trade_routes
+    import presentation.web.routes.history_routes
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(index_bp)
     app.register_blueprint(bot_info_bp)
     app.register_blueprint(status_bp)
     app.register_blueprint(trade_bp)
+    app.register_blueprint(history_bp)
 
     # 에러 핸들러
     @app.errorhandler(404)

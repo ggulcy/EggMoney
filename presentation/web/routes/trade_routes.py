@@ -41,23 +41,13 @@ def _get_dependencies():
     )
 
 
-@trade_bp.route('/trade', methods=['GET', 'POST'])
+@trade_bp.route('/trade', methods=['GET'])
 def trade_template():
-    """Trade + History 조회 (필터링)"""
+    """Trade 조회"""
     portfolio_usecase = _get_dependencies()
     try:
-        year = datetime.now().year
-        month = datetime.now().month
-        symbol = None
-
-        if request.method == 'POST':
-            year = int(request.form.get('year', year))
-            month = int(request.form.get('month', month))
-            symbol = request.form.get('symbol', '').strip()
-
         # Usecase를 통한 조회
         trade_list = portfolio_usecase.get_all_trades()
-        history_list = portfolio_usecase.get_history_by_filter(year, month, symbol)
 
         # 각 trade에 대한 status 정보 조회
         trade_status_map = {}
@@ -70,11 +60,7 @@ def trade_template():
         return render_template(
             'trade.html',
             trade_list=trade_list,
-            trade_status_map=trade_status_map,
-            history_list=history_list,
-            year=year,
-            month=month,
-            symbol=symbol
+            trade_status_map=trade_status_map
         )
     except Exception as e:
         print(f"Error: {e}")
@@ -164,44 +150,6 @@ def delete_trade():
             return jsonify({"message": f"Trade deleted: {name}"}), 200
         else:
             return jsonify({"error": f"Failed to delete trade: {name}"}), 500
-
-    except Exception as e:
-        print(f"Error: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
-
-
-@trade_bp.route('/add_history', methods=['POST'])
-@require_web_auth
-def add_history():
-    """History 수동 추가"""
-    portfolio_usecase = _get_dependencies()
-    try:
-        data = request.get_json()
-        name = data.get('name', '').strip()
-        symbol = data.get('symbol', '').strip()
-        buy_price = float(data.get('buy_price', 0))
-        sell_price = float(data.get('sell_price', 0))
-        amount = float(data.get('amount', 0))
-
-        if not name or not symbol:
-            return jsonify({"error": "Name and Symbol required"}), 400
-
-        # Usecase를 통한 History 추가
-        success = portfolio_usecase.add_manual_history(
-            name=name,
-            symbol=symbol,
-            buy_price=buy_price,
-            sell_price=sell_price,
-            amount=amount,
-            trade_type=TradeType.SELL
-        )
-
-        if success:
-            return jsonify({"message": f"History added: {name}"}), 200
-        else:
-            return jsonify({"error": "Failed to add history"}), 500
 
     except Exception as e:
         print(f"Error: {e}")

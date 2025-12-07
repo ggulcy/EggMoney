@@ -216,3 +216,32 @@ class SQLAlchemyHistoryRepository(HistoryRepository):
             profit=entity.profit,
             profit_rate=entity.profit_rate
         )
+
+    def find_today_sells(self) -> List[History]:
+        """
+        오늘 매도한 History 리스트 조회
+
+        SQLAlchemy의 extract()를 사용하여 sell_date의
+        year, month, day가 오늘과 일치하는 레코드 조회
+
+        Returns:
+            List[History]: 오늘 매도한 History 엔티티 리스트
+        """
+        today = datetime.now().date()
+
+        # SQLAlchemy 쿼리: sell_date가 오늘인 것
+        models = (
+            self.session.query(HistoryModel)
+            .filter(
+                and_(
+                    extract('year', HistoryModel.sell_date) == today.year,
+                    extract('month', HistoryModel.sell_date) == today.month,
+                    extract('day', HistoryModel.sell_date) == today.day
+                )
+            )
+            .order_by(HistoryModel.sell_date.desc())  # 최신순 정렬
+            .all()
+        )
+
+        # ORM Model → Domain Entity 변환 (Mapper 패턴)
+        return [self._to_entity(model) for model in models]

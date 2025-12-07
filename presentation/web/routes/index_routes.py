@@ -54,12 +54,25 @@ def index():
     """메인 페이지"""
     portfolio_usecase = _get_portfolio_usecase()
     overview = portfolio_usecase.get_portfolio_overview()
+    recent_trades = portfolio_usecase.get_recent_trades_by_bot()
+
+    # 현재 년도 수익 요약 가져오기
+    profit_summary = portfolio_usecase.get_profit_summary_for_web()
+    current_year_data = None
+    if profit_summary and profit_summary.get('has_data'):
+        # 현재 년도 데이터만 필터링
+        for year_data in profit_summary['years']:
+            if year_data['is_current_year']:
+                current_year_data = year_data
+                break
 
     return render_template(
         'index.html',
         title='EggMoney Trading Bot',
         admin=item.admin.value,
-        overview=overview
+        overview=overview,
+        recent_trades=recent_trades,
+        current_year_profit=current_year_data
     )
 
 

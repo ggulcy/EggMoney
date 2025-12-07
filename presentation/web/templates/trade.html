@@ -552,43 +552,6 @@
                 });
         }
 
-        // History 추가
-        function submitAddHistory() {
-            const name = document.getElementById('modal_history_name').value.trim();
-            const symbol = document.getElementById('modal_history_symbol').value.trim();
-            const buyPrice = parseCurrency(document.getElementById('modal_history_buy_price').value);
-            const sellPrice = parseCurrency(document.getElementById('modal_history_sell_price').value);
-            const amount = parseCurrency(document.getElementById('modal_history_amount').value);
-
-            if (!name || !symbol) {
-                alert('이름과 심볼을 입력해주세요.');
-                return;
-            }
-
-            showLoading();
-            fetch('/add_history', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    name: name,
-                    symbol: symbol,
-                    buy_price: buyPrice,
-                    sell_price: sellPrice,
-                    amount: amount
-                })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    hideLoading();
-                    alert(data.message || data.error);
-                    if (!data.error) location.reload();
-                })
-                .catch(error => {
-                    hideLoading();
-                    alert('Error: ' + error);
-                });
-        }
-
         // 강제 매도
         function handleForceSell(name) {
             const ratio = prompt(`${name}의 판매 비율(%)을 입력하세요.\n예: 50 → 전체의 50% 매도`);
@@ -762,45 +725,6 @@
     </div>
 </div>
 
-<!-- History 추가 모달 -->
-<div id="addHistoryModal" class="modal-overlay">
-    <div class="modal-card">
-        <div class="modal-header">
-            <span class="modal-title">📜 History 추가</span>
-            <button class="modal-close" onclick="closeModal('addHistoryModal')">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div class="modal-field">
-                <label>봇 이름</label>
-                <input type="text" id="modal_history_name" placeholder="Enter name">
-            </div>
-            <div class="modal-field">
-                <label>심볼</label>
-                <input type="text" id="modal_history_symbol" placeholder="Enter symbol">
-            </div>
-            <div class="modal-field">
-                <label>구매가</label>
-                <input type="text" id="modal_history_buy_price" placeholder="$ 0.00"
-                       oninput="formatCurrency(this, '$ ')">
-            </div>
-            <div class="modal-field">
-                <label>판매가</label>
-                <input type="text" id="modal_history_sell_price" placeholder="$ 0.00"
-                       oninput="formatCurrency(this, '$ ')">
-            </div>
-            <div class="modal-field">
-                <label>수량</label>
-                <input type="text" id="modal_history_amount" placeholder="0"
-                       oninput="formatAmount(this)">
-            </div>
-            <div class="modal-actions">
-                <button class="modal-btn-cancel" onclick="closeModal('addHistoryModal')">취소</button>
-                <button class="modal-btn-submit" onclick="submitAddHistory()">추가</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <div class="bot-container">
     <!-- 페이지 헤더 -->
     <div class="page-header">
@@ -961,85 +885,6 @@
         {% endfor %}
     </div>
 
-    <!-- History 필터 및 리스트 섹션 -->
-    <div class="card-section">
-        <div class="section-title">📜 History List</div>
-
-        <!-- History 추가 버튼 -->
-        <div class="add-buttons" style="margin-bottom: 15px;">
-            <button class="add-btn" onclick="openModal('addHistoryModal')">📜 History 추가</button>
-        </div>
-
-        <!-- 필터 폼 -->
-        <form method="POST" action="/trade" class="history-filter-form">
-            <div class="filter-group">
-                <div class="filter-field">
-                    <label for="year">Year</label>
-                    <input type="number" id="year" name="year" value="{{ year }}" min="2000" max="2100">
-                </div>
-                <div class="filter-field">
-                    <label for="month">Month</label>
-                    <input type="number" id="month" name="month" value="{{ month }}" min="1" max="12">
-                </div>
-                <div class="filter-field">
-                    <label for="symbol">Symbol</label>
-                    <input type="text" id="symbol" name="symbol" value="{{ symbol or '' }}"
-                           placeholder="Enter Symbol (optional)">
-                </div>
-                <div class="filter-actions">
-                    <button type="submit" class="btn-primary">🔍 Search</button>
-                </div>
-            </div>
-        </form>
-
-        <!-- History 리스트 -->
-        {% if history_list %}
-        <div class="history-list">
-            {% for history in history_list %}
-            <div class="history-card">
-                <div class="history-header">
-                    <div class="history-name">{{ history.name }}</div>
-                    <div class="history-symbol">{{ history.symbol }}</div>
-                    <div class="history-type">{{ history.trade_type.name }}</div>
-                </div>
-
-                <div class="history-content">
-                    <div class="history-field">
-                        <label>구매일</label>
-                        <span>{{ history.date_added.strftime('%Y-%m-%d %H:%M') if history.date_added else '' }}</span>
-                    </div>
-                    <div class="history-field">
-                        <label>판매일</label>
-                        <span>{{ history.sell_date.strftime('%Y-%m-%d %H:%M') if history.sell_date else '' }}</span>
-                    </div>
-                    <div class="history-field">
-                        <label>구매가</label>
-                        <span>$ {{ '{:,.2f}'.format(history.buy_price) if history.buy_price else '0' }}</span>
-                    </div>
-                    <div class="history-field">
-                        <label>판매가</label>
-                        <span>$ {{ '{:,.2f}'.format(history.sell_price) if history.sell_price else '0' }}</span>
-                    </div>
-                    <div class="history-field">
-                        <label>수익금</label>
-                        <span class="{{ 'profit-positive' if history.profit >= 0 else 'profit-negative' }}">
-                            {{ '{:,.2f}'.format(history.profit) if history.profit else '0' }}$
-                        </span>
-                    </div>
-                    <div class="history-field">
-                        <label>수익률</label>
-                        <span class="{{ 'profit-positive' if history.profit_rate >= 0 else 'profit-negative' }}">
-                            {{ '{:,.2f}'.format(history.profit_rate) if history.profit_rate else '0' }}%
-                        </span>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <div class="no-data">조회된 History가 없습니다.</div>
-        {% endif %}
-    </div>
 </div>
 </body>
 </html>

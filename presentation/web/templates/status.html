@@ -65,6 +65,32 @@
         }
 
     </script>
+
+    <style>
+        /* 지원하지 않는 계정 메시지 스타일 */
+        .status-not-supported {
+            text-align: center;
+            padding: 60px 30px;
+        }
+
+        .not-supported-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .not-supported-message {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #c62828;
+            margin-bottom: 12px;
+        }
+
+        .not-supported-description {
+            font-size: 1rem;
+            color: #666;
+            line-height: 1.6;
+        }
+    </style>
 </head>
 <body>
 <!-- 로딩 오버레이 -->
@@ -85,6 +111,7 @@
     <div class="card-section">
         <div class="section-title">📊 입출금 정보</div>
         <div class="status-card">
+            {% if admin == 'chan' or admin == 'choe' %}
             <div class="status-grid">
                 <!-- 입금 섹션 -->
                 <div class="status-section">
@@ -120,6 +147,12 @@
             <div class="status-actions">
                 <button type="button" onclick="syncWithSheet()" class="btn-success">🔄 시트 동기화</button>
             </div>
+            {% else %}
+            <div class="status-not-supported">
+                <div class="not-supported-icon">🚫</div>
+                <div class="not-supported-message">지원하지 않는 계정입니다</div>
+            </div>
+            {% endif %}
         </div>
     </div>
 

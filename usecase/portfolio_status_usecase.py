@@ -524,6 +524,94 @@ class PortfolioStatusUsecase:
             print(f"❌ 수익 요약 조회 실패: {str(e)}")
             return "❌ 수익 요약 조회 중 오류가 발생했습니다."
 
+    def get_profit_summary_for_web(self) -> Dict[str, Any]:
+        """
+        웹용 연도별/월별 수익 요약 조회 (원화 포함)
+
+        Returns:
+            Dict: {
+                'years': [
+                    {
+                        'year': 2025,
+                        'total_profit': 1234.56,
+                        'total_profit_krw': 1820000.0,
+                        'is_current_year': True,
+                        'monthly_profits': [
+                            {'month': 1, 'profit': 100.0, 'profit_krw': 147000.0, 'exchange_rate': 1470.0},
+                            {'month': 2, 'profit': 200.0, 'profit_krw': 294000.0, 'exchange_rate': 1470.0},
+                            ...
+                        ]
+                    },
+                    ...
+                ],
+                'has_data': bool
+            }
+        """
+        try:
+            from utils.exchange_rate_util import get_monthly_exchange_rate
+
+            current_year = datetime.now().year
+            current_month = datetime.now().month
+            years = self.history_repo.get_years_from_sell_date()
+
+            if not years:
+                return {'years': [], 'has_data': False}
+
+            years_data = []
+
+            for year in sorted(years, reverse=True):
+                total_profit = self.history_repo.get_total_profit_by_year(year)
+                is_current = (year == current_year)
+
+                # 년도 총 수익 원화 계산 (현재 환율 사용)
+                from utils.exchange_rate_util import get_current_exchange_rate
+                current_rate = get_current_exchange_rate()
+                total_profit_krw = total_profit * current_rate
+
+                year_data = {
+                    'year': year,
+                    'total_profit': total_profit,
+                    'total_profit_krw': total_profit_krw,
+                    'is_current_year': is_current,
+                    'monthly_profits': []
+                }
+
+                # 모든 년도 월별 수익 포함
+                monthly_profits_dict = {
+                    month: profit
+                    for month, profit in self.history_repo.get_monthly_profit_by_year(year)
+                }
+
+                # 현재 년도는 현재 월까지, 과거 년도는 12월까지
+                max_month = current_month if is_current else 12
+
+                for month in range(1, max_month + 1):
+                    profit = monthly_profits_dict.get(month, 0.0)
+
+                    # 월별 환율 조회
+                    exchange_rate = get_monthly_exchange_rate(year, month)
+                    profit_krw = profit * exchange_rate
+
+                    year_data['monthly_profits'].append({
+                        'month': month,
+                        'profit': profit,
+                        'profit_krw': profit_krw,
+                        'exchange_rate': exchange_rate
+                    })
+
+                years_data.append(year_data)
+
+            return {
+                'years': years_data,
+                'has_data': len(years_data) > 0
+            }
+
+        except Exception as e:
+            print(f"❌ 웹용 수익 요약 조회 실패: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return {'years': [], 'has_data': False}
+
     # ===== Private 헬퍼 메서드 =====
 
     def _get_rp(self) -> float:
@@ -888,3 +976,114 @@ class PortfolioStatusUsecase:
             import traceback
             traceback.print_exc()
             return False
+
+    def get_recent_trades_by_bot(self) -> Dict[str, Any]:
+        """
+        봇별 최신 거래 내역 조회
+
+        각 봇의 매수/매도 중 가장 최신 거래 1건씩 반환
+
+        Returns:
+            Dict: {
+                'trades': List[Dict],  # 최신 거래 내역
+                'has_trades': bool     # 거래 여부
+            }
+        """
+        try:
+            bot_info_list = self.bot_info_repo.find_all()
+            trades_list = []
+
+            for bot_info in bot_info_list:
+                # 각 봇의 최신 매수 거래 (Trade)
+                latest_trade = self.trade_repo.find_by_name(bot_info.name)
+
+                # 각 봇의 최신 매도 거래 (History)
+                history_list = self.history_repo.find_by_name_all(bot_info.name)
+                latest_history = history_list[0] if history_list else None
+
+                # 매수와 매도 중 더 최신 거래 선택
+                trade_date = latest_trade.latest_date_trade if latest_trade else None
+                sell_date = latest_history.sell_date if latest_history else None
+
+                # 최신 거래 결정
+                if trade_date and sell_date:
+                    is_buy = trade_date > sell_date
+                    latest_date = trade_date if is_buy else sell_date
+                elif trade_date:
+                    is_buy = True
+                    latest_date = trade_date
+                elif sell_date:
+                    is_buy = False
+                    latest_date = sell_date
+                else:
+                    continue  # 거래 없음
+
+                # n일 전 계산
+                days_ago = (datetime.now() - latest_date).days
+                if days_ago == 0:
+                    days_text = "오늘"
+                elif days_ago == 1:
+                    days_text = "1일 전"
+                else:
+                    days_text = f"{days_ago}일 전"
+
+                # 매수 거래
+                if is_buy:
+                    cur_price = self.hantoo_service.get_price(latest_trade.symbol)
+                    if cur_price is None:
+                        cur_price = latest_trade.purchase_price
+
+                    trades_list.append({
+                        'type': 'buy',
+                        'name': bot_info.name,
+                        'symbol': bot_info.symbol,
+                        'purchase_price': latest_trade.purchase_price,
+                        'amount': latest_trade.amount,
+                        'total_price': latest_trade.total_price,
+                        'current_price': cur_price,
+                        'days_ago': days_text,
+                        'date': latest_date
+                    })
+                # 매도 거래
+                else:
+                    # 수량 계산: profit / (sell_price - buy_price) - 반올림
+                    price_diff = latest_history.sell_price - latest_history.buy_price
+                    amount = round(latest_history.profit / price_diff) if price_diff != 0 else 0
+
+                    trades_list.append({
+                        'type': 'sell',
+                        'name': bot_info.name,
+                        'symbol': bot_info.symbol,
+                        'buy_price': latest_history.buy_price,
+                        'sell_price': latest_history.sell_price,
+                        'amount': int(amount),  # 정수형
+                        'profit': latest_history.profit,
+                        'profit_rate': latest_history.profit_rate * 100,
+                        'days_ago': days_text,
+                        'date': latest_date
+                    })
+
+            # 날짜순 정렬 (최신순)
+            trades_list.sort(key=lambda x: x['date'], reverse=True)
+
+            # 매수/매도 카운트
+            buy_count = sum(1 for t in trades_list if t['type'] == 'buy')
+            sell_count = sum(1 for t in trades_list if t['type'] == 'sell')
+
+            return {
+                'trades': trades_list,
+                'has_trades': len(trades_list) > 0,
+                'buy_count': buy_count,
+                'sell_count': sell_count
+            }
+
+        except Exception as e:
+            print(f"❌ 최근 거래 조회 실패: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return {
+                'trades': [],
+                'has_trades': False,
+                'buy_count': 0,
+                'sell_count': 0
+            }

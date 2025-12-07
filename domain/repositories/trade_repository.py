@@ -214,3 +214,16 @@ class TradeRepository(ABC):
             trades: Trade 리스트
         """
         pass
+
+    @abstractmethod
+    def find_today_buys(self) -> List[Trade]:
+        """
+        오늘 매수한 Trade 리스트 조회
+
+        latest_date_trade가 오늘 날짜인 Trade들을 반환
+        매수 거래 판단 기준: latest_date_trade가 오늘인 것
+
+        Returns:
+            List[Trade]: 오늘 매수한 Trade 리스트 (최신순)
+        """
+        pass

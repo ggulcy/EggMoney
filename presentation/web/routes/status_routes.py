@@ -10,7 +10,7 @@ Clean Architecture Pattern:
 """
 from flask import Blueprint, render_template, request, jsonify
 
-from config.item import BotAdmin, is_test
+from config.item import BotAdmin, is_test, admin
 from data.persistence.sqlalchemy.core.session_factory import SessionFactory
 from presentation.web.middleware.auth_middleware import require_web_auth
 from data.persistence.sqlalchemy.repositories import (
@@ -69,7 +69,7 @@ def status_template():
     # Status 정보 조회 (Usecase 활용)
     status = portfolio_usecase.get_status()
 
-    return render_template('status.html', status=status)
+    return render_template('status.html', status=status, admin=admin.value if admin else None)
 
 
 @status_bp.route('/sync_sheets', methods=['POST'])

@@ -93,3 +93,17 @@ class HistoryRepository(ABC):
     def sync_all(self, history_list: List[History]) -> None:
         """전체 동기화 (기존 데이터 삭제 후 재삽입)"""
         pass
+
+    @abstractmethod
+    def find_today_sells(self) -> List[History]:
+        """
+        오늘 매도한 History 리스트 조회
+
+        sell_date가 오늘 날짜인 History들을 반환
+        매도 거래는 Trade를 삭제하고 History에 기록되므로
+        History의 sell_date로 판단
+
+        Returns:
+            List[History]: 오늘 매도한 History 리스트 (최신순)
+        """
+        pass
