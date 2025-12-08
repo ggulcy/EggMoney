@@ -168,7 +168,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 14px 18px;
+            padding: 18px 20px;
             background: #fff;
             border: 1px solid #e0e0e0;
             border-radius: 10px;
@@ -309,7 +309,7 @@
 
         @media (max-width: 768px) {
             .trade-accordion-header {
-                padding: 12px 14px;
+                padding: 16px 16px;
             }
 
             .trade-accordion-left {
@@ -325,26 +325,28 @@
             }
 
             .trade-accordion-symbol {
-                font-size: 0.7rem;
+                font-size: 0.65rem;
                 padding: 2px 6px;
             }
 
             .trade-accordion-amount {
-                font-size: 0.8rem;
+                display: none;
             }
 
             .trade-accordion-total {
-                font-size: 0.85rem;
+                display: none;
             }
 
             .trade-accordion-status {
-                display: none;
+                border-left: none;
+                padding-left: 0;
+                margin-left: 0;
             }
         }
 
         @media (max-width: 480px) {
             .trade-accordion-header {
-                padding: 10px 12px;
+                padding: 14px 14px;
             }
 
             .trade-accordion-left {
@@ -360,16 +362,20 @@
             }
 
             .trade-accordion-symbol {
-                font-size: 0.65rem;
+                font-size: 0.6rem;
                 padding: 2px 5px;
             }
 
-            .trade-accordion-amount {
+            .trade-accordion-status {
+                gap: 8px;
+            }
+
+            .trade-status-value {
                 font-size: 0.75rem;
             }
 
-            .trade-accordion-total {
-                font-size: 0.8rem;
+            .trade-progress-bar {
+                width: 60px;
             }
         }
 

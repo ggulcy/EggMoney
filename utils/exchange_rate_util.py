@@ -42,7 +42,6 @@ def _fetch_monthly_rate_from_yf(year: int, month: int) -> Optional[float]:
 
         # 해당 월의 평균 종가 환율
         avg_rate = hist['Close'].mean()
-        print(f"[ExchangeRate] Fetched average rate for {year}-{month:02d}: {avg_rate:.2f}")
         return float(avg_rate)
 
     except Exception as e:
@@ -74,7 +73,6 @@ def get_monthly_exchange_rate(year: int, month: int) -> float:
         stored_rate = key_store.read(key)
 
         if stored_rate is not None:
-            print(f"[ExchangeRate] Using stored rate for {year}-{month:02d}: {stored_rate}")
             return float(stored_rate)
 
         # 3. 현재 월인 경우 현재 환율 사용

@@ -758,8 +758,7 @@ input:checked + .slider:before {
 /* ===== 반응형 디자인 ===== */
 @media (max-width: 768px) {
     .page-header {
-        flex-direction: column;
-        gap: 15px;
+        padding: 14px 20px;
     }
 
     .menu-grid {
@@ -796,8 +795,16 @@ input:checked + .slider:before {
         padding: 10px;
     }
 
+    .page-header {
+        padding: 12px 14px;
+    }
+
     .page-title h1 {
-        font-size: 1.5rem;
+        font-size: 1.3rem;
+    }
+
+    .back-link {
+        font-size: 0.85rem;
     }
 
     .section-title {
