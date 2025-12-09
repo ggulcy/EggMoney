@@ -365,30 +365,6 @@ class TradingUsecase:
             value_msg = f"전체 구매 요청 시드 : {order.total_value:,.0f}$" \
                 if self._is_buy(order) else f"전체 판매 요청 개수 {order.total_value}개"
 
-            # 현재가 조회
-            current_price = self.hantoo_service.get_price(order.symbol)
-
-            # 가격 차이 계산 (퍼센티지) 및 비교 메시지
-            if current_price and trade_result.unit_price:
-                price_diff_percent = ((current_price - trade_result.unit_price) / trade_result.unit_price) * 100
-
-                if self._is_buy(order):
-                    # 구매의 경우
-                    if price_diff_percent > 0:
-                        comparison = f"✅ 현재가보다 싸게 구매 ({price_diff_percent:+.2f}%)"
-                    else:
-                        comparison = f"⚠️ 현재가보다 비싸게 구매 ({price_diff_percent:+.2f}%)"
-                else:
-                    # 판매의 경우
-                    if price_diff_percent < 0:
-                        comparison = f"✅ 현재가보다 비싸게 판매 ({price_diff_percent:+.2f}%)"
-                    else:
-                        comparison = f"⚠️ 현재가보다 싸게 판매 ({price_diff_percent:+.2f}%)"
-
-                price_diff_str = f"  - 현재가: ${current_price:,.2f}\n  - {comparison}"
-            else:
-                price_diff_str = ""
-
             send_message_sync(
                 f"[{order.name}] {order.total_count}개의 요청 중 유효한 {len(trade_result_list)}개의 거래 결과를 머지합니다.\n"
                 f"{value_msg}\n"
@@ -396,8 +372,7 @@ class TradingUsecase:
                 f"  - 거래 유형: {trade_result.trade_type.value}\n"
                 f"  - 거래 개수: {trade_result.amount}\n"
                 f"  - 거래 단가: ${trade_result.unit_price:,.2f}\n"
-                f"  - 총 거래금액: ${trade_result.total_price:,.2f}\n"
-                f"{price_diff_str}")
+                f"  - 총 거래금액: ${trade_result.total_price:,.2f}\n")
 
             # DB 저장
             if self._is_buy(order):
@@ -441,6 +416,9 @@ class TradingUsecase:
         )
         self.trade_repo.save(re_balancing_trade)
 
+        # 매수 History 저장
+        self._save_buy_history(bot_info, trade_result)
+
     def _save_sell_to_db(self, bot_info: BotInfo, trade_result: TradeResult) -> None:
         """
         매도 DB 저장 + History
@@ -482,10 +460,39 @@ class TradingUsecase:
             # 전체 매도인 경우 Trade 삭제
             self.trade_repo.delete_by_name(bot_info.name)
 
-        # History 저장
-        self._save_history(bot_info, trade_result, prev_trade, is_update_added_seed)
+        # 매도 History 저장
+        self._save_sell_history(bot_info, trade_result, prev_trade, is_update_added_seed)
 
-    def _save_history(
+    def _save_buy_history(
+        self,
+        bot_info: BotInfo,
+        trade_result: TradeResult
+    ) -> None:
+        """
+        매수 History 저장
+
+        Args:
+            bot_info: 봇 정보
+            trade_result: 거래 결과
+        """
+        from domain.entities.history import History
+
+        # 매수 History: sell_price=0, profit=0, profit_rate=0
+        history = History(
+            date_added=datetime.now(),
+            trade_date=datetime.now(),
+            trade_type=trade_result.trade_type,
+            name=bot_info.name,
+            symbol=bot_info.symbol,
+            buy_price=trade_result.unit_price,
+            sell_price=0,
+            amount=trade_result.amount,
+            profit=0,
+            profit_rate=0
+        )
+        self.history_repo.save(history)
+
+    def _save_sell_history(
         self,
         bot_info: BotInfo,
         trade_result: TradeResult,
@@ -493,7 +500,7 @@ class TradingUsecase:
         is_update_added_seed: bool
     ) -> None:
         """
-        History 저장 + added_seed 업데이트
+        매도 History 저장 + added_seed 업데이트
 
         Args:
             bot_info: 봇 정보
@@ -519,12 +526,13 @@ class TradingUsecase:
         from domain.entities.history import History
         history = History(
             date_added=prev_trade.date_added,
-            sell_date=datetime.now(),
+            trade_date=datetime.now(),
             trade_type=trade_result.trade_type,
             name=bot_info.name,
             symbol=bot_info.symbol,
             buy_price=prev_trade.purchase_price,
             sell_price=trade_result.unit_price,
+            amount=trade_result.amount,
             profit=profit,
             profit_rate=profit_rate
         )
@@ -552,7 +560,7 @@ class TradingUsecase:
         egg/db_usecase.py의 finish_cycle() 이관 (76-92번 줄)
         """
         try:
-            total = self.history_repo.get_total_profit_by_name_and_date(bot_info.name, date_added)
+            total = self.history_repo.get_total_sell_profit_by_name_and_date(bot_info.name, date_added)
 
             date_str = date_added.strftime(f'🎉축하합니다\n'
                                           f'%Y년 %m월 %d일 시작\n{bot_info.name} 사이클이 종료\n'
@@ -561,7 +569,7 @@ class TradingUsecase:
             history_list = self.history_repo.find_by_name_and_date(bot_info.name, date_added)
             msg = ""
             for history in history_list:
-                date = history.sell_date.strftime('%Y년 %m월 %d일')
+                date = history.trade_date.strftime('%Y년 %m월 %d일')
                 msg += f"📆{date}\n -> {history.trade_type.name} : 💰{history.profit:,.2f}$\n"
 
             send_message_sync(date_str + msg)

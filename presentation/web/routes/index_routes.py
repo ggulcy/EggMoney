@@ -4,7 +4,9 @@ Index Routes - 메인 페이지
 Clean Architecture Pattern:
 - GET / - 메인 페이지 (메뉴 네비게이션 + 포트폴리오 요약)
 - GET /api/market_history - 시장 지표 히스토리 API
+- GET /api/trades - 날짜 범위 거래 내역 API
 """
+from datetime import datetime
 from flask import Blueprint, render_template, jsonify, request
 
 from config import item
@@ -54,7 +56,7 @@ def index():
     """메인 페이지"""
     portfolio_usecase = _get_portfolio_usecase()
     overview = portfolio_usecase.get_portfolio_overview()
-    recent_trades = portfolio_usecase.get_recent_trades_by_bot()
+    today_trades = portfolio_usecase.get_today_trades()
 
     # 현재 년도 수익 요약 가져오기
     profit_summary = portfolio_usecase.get_profit_summary_for_web()
@@ -66,13 +68,24 @@ def index():
                 current_year_data = year_data
                 break
 
+    # Trade 리스트 및 상태 정보 가져오기
+    trade_list = portfolio_usecase.get_all_trades()
+    trade_status_map = {}
+    bot_info_list = portfolio_usecase.get_all_bot_info()
+    for bot_info in bot_info_list:
+        status = portfolio_usecase.get_trade_status(bot_info)
+        if status:
+            trade_status_map[bot_info.name] = status
+
     return render_template(
         'index.html',
         title='EggMoney Trading Bot',
         admin=item.admin.value,
         overview=overview,
-        recent_trades=recent_trades,
-        current_year_profit=current_year_data
+        today_trades=today_trades,
+        current_year_profit=current_year_data,
+        trade_list=trade_list,
+        trade_status_map=trade_status_map
     )
 
 
@@ -88,3 +101,37 @@ def get_market_history():
         return jsonify(market_history)
     else:
         return jsonify({"error": "시장 지표 히스토리 조회 실패"}), 500
+
+
+@index_bp.route('/api/trades', methods=['GET'])
+def get_trades_by_date():
+    """날짜 범위 거래 내역 API"""
+    try:
+        start_date_str = request.args.get('start_date')
+        end_date_str = request.args.get('end_date')
+
+        # 날짜 파싱 (YYYY-MM-DD 형식)
+        if start_date_str:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        else:
+            start_date = datetime.now().date()
+
+        if end_date_str:
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        else:
+            end_date = datetime.now().date()
+
+        portfolio_usecase = _get_portfolio_usecase()
+        trades_data = portfolio_usecase.get_trades_by_date_range(start_date, end_date)
+
+        # date 객체는 JSON 직렬화 불가하므로 제거
+        for trade in trades_data.get('trades', []):
+            if 'date' in trade:
+                del trade['date']
+
+        return jsonify(trades_data)
+
+    except ValueError as e:
+        return jsonify({"error": f"날짜 형식 오류: {str(e)}"}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

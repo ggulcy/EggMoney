@@ -57,10 +57,16 @@ def trade_template():
             if status:
                 trade_status_map[bot_info.name] = status
 
+        # TradeType 목록 (매도/매수 구분)
+        sell_types = [t for t in TradeType if t.is_sell()]
+        buy_types = [t for t in TradeType if t.is_buy()]
+
         return render_template(
             'trade.html',
             trade_list=trade_list,
-            trade_status_map=trade_status_map
+            trade_status_map=trade_status_map,
+            sell_types=sell_types,
+            buy_types=buy_types
         )
     except Exception as e:
         print(f"Error: {e}")
@@ -109,15 +115,23 @@ def add_trade():
         symbol = data.get('symbol', '').strip()
         purchase_price = float(data.get('purchase_price', 0))
         amount = float(data.get('amount', 0))
+        trade_type_str = data.get('trade_type', 'Buy').strip()
 
         if not name or not symbol:
             return jsonify({"error": "Name and Symbol required"}), 400
+
+        # trade_type 문자열 -> Enum 변환
+        try:
+            trade_type = TradeType(trade_type_str)
+        except ValueError:
+            trade_type = TradeType.BUY  # 기본값
 
         success = portfolio_usecase.add_manual_trade(
             name=name,
             symbol=symbol,
             purchase_price=purchase_price,
-            amount=amount
+            amount=amount,
+            trade_type=trade_type
         )
 
         if success:

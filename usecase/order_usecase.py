@@ -148,7 +148,7 @@ class OrderUsecase:
                 return result
 
         # 2. 매도가 일어난 날(또는 매도 예정인 날)은 구매하지 않음
-        if self.history_repo.find_today_by_name(bot_info.name) or \
+        if self.history_repo.find_today_sell_by_name(bot_info.name) or \
            self.order_repo.has_sell_order_today(bot_info.name):
             return None
 

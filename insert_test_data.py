@@ -82,34 +82,37 @@ def insert_test_histories():
     test_histories = [
         History(
             date_added=datetime(2025, 11, 25, 9, 0),
-            sell_date=now,  # 오늘 날짜!
+            trade_date=now,  # 오늘 날짜!
             trade_type=TradeType.SELL,
             name="TEST_QQQ",
             symbol="QQQ",
             buy_price=450.20,
             sell_price=465.80,
+            amount=10,
             profit=156.0,  # (465.80 - 450.20) * 10
             profit_rate=0.0346  # 3.46%
         ),
         History(
             date_added=datetime(2025, 11, 28, 10, 0),
-            sell_date=now,  # 오늘 날짜!
+            trade_date=now,  # 오늘 날짜!
             trade_type=TradeType.SELL_3_4,
             name="TEST_SPY",
             symbol="SPY",
             buy_price=520.50,
             sell_price=532.10,
+            amount=15,
             profit=174.0,  # (532.10 - 520.50) * 15
             profit_rate=0.0223  # 2.23%
         ),
         History(
             date_added=datetime(2025, 12, 3, 11, 0),
-            sell_date=now,  # 오늘 날짜!
+            trade_date=now,  # 오늘 날짜!
             trade_type=TradeType.SELL,
             name="TEST_IWM",
             symbol="IWM",
             buy_price=210.30,
             sell_price=207.80,
+            amount=10,
             profit=-25.0,  # (207.80 - 210.30) * 10 = -25.0
             profit_rate=-0.0119  # -1.19%
         )

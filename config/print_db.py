@@ -103,8 +103,8 @@ def print_all_history(limit: int = 20):
         histories = history_repo.find_all()
 
         if histories:
-            # 최신순으로 정렬 (sell_date 기준)
-            histories_sorted = sorted(histories, key=lambda h: h.sell_date, reverse=True)[:limit]
+            # 최신순으로 정렬 (trade_date 기준)
+            histories_sorted = sorted(histories, key=lambda h: h.trade_date, reverse=True)[:limit]
             total_profit = sum(h.profit for h in histories)
 
             print(f"\n💰 History (최근 {len(histories_sorted)}개 / 전체 {len(histories)}개, 총 수익: {total_profit:,.2f}$):")
@@ -113,9 +113,10 @@ def print_all_history(limit: int = 20):
                 print(
                     f"   {profit_emoji} {history.name} ({history.symbol}): "
                     f"Buy={history.buy_price:,.2f}$ → Sell={history.sell_price:,.2f}$ | "
+                    f"Amount={history.amount:.0f} | "
                     f"Profit={history.profit:,.2f}$ ({history.profit_rate*100:.2f}%) | "
                     f"Type={history.trade_type.value} | "
-                    f"Date={history.sell_date.strftime('%Y-%m-%d')}"
+                    f"Date={history.trade_date.strftime('%Y-%m-%d')}"
                 )
         else:
             print("⚠️ History 정보가 없습니다.")

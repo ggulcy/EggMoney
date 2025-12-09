@@ -16,8 +16,8 @@ project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
 # .env 파일은 config.item에서 로드됨
-from flask import Flask, render_template
-from config.item import is_test, admin, BotAdmin
+from flask import Flask
+from config.item import is_test, admin
 
 # 환경 설정
 HOST = os.getenv('HOST')
@@ -48,9 +48,6 @@ def create_app():
 
     # 블루프린트 등록
     from presentation.web.routes import bot_info_bp, status_bp, index_bp, trade_bp, auth_bp, history_bp
-    import presentation.web.routes.bot_info_routes
-    import presentation.web.routes.trade_routes
-    import presentation.web.routes.history_routes
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(index_bp)

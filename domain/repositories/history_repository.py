@@ -35,8 +35,8 @@ class HistoryRepository(ABC):
         pass
 
     @abstractmethod
-    def find_today_by_name(self, name: str) -> Optional[History]:
-        """오늘의 첫 번째 히스토리 조회"""
+    def find_today_sell_by_name(self, name: str) -> Optional[History]:
+        """오늘의 첫 번째 매도 히스토리 조회 (매도 거래만)"""
         pass
 
     @abstractmethod
@@ -45,33 +45,33 @@ class HistoryRepository(ABC):
         pass
 
     @abstractmethod
-    def get_total_profit(self) -> float:
-        """전체 총 수익"""
+    def get_total_sell_profit(self) -> float:
+        """전체 매도 총 수익 (매도 거래만)"""
         pass
 
     @abstractmethod
-    def get_total_profit_by_name(self, name: str) -> float:
-        """name별 총 수익"""
+    def get_total_sell_profit_by_name(self, name: str) -> float:
+        """name별 매도 총 수익 (매도 거래만)"""
         pass
 
     @abstractmethod
-    def get_total_profit_by_symbol(self, symbol: str) -> float:
-        """symbol별 총 수익"""
+    def get_total_sell_profit_by_symbol(self, symbol: str) -> float:
+        """symbol별 매도 총 수익 (매도 거래만)"""
         pass
 
     @abstractmethod
-    def get_total_profit_by_name_and_date(self, name: str, date: datetime) -> float:
-        """name과 date_added별 총 수익"""
+    def get_total_sell_profit_by_name_and_date(self, name: str, date: datetime) -> float:
+        """name과 date_added별 매도 총 수익 (매도 거래만)"""
         pass
 
     @abstractmethod
-    def get_total_profit_by_year(self, year: int) -> float:
-        """연도별 총 수익"""
+    def get_total_sell_profit_by_year(self, year: int) -> float:
+        """연도별 매도 총 수익 (매도 거래만)"""
         pass
 
     @abstractmethod
-    def get_monthly_profit_by_year(self, year: int) -> List[tuple]:
-        """연도별 월별 수익 [(month, total_profit), ...]"""
+    def get_monthly_sell_profit_by_year(self, year: int) -> List[tuple]:
+        """연도별 월별 매도 수익 [(month, total_profit), ...] (매도 거래만)"""
         pass
 
     @abstractmethod

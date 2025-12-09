@@ -21,12 +21,13 @@ def test_history_creation():
     print("\n[정상 생성]")
     history = History(
         date_added=datetime(2024, 1, 1, 10, 0, 0),
-        sell_date=datetime(2024, 1, 5, 15, 30, 0),
+        trade_date=datetime(2024, 1, 5, 15, 30, 0),
         trade_type=TradeType.SELL,
         name="bot1",
         symbol="SOXL",
         buy_price=50.0,
         sell_price=60.0,
+        amount=10,
         profit=100.0,
         profit_rate=0.2  # 20%
     )
@@ -40,12 +41,13 @@ def test_history_creation():
     try:
         invalid_history = History(
             date_added=datetime.now(),
-            sell_date=datetime.now(),
+            trade_date=datetime.now(),
             trade_type=TradeType.SELL,
             name="",  # 빈 이름
             symbol="SOXL",
             buy_price=50.0,
             sell_price=60.0,
+            amount=10,
             profit=100.0,
             profit_rate=0.2
         )
@@ -74,24 +76,26 @@ def test_history_repository():
 
     history1 = History(
         date_added=yesterday,
-        sell_date=now,
+        trade_date=now,
         trade_type=TradeType.SELL,
         name="bot1",
         symbol="SOXL",
         buy_price=50.0,
         sell_price=60.0,
+        amount=10,
         profit=100.0,
         profit_rate=0.2
     )
 
     history2 = History(
         date_added=yesterday,
-        sell_date=now,
+        trade_date=now,
         trade_type=TradeType.SELL_1_4,
         name="bot1",
         symbol="TQQQ",
         buy_price=40.0,
         sell_price=45.0,
+        amount=10,
         profit=50.0,
         profit_rate=0.125
     )
@@ -117,20 +121,20 @@ def test_history_repository():
         print(f"  - {h.name}: {h.symbol}, Profit: {h.get_profit_dollar()}")
     print("✅ 전체 조회 성공")
 
-    # 총 수익 계산
-    print("\n[총 수익 계산]")
-    total_profit = repo.get_total_profit()
-    print(f"전체 총 수익: ${total_profit:,.2f}")
+    # 총 수익 계산 (매도 거래만)
+    print("\n[총 매도 수익 계산]")
+    total_profit = repo.get_total_sell_profit()
+    print(f"전체 매도 총 수익: ${total_profit:,.2f}")
     assert total_profit == 150.0, "총 수익 계산 오류"
 
-    total_by_name = repo.get_total_profit_by_name("bot1")
-    print(f"bot1 총 수익: ${total_by_name:,.2f}")
+    total_by_name = repo.get_total_sell_profit_by_name("bot1")
+    print(f"bot1 매도 총 수익: ${total_by_name:,.2f}")
     assert total_by_name == 150.0, "name별 총 수익 계산 오류"
 
-    total_by_symbol = repo.get_total_profit_by_symbol("SOXL")
-    print(f"SOXL 총 수익: ${total_by_symbol:,.2f}")
+    total_by_symbol = repo.get_total_sell_profit_by_symbol("SOXL")
+    print(f"SOXL 매도 총 수익: ${total_by_symbol:,.2f}")
     assert total_by_symbol == 100.0, "symbol별 총 수익 계산 오류"
-    print("✅ 총 수익 계산 성공")
+    print("✅ 총 매도 수익 계산 성공")
 
     session.close()
     print("\n✅ History Repository 테스트 완료\n")
@@ -157,16 +161,16 @@ def test_year_month_queries():
     for h in monthly_history:
         print(f"  - {h.name}: {h.symbol}, {h.get_profit_dollar()}")
 
-    # 월별 수익
-    print(f"\n[{current_year}년 월별 수익]")
-    monthly_profit = repo.get_monthly_profit_by_year(current_year)
+    # 월별 매도 수익
+    print(f"\n[{current_year}년 월별 매도 수익]")
+    monthly_profit = repo.get_monthly_sell_profit_by_year(current_year)
     for month, profit in monthly_profit:
         print(f"  {month}월: ${profit:,.2f}")
 
-    # 연도별 총 수익
-    print(f"\n[{current_year}년 총 수익]")
-    yearly_profit = repo.get_total_profit_by_year(current_year)
-    print(f"{current_year}년 총 수익: ${yearly_profit:,.2f}")
+    # 연도별 매도 총 수익
+    print(f"\n[{current_year}년 매도 총 수익]")
+    yearly_profit = repo.get_total_sell_profit_by_year(current_year)
+    print(f"{current_year}년 매도 총 수익: ${yearly_profit:,.2f}")
 
     # 연도 목록
     print("\n[거래 연도 목록]")
@@ -191,12 +195,13 @@ def test_delete_operations():
     print("\n[테스트용 히스토리 생성]")
     test_history = History(
         date_added=datetime.now(),
-        sell_date=datetime.now(),
+        trade_date=datetime.now(),
         trade_type=TradeType.SELL,
         name="test_bot",
         symbol="TEST",
         buy_price=10.0,
         sell_price=15.0,
+        amount=10,
         profit=50.0,
         profit_rate=0.5
     )

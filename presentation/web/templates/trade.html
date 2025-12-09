@@ -593,6 +593,7 @@
             const symbol = document.getElementById('modal_trade_symbol').value.trim();
             const purchasePrice = parseCurrency(document.getElementById('modal_trade_price').value);
             const amount = parseCurrency(document.getElementById('modal_trade_amount').value);
+            const tradeType = document.getElementById('modal_trade_type').value;
 
             if (!name || !symbol) {
                 alert('이름과 심볼을 입력해주세요.');
@@ -607,7 +608,8 @@
                     name: name,
                     symbol: symbol,
                     purchase_price: purchasePrice,
-                    amount: amount
+                    amount: amount,
+                    trade_type: tradeType
                 })
             })
                 .then(response => response.json())
@@ -787,6 +789,21 @@
                 <input type="text" id="modal_trade_amount" placeholder="0"
                        oninput="formatAmount(this)">
             </div>
+            <div class="modal-field">
+                <label>거래 타입</label>
+                <select id="modal_trade_type" style="padding: 12px 14px; border: 2px solid #e0e0e0; border-radius: 10px; background: #fafafa; color: #333; font-size: 1rem;">
+                    <optgroup label="매수">
+                        {% for t in buy_types %}
+                        <option value="{{ t.value }}" {% if loop.first %}selected{% endif %}>{{ t.value }}</option>
+                        {% endfor %}
+                    </optgroup>
+                    <optgroup label="매도">
+                        {% for t in sell_types %}
+                        <option value="{{ t.value }}">{{ t.value }}</option>
+                        {% endfor %}
+                    </optgroup>
+                </select>
+            </div>
             <div class="modal-actions">
                 <button class="modal-btn-cancel" onclick="closeModal('addTradeModal')">취소</button>
                 <button class="modal-btn-submit" onclick="submitAddTrade()">추가</button>
@@ -866,6 +883,16 @@
                         <div class="label">평균 매수가</div>
                         <div class="value">$ {{ '{:,.2f}'.format(status.cur_trade.purchase_price) }}</div>
                     </div>
+                    <!-- 수량 -->
+                    <div class="trade-status-card">
+                        <div class="label">수량</div>
+                        <div class="value">{{ '{:,.0f}'.format(trade.amount) if trade.amount else '0' }}주</div>
+                    </div>
+                    <!-- 총액 -->
+                    <div class="trade-status-card">
+                        <div class="label">총액</div>
+                        <div class="value">$ {{ '{:,.2f}'.format(trade.total_price) if trade.total_price else '0' }}</div>
+                    </div>
                     <!-- 수익금 -->
                     <div class="trade-status-card">
                         <div class="label">수익금</div>
@@ -879,6 +906,11 @@
                         <div class="value {{ 'profit' if status.profit_rate >= 0 else 'loss' }}">
                             {% if status.profit_rate >= 0 %}+{% endif %}{{ '{:.2f}'.format(status.profit_rate) }}%
                         </div>
+                    </div>
+                    <!-- %지점 -->
+                    <div class="trade-status-card full-width">
+                        <div class="label">%지점</div>
+                        <div class="value" style="color: #e67e22;">{{ '{:.1f}'.format(status.point * 100) }}% <span style="font-size: 0.8em; color: #888;">(${{ '{:,.2f}'.format(status.point_price) }})</span></div>
                     </div>
                     <!-- 시드 소진율 -->
                     <div class="trade-status-card full-width">

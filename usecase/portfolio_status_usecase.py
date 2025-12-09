@@ -11,6 +11,7 @@ from domain.repositories.trade_repository import TradeRepository
 from domain.repositories.history_repository import HistoryRepository
 from domain.repositories.status_repository import StatusRepository
 from domain.repositories.market_indicator_repository import MarketIndicatorRepository
+from domain.value_objects.trade_type import TradeType
 
 
 class PortfolioStatusUsecase:
@@ -140,6 +141,9 @@ class PortfolioStatusUsecase:
             t = util.get_T(total_invest, bot_info.seed)
             point = util.get_point_loc(bot_info.t_div, bot_info.max_tier, t, bot_info.point_loc)
 
+            # %지점가 계산 (평단가 * (1 + point))
+            point_price = round(cur_trade.purchase_price * (1 + point), 2) if cur_trade.purchase_price else 0
+
             # 시드 소진률
             progress_rate = (cur_trade.total_price / max_seed) * 100 if max_seed > 0 else 0
             progress_bar = util.create_progress_bar(progress_rate)
@@ -166,6 +170,7 @@ class PortfolioStatusUsecase:
                 "total_invest": total_invest,
                 "t": t,
                 "point": point,
+                "point_price": point_price,
                 "progress_rate": progress_rate,
                 "progress_bar": progress_bar
             }
@@ -188,6 +193,7 @@ class PortfolioStatusUsecase:
             total_buy = 0.0
             active_bots = 0
             total_max_seed = 0.0
+            seed_per_tier = 0.0  # 활성 봇의 1티어 시드 합계
 
             bot_info_list = self.bot_info_repo.find_all()
             for bot_info in bot_info_list:
@@ -199,6 +205,9 @@ class PortfolioStatusUsecase:
                 trade = self.trade_repo.find_by_name(bot_info.name)
                 if not trade or trade.amount <= 0:
                     continue
+
+                # 보유 중인 봇의 1티어 시드 누적
+                seed_per_tier += bot_info.seed
 
                 price = self.hantoo_service.get_price(bot_info.symbol)
                 if price is None:
@@ -216,6 +225,12 @@ class PortfolioStatusUsecase:
             # 환율
             usd_krw = util.get_naver_exchange_rate()
 
+            # 얼럿 조건 계산
+            # 예수금 부족: seed_per_tier * 2 > hantoo_balance
+            # 예수금 과다 (RP 매수 필요): hantoo_balance > 10000
+            alert_low_balance = seed_per_tier * 2 > hantoo_balance if seed_per_tier > 0 else False
+            alert_high_balance = hantoo_balance > 10000
+
             return {
                 "total_balance": total_balance,
                 "total_buy": total_buy,
@@ -226,6 +241,10 @@ class PortfolioStatusUsecase:
                 "active_bots": active_bots,
                 "total_bots": len(bot_info_list),
                 "total_max_seed": total_max_seed,
+                "hantoo_balance": hantoo_balance,
+                "seed_per_tier": seed_per_tier,
+                "alert_low_balance": alert_low_balance,
+                "alert_high_balance": alert_high_balance,
             }
 
         except Exception as e:
@@ -298,7 +317,7 @@ class PortfolioStatusUsecase:
                     total_buy += trade.total_price
 
             rp = self._get_rp()
-            total_profit = self.history_repo.get_total_profit()
+            total_profit = self.history_repo.get_total_sell_profit()
             total_balance = hantoo_balance + invest + rp
             pool = max(total_balance - total_max_seed, 0)
 
@@ -364,7 +383,7 @@ class PortfolioStatusUsecase:
             total_profit = 0.0
 
             for bot_info in bot_info_list:
-                daily_sell_history = self.history_repo.find_today_by_name(bot_info.name)
+                daily_sell_history = self.history_repo.find_today_sell_by_name(bot_info.name)
                 if daily_sell_history:
                     details.append({
                         "name": bot_info.name,
@@ -501,12 +520,12 @@ class PortfolioStatusUsecase:
             result = []
 
             for year in sorted(years, reverse=True):
-                total_profit = self.history_repo.get_total_profit_by_year(year)
+                total_profit = self.history_repo.get_total_sell_profit_by_year(year)
                 emoji = "💰" if total_profit >= 0 else "🔻"
 
                 if year == current_year:
                     # 현재 연도 → 월별 수익 포함 (현재 월까지만 표시)
-                    monthly_profits_dict = {month: profit for month, profit in self.history_repo.get_monthly_profit_by_year(year)}
+                    monthly_profits_dict = {month: profit for month, profit in self.history_repo.get_monthly_sell_profit_by_year(year)}
                     current_month = datetime.now().month
 
                     result.append(f"📅 {year}년 월별 수익 💰")
@@ -560,7 +579,7 @@ class PortfolioStatusUsecase:
             years_data = []
 
             for year in sorted(years, reverse=True):
-                total_profit = self.history_repo.get_total_profit_by_year(year)
+                total_profit = self.history_repo.get_total_sell_profit_by_year(year)
                 is_current = (year == current_year)
 
                 # 년도 총 수익 원화 계산 (현재 환율 사용)
@@ -579,7 +598,7 @@ class PortfolioStatusUsecase:
                 # 모든 년도 월별 수익 포함
                 monthly_profits_dict = {
                     month: profit
-                    for month, profit in self.history_repo.get_monthly_profit_by_year(year)
+                    for month, profit in self.history_repo.get_monthly_sell_profit_by_year(year)
                 }
 
                 # 현재 년도는 현재 월까지, 과거 년도는 12월까지
@@ -787,9 +806,10 @@ class PortfolioStatusUsecase:
             if vix_history:
                 result["vix_history"] = vix_history
 
-            # 활성화된 봇들의 ticker 추출 (중복 제거)
+            # 기본 티커 (TQQQ, SOXL) + 활성화된 봇들의 ticker 추출 (중복 제거)
+            default_tickers = {'TQQQ', 'SOXL'}
             bot_info_list = self.bot_info_repo.find_all()
-            unique_tickers = set()
+            unique_tickers = set(default_tickers)  # 기본 티커부터 시작
             for bot_info in bot_info_list:
                 if bot_info.active and bot_info.symbol:
                     unique_tickers.add(bot_info.symbol)
@@ -824,6 +844,36 @@ class PortfolioStatusUsecase:
 
     # ===== History 관리 메서드 =====
 
+    def get_history_by_date_range(self, start_date, end_date) -> List:
+        """
+        날짜 범위로 History 조회
+
+        Args:
+            start_date: 시작 날짜 (date 객체)
+            end_date: 종료 날짜 (date 객체)
+
+        Returns:
+            List[History]: History 리스트 (최신순 정렬)
+        """
+        try:
+            all_history = self.history_repo.find_all()
+
+            # 날짜 범위 필터링
+            filtered = []
+            for h in all_history:
+                if h.trade_date:
+                    trade_date = h.trade_date.date()
+                    if start_date <= trade_date <= end_date:
+                        filtered.append(h)
+
+            # 최신순 정렬
+            filtered.sort(key=lambda x: x.trade_date, reverse=True)
+            return filtered
+
+        except Exception as e:
+            print(f"❌ 날짜 범위 History 조회 실패: {str(e)}")
+            return []
+
     def get_history_by_filter(self, year: int, month: int, symbol: Optional[str] = None) -> List:
         """
         필터 조건으로 History 조회
@@ -855,7 +905,8 @@ class PortfolioStatusUsecase:
         name: str,
         symbol: str,
         purchase_price: float,
-        amount: float
+        amount: float,
+        trade_type: Optional[TradeType] = None
     ) -> bool:
         """
         Trade 수동 추가
@@ -865,13 +916,16 @@ class PortfolioStatusUsecase:
             symbol: 심볼
             purchase_price: 구매가
             amount: 수량
+            trade_type: 거래 타입 (기본값: BUY)
 
         Returns:
             bool: 성공 여부
         """
         try:
             from domain.entities import Trade
-            from domain.value_objects import TradeType
+
+            if trade_type is None:
+                trade_type = TradeType.BUY
 
             total_price = purchase_price * amount
 
@@ -880,14 +934,14 @@ class PortfolioStatusUsecase:
                 symbol=symbol,
                 purchase_price=round(purchase_price, 2),
                 amount=amount,
-                trade_type=TradeType.BUY,
+                trade_type=trade_type,
                 total_price=round(total_price, 2),
                 date_added=datetime.now(),
                 latest_date_trade=datetime.now()
             )
 
             self.trade_repo.save(trade)
-            print(f"✅ Trade 수동 추가 완료: {name}, {symbol}, {purchase_price:.2f}$ x {amount:.0f} = {total_price:.2f}$")
+            print(f"✅ Trade 수동 추가 완료: {name}, {symbol}, {purchase_price:.2f}$ x {amount:.0f} = {total_price:.2f}$ ({trade_type.value})")
             return True
 
         except Exception as e:
@@ -949,26 +1003,32 @@ class PortfolioStatusUsecase:
             from domain.entities import History
             from config import util
 
-            # 수익 계산 (egg와 동일: (sell_price - buy_price) * amount)
-            profit = (sell_price - buy_price) * amount
-            profit_rate = util.get_profit_rate(sell_price, buy_price) / 100
+            # 매수일 경우 수익 계산하지 않음
+            if trade_type.is_buy():
+                profit = 0
+                profit_rate = 0
+            else:
+                # 수익 계산 (egg와 동일: (sell_price - buy_price) * amount)
+                profit = (sell_price - buy_price) * amount
+                profit_rate = util.get_profit_rate(sell_price, buy_price) / 100
 
             # History 엔티티 생성
             history = History(
                 date_added=datetime.now(),
-                sell_date=datetime.now(),
+                trade_date=datetime.now(),
                 trade_type=trade_type,
                 name=name,
                 symbol=symbol,
                 buy_price=round(buy_price, 2),
-                sell_price=round(sell_price, 2),
+                sell_price=round(sell_price, 2) if trade_type.is_sell() else 0,
+                amount=amount,
                 profit=profit,
                 profit_rate=round(profit_rate, 2)
             )
 
             # DB에 저장
             self.history_repo.save(history)
-            print(f"✅ History 수동 추가 완료: {name}, {symbol}, 수익 {profit:.2f}$")
+            print(f"✅ History 수동 추가 완료: {name}, {symbol}, {trade_type.value}, 수익 {profit:.2f}$")
             return True
 
         except Exception as e:
@@ -977,93 +1037,79 @@ class PortfolioStatusUsecase:
             traceback.print_exc()
             return False
 
-    def get_recent_trades_by_bot(self) -> Dict[str, Any]:
+    def get_today_trades(self) -> Dict[str, Any]:
         """
-        봇별 최신 거래 내역 조회
+        오늘의 거래 내역 조회 (History 기반)
 
-        각 봇의 매수/매도 중 가장 최신 거래 1건씩 반환
+        오늘 발생한 모든 거래 반환 (매수/매도 모두 History에서 조회)
 
         Returns:
             Dict: {
-                'trades': List[Dict],  # 최신 거래 내역
+                'trades': List[Dict],  # 오늘 거래 내역
                 'has_trades': bool     # 거래 여부
+                'buy_count': int       # 매수 건수
+                'sell_count': int      # 매도 건수
+            }
+        """
+        today = datetime.now().date()
+        return self.get_trades_by_date_range(today, today)
+
+    def get_trades_by_date_range(self, start_date, end_date) -> Dict[str, Any]:
+        """
+        날짜 범위로 거래 내역 조회 (History 기반)
+
+        Args:
+            start_date: 시작 날짜 (date 객체)
+            end_date: 종료 날짜 (date 객체)
+
+        Returns:
+            Dict: {
+                'trades': List[Dict],  # 거래 내역
+                'has_trades': bool     # 거래 여부
+                'buy_count': int       # 매수 건수
+                'sell_count': int      # 매도 건수
             }
         """
         try:
-            bot_info_list = self.bot_info_repo.find_all()
+            all_history = self.history_repo.find_all()
+
             trades_list = []
-
-            for bot_info in bot_info_list:
-                # 각 봇의 최신 매수 거래 (Trade)
-                latest_trade = self.trade_repo.find_by_name(bot_info.name)
-
-                # 각 봇의 최신 매도 거래 (History)
-                history_list = self.history_repo.find_by_name_all(bot_info.name)
-                latest_history = history_list[0] if history_list else None
-
-                # 매수와 매도 중 더 최신 거래 선택
-                trade_date = latest_trade.latest_date_trade if latest_trade else None
-                sell_date = latest_history.sell_date if latest_history else None
-
-                # 최신 거래 결정
-                if trade_date and sell_date:
-                    is_buy = trade_date > sell_date
-                    latest_date = trade_date if is_buy else sell_date
-                elif trade_date:
-                    is_buy = True
-                    latest_date = trade_date
-                elif sell_date:
-                    is_buy = False
-                    latest_date = sell_date
-                else:
-                    continue  # 거래 없음
-
-                # n일 전 계산
-                days_ago = (datetime.now() - latest_date).days
-                if days_ago == 0:
-                    days_text = "오늘"
-                elif days_ago == 1:
-                    days_text = "1일 전"
-                else:
-                    days_text = f"{days_ago}일 전"
+            for history in all_history:
+                # 날짜 범위 필터링
+                trade_date = history.trade_date.date()
+                if trade_date < start_date or trade_date > end_date:
+                    continue
 
                 # 매수 거래
-                if is_buy:
-                    cur_price = self.hantoo_service.get_price(latest_trade.symbol)
-                    if cur_price is None:
-                        cur_price = latest_trade.purchase_price
-
+                if history.trade_type.is_buy():
                     trades_list.append({
                         'type': 'buy',
-                        'name': bot_info.name,
-                        'symbol': bot_info.symbol,
-                        'purchase_price': latest_trade.purchase_price,
-                        'amount': latest_trade.amount,
-                        'total_price': latest_trade.total_price,
-                        'current_price': cur_price,
-                        'days_ago': days_text,
-                        'date': latest_date
+                        'name': history.name,
+                        'symbol': history.symbol,
+                        'purchase_price': history.buy_price,
+                        'amount': int(history.amount),
+                        'total_price': history.buy_price * history.amount,
+                        'time': history.trade_date.strftime('%H:%M'),
+                        'date': history.trade_date,
+                        'date_str': history.trade_date.strftime('%m/%d')
                     })
                 # 매도 거래
                 else:
-                    # 수량 계산: profit / (sell_price - buy_price) - 반올림
-                    price_diff = latest_history.sell_price - latest_history.buy_price
-                    amount = round(latest_history.profit / price_diff) if price_diff != 0 else 0
-
                     trades_list.append({
                         'type': 'sell',
-                        'name': bot_info.name,
-                        'symbol': bot_info.symbol,
-                        'buy_price': latest_history.buy_price,
-                        'sell_price': latest_history.sell_price,
-                        'amount': int(amount),  # 정수형
-                        'profit': latest_history.profit,
-                        'profit_rate': latest_history.profit_rate * 100,
-                        'days_ago': days_text,
-                        'date': latest_date
+                        'name': history.name,
+                        'symbol': history.symbol,
+                        'buy_price': history.buy_price,
+                        'sell_price': history.sell_price,
+                        'amount': int(history.amount),
+                        'profit': history.profit,
+                        'profit_rate': history.profit_rate * 100,
+                        'time': history.trade_date.strftime('%H:%M'),
+                        'date': history.trade_date,
+                        'date_str': history.trade_date.strftime('%m/%d')
                     })
 
-            # 날짜순 정렬 (최신순)
+            # 시간순 정렬 (최신순)
             trades_list.sort(key=lambda x: x['date'], reverse=True)
 
             # 매수/매도 카운트
@@ -1078,7 +1124,7 @@ class PortfolioStatusUsecase:
             }
 
         except Exception as e:
-            print(f"❌ 최근 거래 조회 실패: {str(e)}")
+            print(f"❌ 거래 조회 실패: {str(e)}")
             import traceback
             traceback.print_exc()
             return {

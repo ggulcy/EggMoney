@@ -508,7 +508,7 @@ class HantooService:
         """
         # 테스트 모드일 경우 고정 금액 반환
         if self.test_mode:
-            return 300.0
+            return 30000.0
 
         end_point = "/uapi/overseas-stock/v1/trading/inquire-psamount"
         extra_header = {"tr_id": "TTTS3007R"}

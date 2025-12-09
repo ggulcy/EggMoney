@@ -136,6 +136,24 @@
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
         }
 
+        /* History Type 라벨 스타일 */
+        .history-type {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .history-type.sell {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .history-type.buy {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
         /* 추가 버튼 영역 */
         .add-buttons {
             display: flex;
@@ -300,7 +318,211 @@
             color: #333;
         }
 
+        /* 히스토리 리스트 스타일 */
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .history-table th {
+            background: #f8f9fa;
+            padding: 12px 10px;
+            text-align: left;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 2px solid #e0e0e0;
+            white-space: nowrap;
+        }
+
+        .history-table td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 0.85rem;
+            color: #333;
+        }
+
+        .history-table tr:hover {
+            background: #f8f9ff;
+        }
+
+        .history-table .type-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .history-table .type-badge.sell {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .history-table .type-badge.buy {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .history-table .name-cell {
+            font-weight: 600;
+        }
+
+        .history-table .symbol-cell {
+            color: #888;
+            font-size: 0.8rem;
+        }
+
+        .history-table .time-cell {
+            color: #888;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+
+        .history-table .price-cell {
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .history-table .amount-cell {
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .history-table .profit-cell {
+            text-align: right;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        /* 모바일 리스트 스타일 */
+        .history-list-mobile {
+            display: none;
+            background: #fff;
+            border-radius: 12px;
+            padding: 8px 14px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            padding: 14px 0;
+            border-bottom: 1px solid #f0f0f0;
+            gap: 12px;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-item-badge {
+            flex-shrink: 0;
+        }
+
+        .history-item-badge .type-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .history-item-badge .type-badge.sell {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .history-item-badge .type-badge.buy {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .history-item-main {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .history-item-top {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+        }
+
+        .history-item-name {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-item-symbol {
+            font-size: 0.75rem;
+            color: #888;
+            flex-shrink: 0;
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .history-item-bottom {
+            display: flex;
+            gap: 10px;
+            font-size: 0.8rem;
+            color: #555;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .history-item-bottom span {
+            display: flex;
+            align-items: center;
+        }
+
+        .history-item-arrow {
+            color: #667eea;
+            font-weight: 600;
+            margin: 0 2px;
+        }
+
+        .history-item-right {
+            text-align: right;
+            flex-shrink: 0;
+            min-width: 80px;
+        }
+
+        .history-item-profit {
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .history-item-profit.profit-positive {
+            color: #c62828;
+        }
+
+        .history-item-profit.profit-negative {
+            color: #1565c0;
+        }
+
+        .history-item-time {
+            font-size: 0.75rem;
+            color: #999;
+            margin-top: 3px;
+        }
+
         @media (max-width: 768px) {
+            .history-table-wrapper {
+                display: none;
+            }
+
+            .history-list-mobile {
+                display: block;
+            }
             .profit-monthly-grid {
                 grid-template-columns: repeat(2, 1fr);
                 gap: 10px;
@@ -363,6 +585,295 @@
 
             .profit-year-krw {
                 font-size: 0.75rem;
+            }
+
+            /* 모바일 히스토리 리스트 */
+            .history-list-mobile {
+                padding: 6px 12px;
+            }
+
+            .history-item {
+                padding: 12px 0;
+                gap: 10px;
+            }
+
+            .history-item-badge .type-badge {
+                padding: 4px 8px;
+                font-size: 0.7rem;
+            }
+
+            .history-item-name {
+                font-size: 0.85rem;
+            }
+
+            .history-item-symbol {
+                font-size: 0.7rem;
+                padding: 1px 5px;
+            }
+
+            .history-item-bottom {
+                gap: 8px;
+                font-size: 0.75rem;
+            }
+
+            .history-item-right {
+                min-width: 70px;
+            }
+
+            .history-item-profit {
+                font-size: 0.85rem;
+            }
+
+            .history-item-time {
+                font-size: 0.7rem;
+            }
+        }
+
+        /* 날짜 선택 버튼 스타일 */
+        .date-select-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            background: #fff;
+            font-size: 0.8rem;
+            color: #667eea;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .date-select-btn:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .date-select-icon {
+            font-size: 0.9rem;
+        }
+
+        /* 날짜 선택 모달 스타일 */
+        .date-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .date-modal-overlay.active {
+            display: flex;
+        }
+
+        .date-modal-card {
+            background: #fff;
+            border-radius: 15px;
+            padding: 20px;
+            width: 88%;
+            max-width: 340px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .date-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .date-modal-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .date-modal-close {
+            background: none;
+            border: none;
+            color: #999;
+            font-size: 1.6rem;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .date-modal-close:hover {
+            color: #333;
+        }
+
+        .date-modal-body {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .date-picker-presets {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+        }
+
+        .date-preset-btn {
+            padding: 8px 6px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fff;
+            font-size: 0.8rem;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .date-preset-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .date-preset-btn.active {
+            background: #667eea;
+            border-color: #667eea;
+            color: #fff;
+        }
+
+        .date-picker-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .date-picker-field {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .date-picker-field label {
+            display: block;
+            font-size: 0.75rem;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .date-picker-field input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            background: #fff;
+            box-sizing: border-box;
+        }
+
+        .date-picker-field input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .date-modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .date-modal-btn-cancel,
+        .date-modal-btn-submit {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .date-modal-btn-cancel {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .date-modal-btn-cancel:hover {
+            background: #e0e0e0;
+        }
+
+        .date-modal-btn-submit {
+            background: #667eea;
+            color: #fff;
+        }
+
+        .date-modal-btn-submit:hover {
+            background: #5568d3;
+        }
+
+        .history-loading {
+            text-align: center;
+            padding: 30px;
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 480px) {
+            .date-select-btn {
+                padding: 5px 10px;
+                font-size: 0.75rem;
+            }
+
+            .date-modal-card {
+                padding: 16px;
+                width: 92%;
+            }
+
+            .date-modal-header {
+                margin-bottom: 14px;
+                padding-bottom: 10px;
+            }
+
+            .date-modal-title {
+                font-size: 1rem;
+            }
+
+            .date-modal-body {
+                gap: 12px;
+            }
+
+            .date-picker-presets {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 5px;
+            }
+
+            .date-preset-btn {
+                padding: 7px 4px;
+                font-size: 0.75rem;
+            }
+
+            .date-picker-row {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .date-picker-field input {
+                padding: 8px 6px;
+                font-size: 0.8rem;
+            }
+
+            .date-modal-actions {
+                gap: 8px;
+                margin-top: 4px;
+            }
+
+            .date-modal-btn-cancel,
+            .date-modal-btn-submit {
+                padding: 10px;
+                font-size: 0.9rem;
             }
         }
     </style>
@@ -428,6 +939,7 @@
             const buyPrice = parseCurrency(document.getElementById('modal_history_buy_price').value);
             const sellPrice = parseCurrency(document.getElementById('modal_history_sell_price').value);
             const amount = parseCurrency(document.getElementById('modal_history_amount').value);
+            const tradeType = document.getElementById('modal_history_trade_type').value;
 
             if (!name || !symbol) {
                 alert('이름과 심볼을 입력해주세요.');
@@ -443,7 +955,8 @@
                     symbol: symbol,
                     buy_price: buyPrice,
                     sell_price: sellPrice,
-                    amount: amount
+                    amount: amount,
+                    trade_type: tradeType
                 })
             })
                 .then(response => response.json())
@@ -536,6 +1049,21 @@
                 <input type="text" id="modal_history_amount" placeholder="0"
                        oninput="formatAmount(this)">
             </div>
+            <div class="modal-field">
+                <label>거래 타입</label>
+                <select id="modal_history_trade_type" style="padding: 12px 14px; border: 2px solid #e0e0e0; border-radius: 10px; background: #fafafa; color: #333; font-size: 1rem;">
+                    <optgroup label="매도">
+                        {% for t in sell_types %}
+                        <option value="{{ t.value }}" {% if loop.first %}selected{% endif %}>{{ t.value }}</option>
+                        {% endfor %}
+                    </optgroup>
+                    <optgroup label="매수">
+                        {% for t in buy_types %}
+                        <option value="{{ t.value }}">{{ t.value }}</option>
+                        {% endfor %}
+                    </optgroup>
+                </select>
+            </div>
             <div class="modal-actions">
                 <button class="modal-btn-cancel" onclick="closeModal('addHistoryModal')">취소</button>
                 <button class="modal-btn-submit" onclick="submitAddHistory()">추가</button>
@@ -544,7 +1072,7 @@
     </div>
 </div>
 
-<div class="bot-container" style="max-width: 1200px;">
+<div class="bot-container" style="max-width: 1200px; padding-bottom: 100px;">
     <!-- 페이지 헤더 -->
     <div class="page-header">
         <div class="page-title">
@@ -602,83 +1130,301 @@
 
     <!-- History 필터 및 리스트 섹션 -->
     <div class="card-section">
-        <div class="section-title">📜 History List</div>
+        <div class="section-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div>
+                📜 History List
+                <span id="historyCountDisplay" style="font-size: 0.8em; color: #999; font-weight: 400;"></span>
+            </div>
+            <!-- 날짜 선택 버튼 -->
+            <button class="date-select-btn" onclick="openDateModal()">
+                <span id="selectedDateDisplay">1개월</span>
+                <span class="date-select-icon">📅</span>
+            </button>
+        </div>
 
         <!-- History 추가 버튼 -->
         <div class="add-buttons" style="margin-bottom: 15px;">
             <button class="add-btn" onclick="openModal('addHistoryModal')">📜 History 추가</button>
         </div>
 
-        <!-- 필터 폼 -->
-        <form method="POST" action="/history" class="history-filter-form">
-            <div class="filter-group">
-                <div class="filter-field">
-                    <label for="year">Year</label>
-                    <input type="number" id="year" name="year" value="{{ year }}" min="2000" max="2100">
-                </div>
-                <div class="filter-field">
-                    <label for="month">Month</label>
-                    <input type="number" id="month" name="month" value="{{ month }}" min="1" max="12">
-                </div>
-                <div class="filter-field">
-                    <label for="symbol">Symbol</label>
-                    <input type="text" id="symbol" name="symbol" value="{{ symbol or '' }}"
-                           placeholder="Enter Symbol (optional)">
-                </div>
-                <div class="filter-actions">
-                    <button type="submit" class="btn-primary">🔍 Search</button>
-                </div>
-            </div>
-        </form>
-
-        <!-- History 리스트 -->
-        {% if history_list %}
-        <div class="history-list">
-            {% for history in history_list %}
-            <div class="history-card">
-                <div class="history-header">
-                    <div class="history-name">{{ history.name }}</div>
-                    <div class="history-symbol">{{ history.symbol }}</div>
-                    <div class="history-type">{{ history.trade_type.name }}</div>
-                </div>
-
-                <div class="history-content">
-                    <div class="history-field">
-                        <label>구매일</label>
-                        <span>{{ history.date_added.strftime('%Y-%m-%d %H:%M') if history.date_added else '' }}</span>
-                    </div>
-                    <div class="history-field">
-                        <label>판매일</label>
-                        <span>{{ history.sell_date.strftime('%Y-%m-%d %H:%M') if history.sell_date else '' }}</span>
-                    </div>
-                    <div class="history-field">
-                        <label>구매가</label>
-                        <span>$ {{ '{:,.2f}'.format(history.buy_price) if history.buy_price else '0' }}</span>
-                    </div>
-                    <div class="history-field">
-                        <label>판매가</label>
-                        <span>$ {{ '{:,.2f}'.format(history.sell_price) if history.sell_price else '0' }}</span>
-                    </div>
-                    <div class="history-field">
-                        <label>수익금</label>
-                        <span class="{{ 'profit-positive' if history.profit >= 0 else 'profit-negative' }}">
-                            {{ '{:,.2f}'.format(history.profit) if history.profit else '0' }}$
-                        </span>
-                    </div>
-                    <div class="history-field">
-                        <label>수익률</label>
-                        <span class="{{ 'profit-positive' if history.profit_rate >= 0 else 'profit-negative' }}">
-                            {{ '{:,.2f}'.format(history.profit_rate) if history.profit_rate else '0' }}%
-                        </span>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
+        <!-- History 리스트 (동적 로딩) -->
+        <div id="historyContainer">
+            <div class="history-loading">로딩 중...</div>
         </div>
-        {% else %}
-        <div class="no-data">조회된 History가 없습니다.</div>
-        {% endif %}
+
+        <!-- History 없음 메시지 -->
+        <div id="noHistoryMessage" class="no-data" style="display: none;">
+            선택한 기간에 거래 내역이 없습니다.
+        </div>
     </div>
 </div>
+
+<!-- 날짜 선택 모달 -->
+<div id="datePickerModal" class="date-modal-overlay">
+    <div class="date-modal-card">
+        <div class="date-modal-header">
+            <span class="date-modal-title">📅 기간 선택</span>
+            <button class="date-modal-close" onclick="closeDateModal()">&times;</button>
+        </div>
+        <div class="date-modal-body">
+            <!-- 프리셋 버튼 -->
+            <div class="date-picker-presets">
+                <button class="date-preset-btn" data-preset="today">오늘</button>
+                <button class="date-preset-btn" data-preset="week">1주일</button>
+                <button class="date-preset-btn active" data-preset="month">1개월</button>
+                <button class="date-preset-btn" data-preset="all">전체</button>
+            </div>
+            <!-- 직접 선택 -->
+            <div class="date-picker-row">
+                <div class="date-picker-field">
+                    <label>시작일</label>
+                    <input type="date" id="startDate">
+                </div>
+                <div class="date-picker-field">
+                    <label>종료일</label>
+                    <input type="date" id="endDate">
+                </div>
+            </div>
+        </div>
+        <div class="date-modal-actions">
+            <button class="date-modal-btn-cancel" onclick="closeDateModal()">취소</button>
+            <button class="date-modal-btn-submit" onclick="applyDateSelection()">적용</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ===== 날짜별 히스토리 로딩 =====
+    let currentPreset = 'month';
+
+    function formatDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    function formatDisplayDate(dateStr) {
+        const date = new Date(dateStr);
+        return `${date.getMonth() + 1}/${date.getDate()}`;
+    }
+
+    function initDatePickers() {
+        const today = new Date();
+        const monthAgo = new Date();
+        monthAgo.setMonth(today.getMonth() - 1);
+
+        document.getElementById('startDate').value = formatDate(monthAgo);
+        document.getElementById('endDate').value = formatDate(today);
+
+        // 프리셋 버튼 이벤트 등록
+        document.querySelectorAll('.date-preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const preset = btn.dataset.preset;
+                setDatePreset(preset);
+
+                // 활성화 상태 변경
+                document.querySelectorAll('.date-preset-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+
+        // 모달 외부 클릭 시 닫기
+        document.getElementById('datePickerModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeDateModal();
+            }
+        });
+
+        // 초기 로딩 (1개월)
+        loadHistoryByDate();
+    }
+
+    function openDateModal() {
+        document.getElementById('datePickerModal').classList.add('active');
+    }
+
+    function closeDateModal() {
+        document.getElementById('datePickerModal').classList.remove('active');
+    }
+
+    function setDatePreset(preset) {
+        currentPreset = preset;
+        const today = new Date();
+        let startDate = new Date();
+        let endDate = today;
+
+        switch (preset) {
+            case 'today':
+                startDate = today;
+                break;
+            case 'week':
+                startDate.setDate(today.getDate() - 7);
+                break;
+            case 'month':
+                startDate.setMonth(today.getMonth() - 1);
+                break;
+            case 'all':
+                startDate = new Date('2020-01-01');
+                break;
+        }
+
+        document.getElementById('startDate').value = formatDate(startDate);
+        document.getElementById('endDate').value = formatDate(endDate);
+    }
+
+    function applyDateSelection() {
+        loadHistoryByDate();
+        updateSelectedDateDisplay();
+        closeDateModal();
+    }
+
+    function updateSelectedDateDisplay() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const display = document.getElementById('selectedDateDisplay');
+
+        const today = new Date();
+        const todayStr = formatDate(today);
+
+        if (startDate === todayStr && endDate === todayStr) {
+            display.textContent = '오늘';
+        } else if (startDate === endDate) {
+            display.textContent = formatDisplayDate(startDate);
+        } else {
+            // 프리셋 확인
+            const presetLabels = { 'today': '오늘', 'week': '1주일', 'month': '1개월', 'all': '전체' };
+            if (presetLabels[currentPreset]) {
+                display.textContent = presetLabels[currentPreset];
+            } else {
+                display.textContent = `${formatDisplayDate(startDate)} ~ ${formatDisplayDate(endDate)}`;
+            }
+        }
+    }
+
+    async function loadHistoryByDate() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+
+        if (!startDate || !endDate) return;
+
+        const container = document.getElementById('historyContainer');
+        const noHistoryMsg = document.getElementById('noHistoryMessage');
+        const countDisplay = document.getElementById('historyCountDisplay');
+
+        container.innerHTML = '<div class="history-loading">로딩 중...</div>';
+        noHistoryMsg.style.display = 'none';
+
+        try {
+            const response = await fetch(`/api/history?start_date=${startDate}&end_date=${endDate}`);
+            const data = await response.json();
+
+            if (data.error) {
+                container.innerHTML = `<div class="history-loading">오류: ${data.error}</div>`;
+                return;
+            }
+
+            const buyCount = data.history.filter(h => h.type === 'buy').length;
+            const sellCount = data.history.filter(h => h.type === 'sell').length;
+            countDisplay.textContent = `${buyCount}매수 / ${sellCount}매도`;
+
+            if (!data.history || data.history.length === 0) {
+                container.innerHTML = '';
+                noHistoryMsg.style.display = 'block';
+                return;
+            }
+
+            // 히스토리 렌더링
+            container.innerHTML = renderHistoryList(data.history);
+
+        } catch (error) {
+            console.error('히스토리 로딩 오류:', error);
+            container.innerHTML = '<div class="history-loading">로딩 실패</div>';
+        }
+    }
+
+    function renderHistoryList(historyList) {
+        // 데스크탑 테이블
+        let tableHtml = `
+            <div class="history-table-wrapper">
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>타입</th>
+                            <th>종목</th>
+                            <th>거래일시</th>
+                            <th style="text-align: right;">매수가</th>
+                            <th style="text-align: right;">매도가</th>
+                            <th style="text-align: right;">수량</th>
+                            <th style="text-align: right;">수익금</th>
+                            <th style="text-align: right;">수익률</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        historyList.forEach(h => {
+            const isSell = h.type === 'sell';
+            const profitClass = h.profit > 0 ? 'profit-positive' : (h.profit < 0 ? 'profit-negative' : '');
+            const profitSign = h.profit > 0 ? '+' : '';
+
+            tableHtml += `
+                <tr>
+                    <td><span class="type-badge ${isSell ? 'sell' : 'buy'}">${isSell ? '매도' : '매수'}</span></td>
+                    <td><span class="name-cell">${h.name}</span> <span class="symbol-cell">(${h.symbol})</span></td>
+                    <td class="time-cell">${h.trade_date}</td>
+                    <td class="price-cell">$${h.buy_price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td class="price-cell">${isSell ? '$' + h.sell_price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '-'}</td>
+                    <td class="amount-cell">${h.amount.toLocaleString()}</td>
+                    <td class="profit-cell ${profitClass}">${isSell ? profitSign + '$' + h.profit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '-'}</td>
+                    <td class="profit-cell ${profitClass}">${isSell ? profitSign + h.profit_rate.toFixed(1) + '%' : '-'}</td>
+                </tr>
+            `;
+        });
+
+        tableHtml += '</tbody></table></div>';
+
+        // 모바일 리스트
+        let mobileHtml = '<div class="history-list-mobile">';
+
+        historyList.forEach(h => {
+            const isSell = h.type === 'sell';
+            const profitClass = h.profit > 0 ? 'profit-positive' : (h.profit < 0 ? 'profit-negative' : '');
+            const profitSign = h.profit > 0 ? '+' : '';
+
+            mobileHtml += `
+                <div class="history-item">
+                    <div class="history-item-badge">
+                        <span class="type-badge ${isSell ? 'sell' : 'buy'}">${isSell ? '매도' : '매수'}</span>
+                    </div>
+                    <div class="history-item-main">
+                        <div class="history-item-top">
+                            <span class="history-item-name">${h.name}</span>
+                            <span class="history-item-symbol">${h.symbol}</span>
+                        </div>
+                        <div class="history-item-bottom">
+                            <span>$${h.buy_price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                            ${isSell ? `<span>→ $${h.sell_price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>` : ''}
+                            <span>${h.amount.toLocaleString()}주</span>
+                        </div>
+                    </div>
+                    <div class="history-item-right">
+                        ${isSell ? `<div class="history-item-profit ${profitClass}">${profitSign}$${h.profit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>` : ''}
+                        <div class="history-item-time">${h.trade_date}</div>
+                    </div>
+                </div>
+            `;
+        });
+
+        mobileHtml += '</div>';
+
+        return tableHtml + mobileHtml;
+    }
+
+    // 페이지 로드 시 초기화
+    document.addEventListener('DOMContentLoaded', function() {
+        initDatePickers();
+    });
+</script>
 </body>
 </html>

@@ -280,98 +280,213 @@
             visibility: visible;
         }
 
-        /* 오늘의 거래 스타일 */
-        .trade-item {
-            background: #fff;
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 8px;
-            border-left: 3px solid #667eea;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-        }
-
-        .trade-item.buy-item {
-            border-left-color: #667eea;
-        }
-
-        .trade-item.sell-item {
-            border-left-color: #28a745;
-        }
-
-        .trade-header {
+        /* 오늘의 거래 아코디언 스타일 */
+        .today-trade-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 18px 18px;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .today-trade-header:hover {
+            background: #f8f9ff;
+            border-color: #667eea;
+        }
+
+        .today-trade-header.active {
+            border-color: #667eea;
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+            margin-bottom: 0;
+        }
+
+        .today-trade-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .today-trade-toggle {
+            font-size: 0.8rem;
+            color: #667eea;
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        .today-trade-header.active .today-trade-toggle {
+            transform: rotate(90deg);
+        }
+
+        .today-trade-badge {
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .today-trade-badge.buy {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .today-trade-badge.sell {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .today-trade-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        .today-trade-symbol {
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            background: #667eea;
+            color: #fff;
+        }
+
+        .today-trade-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .today-trade-amount {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .today-trade-time {
+            font-size: 0.85rem;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .today-trade-content {
+            display: none;
+            background: #fff;
+            border: 1px solid #667eea;
+            border-top: none;
+            border-radius: 0 0 10px 10px;
+            padding: 15px;
             margin-bottom: 8px;
         }
 
-        .trade-badge {
-            display: inline-block;
-            padding: 6px 12px;
-            border-radius: 5px;
-            font-size: 1em;
-            font-weight: 700;
-            margin-right: 8px;
-            min-width: 50px;
-            text-align: center;
+        .today-trade-content.active {
+            display: block;
         }
 
-        .trade-badge.buy-badge {
-            background: #e3f2fd;
-            color: #667eea;
-        }
-
-        .trade-badge.sell-badge {
-            background: #e8f5e9;
-            color: #28a745;
-        }
-
-        .trade-symbol {
-            font-weight: 600;
-            font-size: 1em;
-            color: #333;
-        }
-
-        .trade-ticker {
-            font-size: 0.9em;
-            color: #999;
-            margin-left: 4px;
-        }
-
-        .trade-time {
-            font-size: 0.8em;
-            color: #999;
-        }
-
-        .trade-details {
+        .today-trade-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            grid-template-columns: repeat(2, 1fr);
             gap: 8px;
         }
 
-        .trade-price, .trade-amount, .trade-total, .trade-profit {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
+        .today-trade-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
         }
 
-        .trade-details .label {
-            font-size: 0.85em;
+        .today-trade-item.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .today-trade-label {
+            font-size: 0.7rem;
             color: #888;
+            margin-bottom: 4px;
         }
 
-        .trade-details .value {
-            font-size: 1em;
+        .today-trade-value {
+            font-size: 0.9rem;
             font-weight: 600;
             color: #333;
         }
 
-        .trade-details .value.total {
-            color: #667eea;
+        @media (max-width: 768px) {
+            .today-trade-header {
+                padding: 16px 14px;
+            }
+
+            .today-trade-left {
+                gap: 8px;
+            }
+
+            .today-trade-right {
+                gap: 10px;
+            }
+
+            .today-trade-name {
+                font-size: 0.9rem;
+            }
+
+            .today-trade-badge {
+                font-size: 0.65rem;
+                padding: 2px 6px;
+            }
+
+            .today-trade-symbol {
+                font-size: 0.65rem;
+                padding: 2px 6px;
+            }
+
+            .today-trade-amount {
+                font-size: 0.8rem;
+            }
+
+            .today-trade-time {
+                font-size: 0.8rem;
+            }
         }
 
-        .trade-details .value.sell {
-            color: #28a745;
+        @media (max-width: 480px) {
+            .today-trade-header {
+                padding: 14px 12px;
+            }
+
+            .today-trade-left {
+                gap: 6px;
+            }
+
+            .today-trade-right {
+                gap: 8px;
+            }
+
+            .today-trade-name {
+                font-size: 0.85rem;
+            }
+
+            .today-trade-badge {
+                font-size: 0.6rem;
+                padding: 2px 5px;
+            }
+
+            .today-trade-symbol {
+                font-size: 0.6rem;
+                padding: 2px 5px;
+            }
+
+            .today-trade-amount {
+                font-size: 0.75rem;
+            }
+
+            .today-trade-time {
+                font-size: 0.75rem;
+            }
         }
 
         .profit-positive {
@@ -382,25 +497,586 @@
             color: #1565c0 !important;
         }
 
-        /* 오늘의 거래만 체크박스 */
-        .today-filter-checkbox {
+        /* 얼럿 카드 스타일 */
+        .alert-section {
+            margin-bottom: 16px;
+        }
+
+        .alert-card {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 14px 16px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+        }
+
+        .alert-card:last-child {
+            margin-bottom: 0;
+        }
+
+        .alert-warning {
+            background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+            border: 1px solid #ffb74d;
+        }
+
+        .alert-info {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border: 1px solid #64b5f6;
+        }
+
+        .alert-icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .alert-content {
+            flex: 1;
+        }
+
+        .alert-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            margin-bottom: 4px;
+        }
+
+        .alert-warning .alert-title {
+            color: #e65100;
+        }
+
+        .alert-info .alert-title {
+            color: #1565c0;
+        }
+
+        .alert-message {
+            font-size: 0.85rem;
+            color: #555;
+            margin-bottom: 4px;
+        }
+
+        .alert-detail {
+            font-size: 0.75rem;
+            color: #888;
+        }
+
+        @media (max-width: 480px) {
+            .alert-card {
+                padding: 12px 14px;
+                gap: 10px;
+            }
+
+            .alert-icon {
+                font-size: 1.3rem;
+            }
+
+            .alert-title {
+                font-size: 0.9rem;
+            }
+
+            .alert-message {
+                font-size: 0.8rem;
+            }
+
+            .alert-detail {
+                font-size: 0.7rem;
+            }
+        }
+
+        /* 날짜 선택 버튼 스타일 */
+        .date-select-btn {
             display: flex;
             align-items: center;
-            gap: 5px;
-            cursor: pointer;
-            font-size: 0.8em;
-            color: #666;
-            user-select: none;
-        }
-
-        .today-filter-checkbox input[type="checkbox"] {
-            width: 14px;
-            height: 14px;
-            cursor: pointer;
-        }
-
-        .today-filter-checkbox:hover {
+            gap: 6px;
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            background: #fff;
+            font-size: 0.8rem;
             color: #667eea;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .date-select-btn:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .date-select-icon {
+            font-size: 0.9rem;
+        }
+
+        /* 날짜 선택 모달 스타일 */
+        .date-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .date-modal-overlay.active {
+            display: flex;
+        }
+
+        .date-modal-card {
+            background: #fff;
+            border-radius: 15px;
+            padding: 20px;
+            width: 88%;
+            max-width: 340px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .date-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .date-modal-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .date-modal-close {
+            background: none;
+            border: none;
+            color: #999;
+            font-size: 1.6rem;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .date-modal-close:hover {
+            color: #333;
+        }
+
+        .date-modal-body {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .date-picker-presets {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+        }
+
+        .date-preset-btn {
+            padding: 8px 6px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fff;
+            font-size: 0.8rem;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .date-preset-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .date-preset-btn.active {
+            background: #667eea;
+            border-color: #667eea;
+            color: #fff;
+        }
+
+        .date-picker-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .date-picker-field {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .date-picker-field label {
+            display: block;
+            font-size: 0.75rem;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .date-picker-field input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            background: #fff;
+            box-sizing: border-box;
+        }
+
+        .date-picker-field input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .date-modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .date-modal-btn-cancel,
+        .date-modal-btn-submit {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .date-modal-btn-cancel {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .date-modal-btn-cancel:hover {
+            background: #e0e0e0;
+        }
+
+        .date-modal-btn-submit {
+            background: #667eea;
+            color: #fff;
+        }
+
+        .date-modal-btn-submit:hover {
+            background: #5568d3;
+        }
+
+        .trades-loading {
+            text-align: center;
+            padding: 30px;
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .no-trades-message {
+            text-align: center;
+            padding: 30px;
+            color: #888;
+            font-size: 0.9rem;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        @media (max-width: 480px) {
+            .date-select-btn {
+                padding: 5px 10px;
+                font-size: 0.75rem;
+            }
+
+            .date-modal-card {
+                padding: 16px;
+                width: 92%;
+            }
+
+            .date-modal-header {
+                margin-bottom: 14px;
+                padding-bottom: 10px;
+            }
+
+            .date-modal-title {
+                font-size: 1rem;
+            }
+
+            .date-modal-body {
+                gap: 12px;
+            }
+
+            .date-picker-presets {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 5px;
+            }
+
+            .date-preset-btn {
+                padding: 7px 4px;
+                font-size: 0.75rem;
+            }
+
+            .date-picker-row {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .date-picker-field input {
+                padding: 8px 6px;
+                font-size: 0.8rem;
+            }
+
+            .date-modal-actions {
+                gap: 8px;
+                margin-top: 4px;
+            }
+
+            .date-modal-btn-cancel,
+            .date-modal-btn-submit {
+                padding: 10px;
+                font-size: 0.9rem;
+            }
+        }
+
+        /* 포트폴리오 아코디언 스타일 - 시장지표와 동일 */
+        .portfolio-accordion-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 18px;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .portfolio-accordion-header:hover {
+            background: #f8f9ff;
+            border-color: #667eea;
+        }
+
+        .portfolio-accordion-header.active {
+            border-color: #667eea;
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+            margin-bottom: 0;
+        }
+
+        .portfolio-accordion-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .portfolio-accordion-toggle {
+            font-size: 0.8rem;
+            color: #667eea;
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        .portfolio-accordion-header.active .portfolio-accordion-toggle {
+            transform: rotate(90deg);
+        }
+
+        .portfolio-accordion-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        .portfolio-accordion-symbol {
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            background: #667eea;
+            color: #fff;
+            white-space: nowrap;
+        }
+
+        .portfolio-accordion-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .portfolio-accordion-amount {
+            font-size: 0.85rem;
+            color: #666;
+            white-space: nowrap;
+        }
+
+        .portfolio-accordion-profit {
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 3px 8px;
+            border-radius: 6px;
+            background: #f0f4ff;
+        }
+
+        .portfolio-accordion-rate {
+            font-size: 0.85rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .portfolio-header-progress {
+            display: flex;
+            align-items: center;
+        }
+
+        .portfolio-header-progress-bar {
+            width: 50px;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .portfolio-header-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 3px;
+        }
+
+        .portfolio-accordion-content {
+            display: none;
+            background: #fff;
+            border: 1px solid #667eea;
+            border-top: none;
+            border-radius: 0 0 10px 10px;
+            padding: 15px;
+            margin-bottom: 8px;
+        }
+
+        .portfolio-accordion-content.active {
+            display: block;
+        }
+
+        .portfolio-detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .portfolio-detail-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .portfolio-detail-item.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .portfolio-detail-label {
+            font-size: 0.7rem;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .portfolio-detail-value {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .portfolio-progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+
+        .portfolio-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .portfolio-accordion-header {
+                padding: 16px 14px;
+            }
+
+            .portfolio-accordion-left {
+                gap: 8px;
+            }
+
+            .portfolio-accordion-right {
+                gap: 10px;
+            }
+
+            .portfolio-accordion-name {
+                font-size: 0.9rem;
+            }
+
+            .portfolio-accordion-symbol {
+                font-size: 0.65rem;
+                padding: 2px 6px;
+            }
+
+            .portfolio-accordion-profit {
+                font-size: 0.8rem;
+            }
+
+            .portfolio-accordion-rate {
+                font-size: 0.75rem;
+            }
+
+            .portfolio-accordion-amount {
+                display: none;
+            }
+
+            .portfolio-header-progress-bar {
+                width: 40px;
+                height: 5px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .portfolio-accordion-header {
+                padding: 14px 12px;
+            }
+
+            .portfolio-accordion-left {
+                gap: 6px;
+            }
+
+            .portfolio-accordion-right {
+                gap: 8px;
+            }
+
+            .portfolio-accordion-name {
+                font-size: 0.85rem;
+            }
+
+            .portfolio-accordion-symbol {
+                font-size: 0.6rem;
+                padding: 2px 5px;
+            }
+
+            .portfolio-accordion-profit {
+                font-size: 0.7rem;
+            }
+
+            .portfolio-accordion-rate {
+                font-size: 0.7rem;
+            }
+
+            .portfolio-header-progress-bar {
+                width: 35px;
+                height: 4px;
+            }
         }
 
         @media (max-width: 768px) {
@@ -499,7 +1175,7 @@
 
     <!-- 메인 컨텐츠 (인증 후) -->
     <div id="mainContainer" class="hidden">
-        <div class="bot-container" style="max-width: 800px;">
+        <div class="bot-container" style="max-width: 800px; padding-bottom: 100px;">
             <!-- 페이지 헤더 + 햄버거 메뉴 + 로그아웃 -->
             <div class="page-header" style="display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 15px 20px;">
                 <!-- 왼쪽: 햄버거 버튼 -->
@@ -521,6 +1197,32 @@
                     <button id="logoutBtn" class="logout-btn">로그아웃</button>
                 </div>
             </div>
+
+            <!-- 얼럿 메시지 섹션 -->
+            {% if overview and (overview.alert_low_balance or overview.alert_high_balance) %}
+            <div class="alert-section">
+                {% if overview.alert_low_balance %}
+                <div class="alert-card alert-warning">
+                    <div class="alert-icon">🚨</div>
+                    <div class="alert-content">
+                        <div class="alert-title">예수금 부족</div>
+                        <div class="alert-message">예수금이 부족합니다. 충전이 필요합니다.</div>
+                        <div class="alert-detail">현재 예수금: ${{ '{:,.0f}'.format(overview.hantoo_balance) }} / 필요 시드: ${{ '{:,.0f}'.format(overview.seed_per_tier * 2) }}</div>
+                    </div>
+                </div>
+                {% endif %}
+                {% if overview.alert_high_balance %}
+                <div class="alert-card alert-info">
+                    <div class="alert-icon">💰</div>
+                    <div class="alert-content">
+                        <div class="alert-title">예수금 과다</div>
+                        <div class="alert-message">예수금이 $10,000을 초과했습니다. RP 매수를 권장합니다.</div>
+                        <div class="alert-detail">현재 예수금: ${{ '{:,.0f}'.format(overview.hantoo_balance) }}</div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
 
             <!-- 포트폴리오 요약 섹션 -->
             {% if overview %}
@@ -554,6 +1256,12 @@
                             <div style="text-align: right;">
                                 <span style="font-size: 1em; font-weight: 600; color: #333;">{{ '{:,.0f}'.format(overview.total_balance * overview.usd_krw) }}원</span>
                                 <span style="font-size: 0.75em; color: #999; margin-left: 4px;">$ {{ '{:,.2f}'.format(overview.total_balance) }}</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid #e0e0e0;">
+                            <span style="font-size: 0.8em; color: #666;">예수금</span>
+                            <div style="text-align: right;">
+                                <span style="font-size: 0.9em; font-weight: 500; color: #667eea;">$ {{ '{:,.2f}'.format(overview.hantoo_balance) }}</span>
                             </div>
                         </div>
                     </div>
@@ -590,88 +1298,167 @@
             </div>
             {% endif %}
 
-            <!-- 최근 거래 섹션 -->
-            {% if recent_trades and recent_trades.has_trades %}
+            <!-- 포트폴리오 리스트 섹션 -->
+            {% if trade_list %}
             <div>
                 <div class="card-section">
-                    <div class="section-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                        <div>
-                            📊 최근 거래
-                            <span style="font-size: 0.8em; color: #999; font-weight: 400;">
-                                <span id="tradeCount">{{ recent_trades.buy_count }}매수 / {{ recent_trades.sell_count }}매도</span>
-                            </span>
+                    <div class="section-title">💼 포트폴리오 ({{ trade_list|selectattr('symbol', 'ne', 'RP')|list|length }}개)</div>
+
+                    {% for trade in trade_list if trade.symbol != 'RP' %}
+                    {% set status = trade_status_map.get(trade.name) %}
+                    <!-- 포트폴리오 아코디언 헤더 -->
+                    <div class="portfolio-accordion-header" data-portfolio-header="{{ trade.name }}" onclick="togglePortfolioAccordion('{{ trade.name }}')">
+                        <div class="portfolio-accordion-left">
+                            <span class="portfolio-accordion-toggle">▶</span>
+                            <span class="portfolio-accordion-name">{{ trade.name }}</span>
+                            <span class="portfolio-accordion-symbol">{{ trade.symbol }}</span>
                         </div>
-                        <label class="today-filter-checkbox">
-                            <input type="checkbox" id="todayOnlyCheckbox" checked>
-                            <span>오늘 거래만</span>
-                        </label>
+                        <div class="portfolio-accordion-right">
+                            <span class="portfolio-accordion-amount">{{ '{:,.0f}'.format(trade.amount) if trade.amount else '0' }}주</span>
+                            {% if status and trade.amount > 0 and trade.name != 'RP' %}
+                            <span class="portfolio-accordion-profit {{ 'profit-positive' if status.profit >= 0 else 'profit-negative' }}">
+                                {% if status.profit >= 0 %}+{% endif %}${{ '{:,.2f}'.format(status.profit) }}
+                            </span>
+                            <span class="portfolio-accordion-rate {{ 'profit-positive' if status.profit_rate >= 0 else 'profit-negative' }}">
+                                ({% if status.profit_rate >= 0 %}+{% endif %}{{ '{:.1f}'.format(status.profit_rate) }}%)
+                            </span>
+                            <div class="portfolio-header-progress">
+                                <div class="portfolio-header-progress-bar">
+                                    <div class="portfolio-header-progress-fill" style="width: {{ status.progress_rate }}%;"></div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <span class="portfolio-accordion-profit">${{ '{:,.2f}'.format(trade.total_price) if trade.total_price else '0' }}</span>
+                            {% endif %}
+                        </div>
                     </div>
 
-                    <!-- 거래 내역 (통합) -->
-                    {% for trade in recent_trades.trades %}
-                        {% if trade.type == 'buy' %}
-                        <!-- 매수 거래 -->
-                        <div class="trade-item buy-item" data-days-ago="{{ trade.days_ago }}">
-                            <div class="trade-header">
-                                <div>
-                                    <span class="trade-badge buy-badge">매수</span>
-                                    <span class="trade-symbol">{{ trade.name }}</span>
-                                    <span class="trade-ticker">({{ trade.symbol }})</span>
-                                </div>
-                                <span class="trade-time">{{ trade.days_ago }}</span>
+                    <!-- 포트폴리오 아코디언 컨텐츠 -->
+                    <div class="portfolio-accordion-content" data-portfolio-content="{{ trade.name }}">
+                        <div class="portfolio-detail-grid">
+                            {% if status and trade.amount > 0 and trade.name != 'RP' %}
+                            <div class="portfolio-detail-item">
+                                <div class="portfolio-detail-label">현재가</div>
+                                <div class="portfolio-detail-value">${{ '{:,.2f}'.format(status.cur_price) }}</div>
                             </div>
-                            <div class="trade-details">
-                                <div class="trade-price">
-                                    <span class="label">매수가</span>
-                                    <span class="value">${{ '{:.2f}'.format(trade.purchase_price) }}</span>
-                                </div>
-                                <div class="trade-amount">
-                                    <span class="label">수량</span>
-                                    <span class="value">{{ '{:.0f}'.format(trade.amount) }}주</span>
-                                </div>
-                                <div class="trade-total">
-                                    <span class="label">총액</span>
-                                    <span class="value total">${{ '{:,.2f}'.format(trade.total_price) }}</span>
+                            <div class="portfolio-detail-item">
+                                <div class="portfolio-detail-label">평균 매수가</div>
+                                <div class="portfolio-detail-value">${{ '{:,.2f}'.format(status.cur_trade.purchase_price) }}</div>
+                            </div>
+                            <div class="portfolio-detail-item">
+                                <div class="portfolio-detail-label">수량</div>
+                                <div class="portfolio-detail-value">{{ '{:,.0f}'.format(trade.amount) if trade.amount else '0' }}주</div>
+                            </div>
+                            <div class="portfolio-detail-item">
+                                <div class="portfolio-detail-label">총액</div>
+                                <div class="portfolio-detail-value">${{ '{:,.2f}'.format(trade.total_price) if trade.total_price else '0' }}</div>
+                            </div>
+                            <div class="portfolio-detail-item">
+                                <div class="portfolio-detail-label">수익금</div>
+                                <div class="portfolio-detail-value {{ 'profit-positive' if status.profit >= 0 else 'profit-negative' }}">
+                                    {% if status.profit >= 0 %}+{% endif %}${{ '{:,.2f}'.format(status.profit) }}
                                 </div>
                             </div>
+                            <div class="portfolio-detail-item">
+                                <div class="portfolio-detail-label">수익률</div>
+                                <div class="portfolio-detail-value {{ 'profit-positive' if status.profit_rate >= 0 else 'profit-negative' }}">
+                                    {% if status.profit_rate >= 0 %}+{% endif %}{{ '{:.2f}'.format(status.profit_rate) }}%
+                                </div>
+                            </div>
+                            <div class="portfolio-detail-item">
+                                <div class="portfolio-detail-label">%지점</div>
+                                <div class="portfolio-detail-value" style="color: #e67e22;">{{ '{:.1f}'.format(status.point * 100) }}% <span style="font-size: 0.8em; color: #888;">(${{ '{:,.2f}'.format(status.point_price) }})</span></div>
+                            </div>
+                            <div class="portfolio-detail-item">
+                                <div class="portfolio-detail-label">시드 소진율</div>
+                                <div class="portfolio-detail-value" style="display: flex; align-items: center; gap: 8px; justify-content: center;">
+                                    <span style="color: #667eea; font-weight: 600;">{{ '{:.1f}'.format(status.progress_rate) }}%</span>
+                                    <div class="portfolio-progress-bar" style="flex: 1; max-width: 80px; margin: 0;">
+                                        <div class="portfolio-progress-fill" style="width: {{ status.progress_rate }}%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="portfolio-detail-item">
+                                <div class="portfolio-detail-label">구매가</div>
+                                <div class="portfolio-detail-value">${{ '{:,.2f}'.format(trade.purchase_price) if trade.purchase_price else '0' }}</div>
+                            </div>
+                            <div class="portfolio-detail-item">
+                                <div class="portfolio-detail-label">수량</div>
+                                <div class="portfolio-detail-value">{{ '{:,.0f}'.format(trade.amount) if trade.amount else '0' }}주</div>
+                            </div>
+                            <div class="portfolio-detail-item full-width">
+                                <div class="portfolio-detail-label">총액</div>
+                                <div class="portfolio-detail-value">${{ '{:,.2f}'.format(trade.total_price) if trade.total_price else '0' }}</div>
+                            </div>
+                            {% endif %}
                         </div>
-                        {% else %}
-                        <!-- 매도 거래 -->
-                        <div class="trade-item sell-item" data-days-ago="{{ trade.days_ago }}">
-                            <div class="trade-header">
-                                <div>
-                                    <span class="trade-badge sell-badge">매도</span>
-                                    <span class="trade-symbol">{{ trade.name }}</span>
-                                    <span class="trade-ticker">({{ trade.symbol }})</span>
-                                </div>
-                                <span class="trade-time">{{ trade.days_ago }}</span>
-                            </div>
-                            <div class="trade-details">
-                                <div class="trade-price">
-                                    <span class="label">매수가</span>
-                                    <span class="value">${{ '{:.2f}'.format(trade.buy_price) }}</span>
-                                </div>
-                                <div class="trade-price">
-                                    <span class="label">매도가</span>
-                                    <span class="value sell">${{ '{:.2f}'.format(trade.sell_price) }}</span>
-                                </div>
-                                <div class="trade-amount">
-                                    <span class="label">수량</span>
-                                    <span class="value">{{ trade.amount }}주</span>
-                                </div>
-                                <div class="trade-profit">
-                                    <span class="label">수익금</span>
-                                    <span class="value {% if trade.profit >= 0 %}profit-positive{% else %}profit-negative{% endif %}">
-                                        {% if trade.profit >= 0 %}+{% endif %}${{ '{:.2f}'.format(trade.profit) }} ({{ '{:.1f}'.format(trade.profit_rate) }}%)
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
+                    </div>
                     {% endfor %}
                 </div>
             </div>
             {% endif %}
+
+            <!-- 거래 내역 섹션 (날짜 선택) -->
+            <div>
+                <div class="card-section">
+                    <div class="section-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            📊 거래 내역
+                            <span id="tradesCountDisplay" style="font-size: 0.8em; color: #999; font-weight: 400;"></span>
+                        </div>
+                        <!-- 날짜 선택 버튼 -->
+                        <button class="date-select-btn" onclick="openDateModal()">
+                            <span id="selectedDateDisplay">오늘</span>
+                            <span class="date-select-icon">📅</span>
+                        </button>
+                    </div>
+
+                    <!-- 거래 내역 컨테이너 (동적 로딩) -->
+                    <div id="tradesContainer">
+                        <div class="trades-loading">로딩 중...</div>
+                    </div>
+
+                    <!-- 거래 없음 메시지 -->
+                    <div id="noTradesMessage" class="no-trades-message" style="display: none;">
+                        선택한 기간에 거래 내역이 없습니다.
+                    </div>
+                </div>
+            </div>
+
+            <!-- 날짜 선택 모달 -->
+            <div id="datePickerModal" class="date-modal-overlay">
+                <div class="date-modal-card">
+                    <div class="date-modal-header">
+                        <span class="date-modal-title">📅 기간 선택</span>
+                        <button class="date-modal-close" onclick="closeDateModal()">&times;</button>
+                    </div>
+                    <div class="date-modal-body">
+                        <!-- 프리셋 버튼 -->
+                        <div class="date-picker-presets">
+                            <button class="date-preset-btn active" data-preset="today">오늘</button>
+                            <button class="date-preset-btn" data-preset="week">1주일</button>
+                            <button class="date-preset-btn" data-preset="month">1개월</button>
+                            <button class="date-preset-btn" data-preset="all">전체</button>
+                        </div>
+                        <!-- 직접 선택 -->
+                        <div class="date-picker-row">
+                            <div class="date-picker-field">
+                                <label>시작일</label>
+                                <input type="date" id="startDate">
+                            </div>
+                            <div class="date-picker-field">
+                                <label>종료일</label>
+                                <input type="date" id="endDate">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="date-modal-actions">
+                        <button class="date-modal-btn-cancel" onclick="closeDateModal()">취소</button>
+                        <button class="date-modal-btn-submit" onclick="applyDateSelection()">적용</button>
+                    </div>
+                </div>
+            </div>
 
             <!-- 햄버거 사이드 메뉴 -->
             <div id="sideMenu" class="side-menu">
@@ -683,29 +1470,25 @@
                     <a href="/bot_info" class="side-menu-item">
                         <div class="side-menu-icon">🤖</div>
                         <div class="side-menu-text">
-                            <div class="side-menu-title">Bot Info</div>
-                            <div class="side-menu-desc">봇 정보 관리</div>
+                            <div class="side-menu-title">봇 정보 관리</div>
                         </div>
                     </a>
                     <a href="/status" class="side-menu-item">
                         <div class="side-menu-icon">💰</div>
                         <div class="side-menu-text">
-                            <div class="side-menu-title">Status Info</div>
-                            <div class="side-menu-desc">입출금 및 상태 관리</div>
+                            <div class="side-menu-title">입출금 및 상태 관리</div>
                         </div>
                     </a>
                     <a href="/trade" class="side-menu-item">
                         <div class="side-menu-icon">📈</div>
                         <div class="side-menu-text">
-                            <div class="side-menu-title">Trade Info</div>
-                            <div class="side-menu-desc">거래 내역 및 포트폴리오</div>
+                            <div class="side-menu-title">포트폴리오 관리</div>
                         </div>
                     </a>
                     <a href="/history" class="side-menu-item">
                         <div class="side-menu-icon">📜</div>
                         <div class="side-menu-text">
-                            <div class="side-menu-title">History Info</div>
-                            <div class="side-menu-desc">매도 기록 조회</div>
+                            <div class="side-menu-title">거래 내역</div>
                         </div>
                     </a>
                 </nav>
@@ -751,75 +1534,13 @@
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    padding: 14px 18px;
+                    padding: 18px 18px;
                     background: #fff;
                     border: 1px solid #e0e0e0;
                     border-radius: 10px;
                     margin-bottom: 8px;
                     cursor: pointer;
                     transition: all 0.2s;
-                }
-
-                @media (max-width: 768px) {
-                    .ticker-accordion-header {
-                        padding: 12px 14px;
-                    }
-
-                    .ticker-accordion-left {
-                        gap: 8px;
-                    }
-
-                    .ticker-accordion-right {
-                        gap: 10px;
-                    }
-
-                    .ticker-accordion-name {
-                        font-size: 0.9rem;
-                    }
-
-                    .ticker-accordion-badge {
-                        font-size: 0.65rem;
-                        padding: 2px 6px;
-                    }
-
-                    .ticker-value-highlight {
-                        font-size: 0.8rem;
-                    }
-
-                    .ticker-price-value {
-                        font-size: 0.75rem;
-                    }
-                }
-
-                @media (max-width: 480px) {
-                    .ticker-accordion-header {
-                        padding: 10px 12px;
-                    }
-
-                    .ticker-accordion-left {
-                        gap: 6px;
-                    }
-
-                    .ticker-accordion-right {
-                        gap: 8px;
-                    }
-
-                    .ticker-accordion-name {
-                        font-size: 0.85rem;
-                    }
-
-                    .ticker-accordion-badge {
-                        font-size: 0.6rem;
-                        padding: 2px 5px;
-                    }
-
-                    .ticker-value-highlight {
-                        font-size: 0.7rem;
-                    }
-
-                    .ticker-price-value {
-                        font-size: 0.7rem;
-                    }
                 }
 
                 .ticker-accordion-header:hover {
@@ -869,6 +1590,10 @@
                     white-space: nowrap;
                 }
 
+                .ticker-accordion-emoji {
+                    font-size: 1rem;
+                }
+
                 .ticker-accordion-badge.fear {
                     background: #c62828;
                     color: #fff;
@@ -882,10 +1607,6 @@
                 .ticker-accordion-badge.neutral {
                     background: #f57f17;
                     color: #fff;
-                }
-
-                .ticker-accordion-emoji {
-                    font-size: 1.1rem;
                 }
 
                 .ticker-accordion-right {
@@ -958,6 +1679,79 @@
                     color: #666;
                     margin-bottom: 8px;
                     font-weight: 500;
+                }
+
+                /* 티커 아코디언 모바일 반응형 - 기본 스타일 뒤에 위치해야 함 */
+                @media (max-width: 768px) {
+                    .ticker-accordion-header {
+                        padding: 16px 14px;
+                    }
+
+                    .ticker-accordion-left {
+                        gap: 8px;
+                    }
+
+                    .ticker-accordion-right {
+                        gap: 10px;
+                    }
+
+                    .ticker-accordion-name {
+                        font-size: 0.9rem;
+                    }
+
+                    .ticker-accordion-badge {
+                        font-size: 0.65rem;
+                        padding: 2px 6px;
+                    }
+
+                    .ticker-accordion-emoji {
+                        font-size: 0.9rem;
+                    }
+
+                    .ticker-value-highlight {
+                        font-size: 0.8rem;
+                        padding: 2px 6px;
+                    }
+
+                    .ticker-price-value {
+                        font-size: 0.75rem;
+                    }
+                }
+
+                @media (max-width: 480px) {
+                    .ticker-accordion-header {
+                        padding: 14px 12px;
+                    }
+
+                    .ticker-accordion-left {
+                        gap: 6px;
+                    }
+
+                    .ticker-accordion-right {
+                        gap: 8px;
+                    }
+
+                    .ticker-accordion-name {
+                        font-size: 0.85rem;
+                    }
+
+                    .ticker-accordion-badge {
+                        font-size: 0.6rem;
+                        padding: 2px 5px;
+                    }
+
+                    .ticker-accordion-emoji {
+                        font-size: 0.85rem;
+                    }
+
+                    .ticker-value-highlight {
+                        font-size: 0.7rem;
+                        padding: 2px 5px;
+                    }
+
+                    .ticker-price-value {
+                        font-size: 0.7rem;
+                    }
                 }
 
             </style>
@@ -1130,11 +1924,18 @@
 
             if (!rsiHistory && !priceHistory) return;
 
-            // 티커 목록 (RSI와 Price 합쳐서)
-            const tickers = new Set([
+            // 기본 티커 (TQQQ, SOXL) + 봇에서 생성된 티커
+            const defaultTickers = ['TQQQ', 'SOXL'];
+            const botTickers = new Set([
                 ...Object.keys(rsiHistory || {}),
                 ...Object.keys(priceHistory || {})
             ]);
+
+            // 기본 티커를 먼저, 그 다음 봇 티커 (기본 티커 제외)
+            const tickers = [
+                ...defaultTickers,
+                ...[...botTickers].filter(t => !defaultTickers.includes(t))
+            ];
 
             tickers.forEach(ticker => {
                 const rsiData = rsiHistory ? rsiHistory[ticker] : null;
@@ -1395,50 +2196,6 @@
             }
         });
 
-        // ===== 오늘의 거래만 보기 필터 =====
-        const todayOnlyCheckbox = document.getElementById('todayOnlyCheckbox');
-
-        if (todayOnlyCheckbox) {
-            // 페이지 로드 시 필터 적용
-            filterTrades();
-
-            // 체크박스 변경 시 필터 적용
-            todayOnlyCheckbox.addEventListener('change', filterTrades);
-        }
-
-        function filterTrades() {
-            const todayOnly = todayOnlyCheckbox.checked;
-            const tradeItems = document.querySelectorAll('.trade-item');
-
-            let visibleBuyCount = 0;
-            let visibleSellCount = 0;
-
-            tradeItems.forEach(item => {
-                const daysAgo = item.getAttribute('data-days-ago');
-
-                if (todayOnly) {
-                    // 오늘의 거래만 표시
-                    if (daysAgo === '오늘') {
-                        item.style.display = '';
-                        if (item.classList.contains('buy-item')) visibleBuyCount++;
-                        if (item.classList.contains('sell-item')) visibleSellCount++;
-                    } else {
-                        item.style.display = 'none';
-                    }
-                } else {
-                    // 모든 거래 표시
-                    item.style.display = '';
-                    if (item.classList.contains('buy-item')) visibleBuyCount++;
-                    if (item.classList.contains('sell-item')) visibleSellCount++;
-                }
-            });
-
-            // 카운트 업데이트
-            const tradeCountElement = document.getElementById('tradeCount');
-            if (tradeCountElement) {
-                tradeCountElement.textContent = `${visibleBuyCount}매수 / ${visibleSellCount}매도`;
-            }
-        }
 
         // ===== 년도별 아코디언 토글 =====
         function toggleYearAccordion(year) {
@@ -1451,6 +2208,271 @@
                 localStorage.setItem('yearExpanded_' + year, isExpanded);
             }
         }
+
+        // ===== 포트폴리오 아코디언 토글 =====
+        function togglePortfolioAccordion(tradeName) {
+            const header = document.querySelector(`[data-portfolio-header="${tradeName}"]`);
+            const content = document.querySelector(`[data-portfolio-content="${tradeName}"]`);
+
+            if (header && content) {
+                header.classList.toggle('active');
+                content.classList.toggle('active');
+
+                // 확장 상태 저장
+                const isExpanded = content.classList.contains('active');
+                let expandedPortfolios = JSON.parse(localStorage.getItem('expandedPortfolios') || '{}');
+                expandedPortfolios[tradeName] = isExpanded;
+                localStorage.setItem('expandedPortfolios', JSON.stringify(expandedPortfolios));
+            }
+        }
+
+        // ===== 오늘의 거래 아코디언 토글 =====
+        function toggleTodayTradeAccordion(index) {
+            const header = document.querySelector(`[data-today-trade-header="${index}"]`);
+            const content = document.querySelector(`[data-today-trade-content="${index}"]`);
+
+            if (header && content) {
+                header.classList.toggle('active');
+                content.classList.toggle('active');
+            }
+        }
+
+        // ===== 날짜별 거래 내역 로딩 =====
+        let tradesAccordionIndex = 0;
+        let currentPreset = 'today';
+
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function formatDisplayDate(dateStr) {
+            const date = new Date(dateStr);
+            return `${date.getMonth() + 1}/${date.getDate()}`;
+        }
+
+        function initDatePickers() {
+            const today = new Date();
+            const todayStr = formatDate(today);
+
+            document.getElementById('startDate').value = todayStr;
+            document.getElementById('endDate').value = todayStr;
+
+            // 프리셋 버튼 이벤트 등록
+            document.querySelectorAll('.date-preset-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const preset = btn.dataset.preset;
+                    setDatePreset(preset);
+
+                    // 활성화 상태 변경
+                    document.querySelectorAll('.date-preset-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                });
+            });
+
+            // 모달 외부 클릭 시 닫기
+            document.getElementById('datePickerModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeDateModal();
+                }
+            });
+
+            // 초기 로딩
+            loadTradesByDate();
+        }
+
+        function openDateModal() {
+            document.getElementById('datePickerModal').classList.add('active');
+        }
+
+        function closeDateModal() {
+            document.getElementById('datePickerModal').classList.remove('active');
+        }
+
+        function setDatePreset(preset) {
+            currentPreset = preset;
+            const today = new Date();
+            let startDate = new Date();
+            let endDate = today;
+
+            switch (preset) {
+                case 'today':
+                    startDate = today;
+                    break;
+                case 'week':
+                    startDate.setDate(today.getDate() - 7);
+                    break;
+                case 'month':
+                    startDate.setMonth(today.getMonth() - 1);
+                    break;
+                case 'all':
+                    startDate = new Date('2020-01-01');
+                    break;
+            }
+
+            document.getElementById('startDate').value = formatDate(startDate);
+            document.getElementById('endDate').value = formatDate(endDate);
+        }
+
+        function applyDateSelection() {
+            loadTradesByDate();
+            updateSelectedDateDisplay();
+            closeDateModal();
+        }
+
+        function updateSelectedDateDisplay() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const display = document.getElementById('selectedDateDisplay');
+
+            const presetLabels = {
+                'today': '오늘',
+                'week': '1주일',
+                'month': '1개월',
+                'all': '전체'
+            };
+
+            // 프리셋과 일치하는지 확인
+            const today = new Date();
+            const todayStr = formatDate(today);
+
+            if (startDate === todayStr && endDate === todayStr) {
+                display.textContent = '오늘';
+            } else if (startDate === endDate) {
+                display.textContent = formatDisplayDate(startDate);
+            } else {
+                display.textContent = `${formatDisplayDate(startDate)} ~ ${formatDisplayDate(endDate)}`;
+            }
+        }
+
+        async function loadTradesByDate() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            if (!startDate || !endDate) return;
+
+            const container = document.getElementById('tradesContainer');
+            const noTradesMsg = document.getElementById('noTradesMessage');
+            const countDisplay = document.getElementById('tradesCountDisplay');
+
+            container.innerHTML = '<div class="trades-loading">로딩 중...</div>';
+            noTradesMsg.style.display = 'none';
+
+            try {
+                const response = await fetch(`/api/trades?start_date=${startDate}&end_date=${endDate}`);
+                const data = await response.json();
+
+                if (data.error) {
+                    container.innerHTML = `<div class="trades-loading">오류: ${data.error}</div>`;
+                    return;
+                }
+
+                countDisplay.textContent = `${data.buy_count}매수 / ${data.sell_count}매도`;
+
+                if (!data.has_trades) {
+                    container.innerHTML = '';
+                    noTradesMsg.style.display = 'block';
+                    return;
+                }
+
+                // 거래 내역 렌더링
+                tradesAccordionIndex = 0;
+                container.innerHTML = data.trades.map(trade => renderTradeAccordion(trade)).join('');
+
+            } catch (error) {
+                console.error('거래 내역 로딩 오류:', error);
+                container.innerHTML = '<div class="trades-loading">로딩 실패</div>';
+            }
+        }
+
+        function renderTradeAccordion(trade) {
+            tradesAccordionIndex++;
+            const idx = tradesAccordionIndex;
+            const dateDisplay = trade.date_str ? `${trade.date_str} ` : '';
+
+            if (trade.type === 'buy') {
+                return `
+                    <div class="today-trade-header" data-today-trade-header="${idx}" onclick="toggleTodayTradeAccordion('${idx}')">
+                        <div class="today-trade-left">
+                            <span class="today-trade-toggle">▶</span>
+                            <span class="today-trade-badge buy">매수</span>
+                            <span class="today-trade-name">${trade.name}</span>
+                            <span class="today-trade-symbol">${trade.symbol}</span>
+                        </div>
+                        <div class="today-trade-right">
+                            <span class="today-trade-amount">${trade.amount}주</span>
+                            <span class="today-trade-time">${dateDisplay}${trade.time}</span>
+                        </div>
+                    </div>
+                    <div class="today-trade-content" data-today-trade-content="${idx}">
+                        <div class="today-trade-grid">
+                            <div class="today-trade-item">
+                                <div class="today-trade-label">매수가</div>
+                                <div class="today-trade-value">$${trade.purchase_price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                            </div>
+                            <div class="today-trade-item">
+                                <div class="today-trade-label">수량</div>
+                                <div class="today-trade-value">${trade.amount}주</div>
+                            </div>
+                            <div class="today-trade-item full-width">
+                                <div class="today-trade-label">총액</div>
+                                <div class="today-trade-value" style="color: #667eea;">$${trade.total_price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                const profitClass = trade.profit >= 0 ? 'profit-positive' : 'profit-negative';
+                const profitSign = trade.profit >= 0 ? '+' : '';
+                return `
+                    <div class="today-trade-header" data-today-trade-header="${idx}" onclick="toggleTodayTradeAccordion('${idx}')">
+                        <div class="today-trade-left">
+                            <span class="today-trade-toggle">▶</span>
+                            <span class="today-trade-badge sell">매도</span>
+                            <span class="today-trade-name">${trade.name}</span>
+                            <span class="today-trade-symbol">${trade.symbol}</span>
+                        </div>
+                        <div class="today-trade-right">
+                            <span class="today-trade-amount">${trade.amount}주</span>
+                            <span class="today-trade-time">${dateDisplay}${trade.time}</span>
+                        </div>
+                    </div>
+                    <div class="today-trade-content" data-today-trade-content="${idx}">
+                        <div class="today-trade-grid">
+                            <div class="today-trade-item">
+                                <div class="today-trade-label">매수가</div>
+                                <div class="today-trade-value">$${trade.buy_price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                            </div>
+                            <div class="today-trade-item">
+                                <div class="today-trade-label">매도가</div>
+                                <div class="today-trade-value" style="color: #2e7d32;">$${trade.sell_price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                            </div>
+                            <div class="today-trade-item">
+                                <div class="today-trade-label">수량</div>
+                                <div class="today-trade-value">${trade.amount}주</div>
+                            </div>
+                            <div class="today-trade-item">
+                                <div class="today-trade-label">수익금</div>
+                                <div class="today-trade-value ${profitClass}">${profitSign}$${trade.profit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                            </div>
+                            <div class="today-trade-item full-width">
+                                <div class="today-trade-label">수익률</div>
+                                <div class="today-trade-value ${profitClass}">${profitSign}${trade.profit_rate.toFixed(2)}%</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // 인증 후 날짜 피커 초기화 추가
+        const originalShowMainContainer = showMainContainer;
+        showMainContainer = function() {
+            originalShowMainContainer();
+            initDatePickers();
+        };
     </script>
 </body>
 </html>
