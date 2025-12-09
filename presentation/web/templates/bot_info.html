@@ -401,12 +401,29 @@
         // 개별 bot 저장
         function saveBotInfo(button) {
             const card = button.closest('.bot-accordion-content');
-            const seed = parseCurrency(card.querySelector('input[name="seed"]').value);
-            const dynamicSeedMax = parseCurrency(card.querySelector('input[name="dynamic_seed_max"]').value);
+            const seedInput = card.querySelector('input[name="seed"]');
+            const dynamicSeedMaxInput = card.querySelector('input[name="dynamic_seed_max"]');
+
+            const seed = parseCurrency(seedInput.value);
+            const dynamicSeedMax = parseCurrency(dynamicSeedMaxInput.value);
+            const originalSeed = parseCurrency(seedInput.dataset.originalValue);
+            const originalDynamicSeedMax = parseCurrency(dynamicSeedMaxInput.dataset.originalValue);
 
             // 동적시드Max가 0이 아니고, 1회시드보다 작으면 경고
             if (dynamicSeedMax > 0 && dynamicSeedMax < seed) {
-                alert('동적시드Max는 1회시드($ ' + seed.toLocaleString() + ')보다 커야 합니다.\n0으로 설정하면 기능이 비활성화됩니다.');
+                // 어느 쪽이 변경되었는지 확인
+                const seedChanged = seed !== originalSeed;
+                const dynamicChanged = dynamicSeedMax !== originalDynamicSeedMax;
+
+                if (seedChanged && !dynamicChanged) {
+                    // 1회시드만 변경됨 → 1회시드 복원
+                    alert('1회시드를 동적시드Max($ ' + dynamicSeedMax.toLocaleString() + ')보다 작게 설정해야 합니다.');
+                    seedInput.value = seedInput.dataset.originalValue || '$ 0';
+                } else {
+                    // 동적시드Max가 변경됨 → 동적시드Max 복원
+                    alert('동적시드Max는 1회시드($ ' + seed.toLocaleString() + ')보다 커야 합니다.\n0으로 설정하면 기능이 비활성화됩니다.');
+                    dynamicSeedMaxInput.value = dynamicSeedMaxInput.dataset.originalValue || '$ 0';
+                }
                 return;
             }
 
@@ -794,6 +811,7 @@
                         <label>1회시드</label>
                         <input type="text" name="seed"
                                value="$ {{ '{:,.0f}'.format(bot_info.seed) if bot_info.seed else '' }}"
+                               data-original-value="$ {{ '{:,.0f}'.format(bot_info.seed) if bot_info.seed else '' }}"
                                oninput="formatCurrency(this, '$ '); updateTotalSeed(this.closest('.bot-accordion-content'))">
                     </div>
                     <div class="bot-field">
@@ -817,6 +835,7 @@
                         <label>동적시드Max</label>
                         <input type="text" name="dynamic_seed_max"
                                value="$ {{ '{:,.0f}'.format(bot_info.dynamic_seed_max) if bot_info.dynamic_seed_max else '0' }}"
+                               data-original-value="$ {{ '{:,.0f}'.format(bot_info.dynamic_seed_max) if bot_info.dynamic_seed_max else '0' }}"
                                oninput="formatCurrency(this, '$ ')"
                                title="0이면 비활성화, 3% 하락 시 시드 1.5배 적용">
                     </div>
