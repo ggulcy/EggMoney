@@ -14,6 +14,7 @@ from data.external import send_message_sync
 from domain.entities.bot_info import BotInfo
 from domain.repositories.bot_info_repository import BotInfoRepository
 from domain.repositories.order_repository import OrderRepository
+from usecase.bot_management_usecase import BotManagementUsecase
 from usecase.order_usecase import OrderUsecase
 from usecase.trading_usecase import TradingUsecase
 
@@ -29,6 +30,7 @@ class TradingJobs:
         self,
         order_usecase: OrderUsecase,
         trading_usecase: TradingUsecase,
+        bot_management_usecase: BotManagementUsecase,
         bot_info_repo: BotInfoRepository,
         order_repo: OrderRepository
     ):
@@ -36,11 +38,13 @@ class TradingJobs:
         Args:
             order_usecase: 주문서 생성 Usecase
             trading_usecase: 거래 실행 Usecase
+            bot_management_usecase: 봇 관리 Usecase
             bot_info_repo: BotInfo 저장소
             order_repo: Order 저장소
         """
         self.order_usecase = order_usecase
         self.trading_usecase = trading_usecase
+        self.bot_management_usecase = bot_management_usecase
         self.bot_info_repo = bot_info_repo
         self.order_repo = order_repo
 
@@ -58,6 +62,7 @@ class TradingJobs:
             send_message_sync("설정한 거래요일이 아니라 종료 합니다")
             return
 
+        self.bot_management_usecase.check_and_apply_dynamic_seed()
         # 오래된 주문서 삭제 (전날 미완료 주문 등)
         self.order_repo.delete_old_orders(before_date=date.today())
 

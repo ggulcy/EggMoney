@@ -29,6 +29,7 @@ class BotInfoModel(Base):
     # 추가 시드 및 옵션
     added_seed = Column(Float, nullable=False, default=0.0)  # 추가 시드
     skip_sell = Column(Boolean, nullable=False, default=False)  # 매도 스킵 여부
+    dynamic_seed_max = Column(Float, nullable=False, default=0.0)  # 동적 시드 최대값 (0이면 비활성화)
 
     def __repr__(self):
         return f"<BotInfoModel(name={self.name}, symbol={self.symbol}, active={self.active})>"

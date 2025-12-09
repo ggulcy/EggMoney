@@ -18,16 +18,19 @@ from presentation.web.middleware.auth_middleware import require_web_auth
 from presentation.web.routes import bot_info_bp
 
 
-def _get_dependencies():
+def _get_dependencies(with_hantoo: bool = False):
     session_factory = SessionFactory()
     session = session_factory.create_session()
 
     bot_info_repo = SQLAlchemyBotInfoRepository(session)
     trade_repo = SQLAlchemyTradeRepository(session)
 
+    hantoo_service = HantooService(test_mode=item.is_test) if with_hantoo else None
+
     bot_management_usecase = BotManagementUsecase(
         bot_info_repo=bot_info_repo,
         trade_repo=trade_repo,
+        hantoo_service=hantoo_service,
     )
     return bot_management_usecase
 
@@ -77,6 +80,7 @@ def save_bot_info():
         skip_sell = data.get('skip_sell', False)
         point_loc_value = data.get('point_loc', 'P1')
         point_loc = PointLoc(point_loc_value)
+        dynamic_seed_max = float(data.get('dynamic_seed_max', 0))
 
         bot_info = BotInfo(
             name=name,
@@ -91,6 +95,7 @@ def save_bot_info():
             skip_sell=skip_sell,
             point_loc=point_loc,
             added_seed=0,
+            dynamic_seed_max=dynamic_seed_max,
         )
         bot_management_usecase.update_bot_info(bot_info)
         return jsonify({"message": f"{name} saved"}), 200

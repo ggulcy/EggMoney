@@ -3,6 +3,7 @@ from typing import List, Dict, Any, Optional, Tuple
 
 from config import item, util
 from data.external import send_message_sync
+from data.external.hantoo.hantoo_service import HantooService
 from domain.entities.bot_info import BotInfo
 from domain.repositories.bot_info_repository import BotInfoRepository
 from domain.repositories.trade_repository import TradeRepository
@@ -14,7 +15,8 @@ class BotManagementUsecase:
     def __init__(
         self,
         bot_info_repo: BotInfoRepository,
-        trade_repo: TradeRepository
+        trade_repo: TradeRepository,
+        hantoo_service: Optional[HantooService] = None
     ):
         """
         봇 관리 Usecase 초기화
@@ -22,9 +24,11 @@ class BotManagementUsecase:
         Args:
             bot_info_repo: BotInfo 리포지토리
             trade_repo: Trade 리포지토리
+            hantoo_service: 한투 서비스 (동적 시드 기능용, Optional)
         """
         self.bot_info_repo = bot_info_repo
         self.trade_repo = trade_repo
+        self.hantoo_service = hantoo_service
 
     # ===== 봇 자동화 관리 =====
 
@@ -152,3 +156,94 @@ class BotManagementUsecase:
             return point_price, t, point
         else:
             return None, 0, 0
+
+    # ===== 동적 시드 관리 =====
+
+    def check_and_apply_dynamic_seed(self) -> None:
+        """
+        모든 활성 봇에 대해 동적 시드 적용 체크 및 적용
+
+        데일리잡에서 호출하여 전일 종가 대비 하락 시 시드 조절
+        """
+        if self.hantoo_service is None:
+            return
+
+        bot_infos = self.bot_info_repo.find_active_bots()
+
+        for bot_info in bot_infos:
+            result = self.apply_dynamic_seed(bot_info)
+            if result is not None:
+                send_message_sync(
+                    f"📈 [{bot_info.name}] 동적 시드 적용\n"
+                    f"하락률: {result['drop_rate']:.2f}%\n"
+                    f"시드: ${result['old_seed']:,.2f} → ${result['new_seed']:,.2f} (+{result['increase_rate']:.1f}%)"
+                )
+
+    def apply_dynamic_seed(self, bot_info: BotInfo) -> Optional[Dict[str, Any]]:
+        """
+        동적 시드 적용
+
+        전일 종가 대비 현재가가 일정 비율 이상 하락했을 때,
+        시드를 배수로 늘리고 BotInfo를 업데이트
+
+        Args:
+            bot_info: 봇 정보
+
+        Returns:
+            성공 시: {
+                'old_seed': 이전 시드,
+                'new_seed': 새 시드,
+                'drop_rate': 하락률%,
+                'increase_rate': 증가율%
+            }
+            실패 시: None
+        """
+        DROP_RATE_THRESHOLD = 0.03  # 3% 하락 기준
+        MULTIPLIER = 1.5            # 1.5배
+
+        # 기능 비활성화 (dynamic_seed_max가 0 이하)
+        if bot_info.dynamic_seed_max <= 0:
+            return None
+
+        # 기본 시드가 이미 max보다 크면 적용 불필요
+        if bot_info.seed >= bot_info.dynamic_seed_max:
+            return None
+
+        # hantoo_service 없으면 기능 비활성화
+        if self.hantoo_service is None:
+            return None
+
+        # 가격 조회
+        prev_close = self.hantoo_service.get_prev_price(bot_info.symbol)
+        current_price = self.hantoo_service.get_price(bot_info.symbol)
+
+        if prev_close is None or current_price is None or prev_close <= 0:
+            return None
+
+        # 하락률 계산
+        drop_rate = (prev_close - current_price) / prev_close
+
+        # 기준 미달 → 적용 안함
+        if drop_rate < DROP_RATE_THRESHOLD:
+            return None
+
+        # 동적 시드 계산 (최대값 제한)
+        old_seed = bot_info.seed
+        target_seed = old_seed * MULTIPLIER
+        target_seed = min(target_seed, bot_info.dynamic_seed_max)
+
+        # seed 직접 수정
+        if target_seed > old_seed:
+            bot_info.seed = target_seed
+            self.bot_info_repo.save(bot_info)
+
+            increase_rate = ((target_seed - old_seed) / old_seed) * 100
+
+            return {
+                'old_seed': old_seed,
+                'new_seed': target_seed,
+                'drop_rate': drop_rate * 100,
+                'increase_rate': increase_rate
+            }
+
+        return None

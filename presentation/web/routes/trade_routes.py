@@ -188,9 +188,11 @@ def force_sell():
         bot_info_repo = SQLAlchemyBotInfoRepository(session)
         trade_repo = SQLAlchemyTradeRepository(session)
 
+        hantoo_service = HantooService(test_mode=item.is_test)
         bot_management_usecase = BotManagementUsecase(
             bot_info_repo=bot_info_repo,
             trade_repo=trade_repo,
+            hantoo_service=hantoo_service,
         )
         bot_info = bot_management_usecase.get_bot_info_by_name(name)
         if not bot_info:
@@ -199,7 +201,6 @@ def force_sell():
         # TradingUsecase 생성 및 force_sell 호출
         history_repo = SQLAlchemyHistoryRepository(session)
         order_repo = SQLAlchemyOrderRepository(session)
-        hantoo_service = HantooService(test_mode=item.is_test)
 
         trading_usecase = TradingUsecase(
             bot_info_repo=bot_info_repo,

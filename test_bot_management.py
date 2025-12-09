@@ -12,6 +12,7 @@ from data.persistence.sqlalchemy.repositories import (
     SQLAlchemyBotInfoRepository,
     SQLAlchemyTradeRepository
 )
+from data.external.hantoo.hantoo_service import HantooService
 from usecase import BotManagementUsecase
 
 
@@ -25,10 +26,14 @@ def setup():
     bot_info_repo = SQLAlchemyBotInfoRepository(session)
     trade_repo = SQLAlchemyTradeRepository(session)
 
+    # HantooService 생성
+    hantoo_service = HantooService(test_mode=item.is_test)
+
     # Usecase 생성
     bot_usecase = BotManagementUsecase(
         bot_info_repo=bot_info_repo,
-        trade_repo=trade_repo
+        trade_repo=trade_repo,
+        hantoo_service=hantoo_service,
     )
 
     return bot_usecase

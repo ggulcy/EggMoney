@@ -46,7 +46,7 @@ def create_app():
     # 세션 설정 (2시간 동안 유지)
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)
 
-    # 블루프린트 등록
+    # 블루프린트 등록®
     from presentation.web.routes import bot_info_bp, status_bp, index_bp, trade_bp, auth_bp, history_bp
 
     app.register_blueprint(auth_bp)

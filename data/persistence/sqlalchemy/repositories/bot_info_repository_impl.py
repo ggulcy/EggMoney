@@ -44,6 +44,7 @@ class SQLAlchemyBotInfoRepository(BotInfoRepository):
             existing.point_loc = bot_info.point_loc.value
             existing.added_seed = bot_info.added_seed
             existing.skip_sell = bot_info.skip_sell
+            existing.dynamic_seed_max = bot_info.dynamic_seed_max
         else:
             # 신규 생성
             model = self._to_model(bot_info)
@@ -98,7 +99,8 @@ class SQLAlchemyBotInfoRepository(BotInfoRepository):
             is_check_buy_t_div_price=model.is_check_buy_t_div_price,
             point_loc=PointLoc(model.point_loc),
             added_seed=model.added_seed,
-            skip_sell=model.skip_sell
+            skip_sell=model.skip_sell,
+            dynamic_seed_max=model.dynamic_seed_max
         )
 
     def _to_model(self, entity: BotInfo) -> BotInfoModel:
@@ -115,5 +117,6 @@ class SQLAlchemyBotInfoRepository(BotInfoRepository):
             is_check_buy_t_div_price=entity.is_check_buy_t_div_price,
             point_loc=entity.point_loc.value,
             added_seed=entity.added_seed,
-            skip_sell=entity.skip_sell
+            skip_sell=entity.skip_sell,
+            dynamic_seed_max=entity.dynamic_seed_max
         )

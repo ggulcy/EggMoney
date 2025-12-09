@@ -351,6 +351,7 @@
             padding-bottom: 16px;
             margin-bottom: 16px;
         }
+
     </style>
     <script>
         // 로딩 표시
@@ -400,10 +401,19 @@
         // 개별 bot 저장
         function saveBotInfo(button) {
             const card = button.closest('.bot-accordion-content');
+            const seed = parseCurrency(card.querySelector('input[name="seed"]').value);
+            const dynamicSeedMax = parseCurrency(card.querySelector('input[name="dynamic_seed_max"]').value);
+
+            // 동적시드Max가 0이 아니고, 1회시드보다 작으면 경고
+            if (dynamicSeedMax > 0 && dynamicSeedMax < seed) {
+                alert('동적시드Max는 1회시드($ ' + seed.toLocaleString() + ')보다 커야 합니다.\n0으로 설정하면 기능이 비활성화됩니다.');
+                return;
+            }
+
             const data = {
                 name: card.querySelector('input[name="name"]').value,
                 symbol: card.querySelector('input[name="symbol"]').value,
-                seed: parseCurrency(card.querySelector('input[name="seed"]').value),
+                seed: seed,
                 max_tier: parseInt(card.querySelector('input[name="max_tier"]').value) || 0,
                 profit_rate: parseFloat(card.querySelector('input[name="profit_rate"]').value) || 0,
                 t_div: parseInt(card.querySelector('input[name="t_div"]').value) || 0,
@@ -411,7 +421,8 @@
                 is_check_buy_t_div_price: card.querySelector('input[name^="is_check_buy_t_div_price"]').checked,
                 active: card.querySelector('input[name^="active"]').checked,
                 skip_sell: card.querySelector('input[name^="skip_sell"]').checked,
-                point_loc: card.querySelector('input[name^="point_loc"]:checked').value
+                point_loc: card.querySelector('input[name^="point_loc"]:checked').value,
+                dynamic_seed_max: dynamicSeedMax
             };
 
             showLoading();
@@ -801,6 +812,13 @@
                     <div class="bot-field">
                         <label>총 시드</label>
                         <input type="text" name="total_seed" disabled>
+                    </div>
+                    <div class="bot-field">
+                        <label>동적시드Max</label>
+                        <input type="text" name="dynamic_seed_max"
+                               value="$ {{ '{:,.0f}'.format(bot_info.dynamic_seed_max) if bot_info.dynamic_seed_max else '0' }}"
+                               oninput="formatCurrency(this, '$ ')"
+                               title="0이면 비활성화, 3% 하락 시 시드 1.5배 적용">
                     </div>
                 </div>
 

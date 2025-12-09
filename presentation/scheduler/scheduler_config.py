@@ -84,11 +84,17 @@ def _initialize_dependencies() -> tuple[SessionFactory, TradingJobs, MessageJobs
         order_repo=order_repo,
         hantoo_service=hantoo_service,
     )
+    bot_management_usecase = BotManagementUsecase(
+        bot_info_repo=bot_info_repo,
+        trade_repo=trade_repo,
+        hantoo_service=hantoo_service,
+    )
 
     # TradingJobs 초기화
     trading_jobs = TradingJobs(
         order_usecase=order_usecase,
         trading_usecase=trading_usecase,
+        bot_management_usecase=bot_management_usecase,
         bot_info_repo=bot_info_repo,
         order_repo=order_repo,
     )
@@ -104,10 +110,7 @@ def _initialize_dependencies() -> tuple[SessionFactory, TradingJobs, MessageJobs
             sheets_service=sheets_service,
             market_indicator_repo=market_indicator_repo,
         ),
-        bot_management_usecase=BotManagementUsecase(
-            bot_info_repo=bot_info_repo,
-            trade_repo=trade_repo,
-        ),
+        bot_management_usecase=bot_management_usecase,
     )
 
     print("✅ Dependencies 초기화 완료")
