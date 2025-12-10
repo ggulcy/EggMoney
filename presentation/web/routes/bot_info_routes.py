@@ -18,14 +18,14 @@ from presentation.web.middleware.auth_middleware import require_web_auth
 from presentation.web.routes import bot_info_bp
 
 
-def _get_dependencies(with_hantoo: bool = False):
+def _get_dependencies():
     session_factory = SessionFactory()
     session = session_factory.create_session()
 
     bot_info_repo = SQLAlchemyBotInfoRepository(session)
     trade_repo = SQLAlchemyTradeRepository(session)
 
-    hantoo_service = HantooService(test_mode=item.is_test) if with_hantoo else None
+    hantoo_service = HantooService(test_mode=item.is_test)
 
     bot_management_usecase = BotManagementUsecase(
         bot_info_repo=bot_info_repo,
