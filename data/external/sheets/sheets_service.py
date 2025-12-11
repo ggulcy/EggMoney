@@ -4,7 +4,7 @@ from typing import List, Optional
 
 from config import admin, BotAdmin, is_test
 from data.external.sheets.sheets_client import SheetsClient
-from data.external.sheets.sheets_models import SheetItem, DepositValues
+from data.external.sheets.sheets_models import StockItem, DepositValues
 from data.external.telegram_client import send_message_sync
 
 
@@ -25,7 +25,7 @@ class SheetsService:
 
     def write_balance(
         self,
-        sheet_items: List[SheetItem],
+        stock_items: List[StockItem],
         total_balance: float,
         get_current_price_func=None
     ) -> bool:
@@ -33,10 +33,10 @@ class SheetsService:
         잔고 정보를 Google Sheets에 작성
 
         Args:
-            sheet_items: SheetItem 리스트
+            stock_items: StockItem 리스트
             total_balance: 총 잔고
             get_current_price_func: 현재 가격 조회 함수 (ticker: str) -> float
-                                   None이면 sheet_item.price 사용
+                                   None이면 stock_item.price 사용
 
         Returns:
             bool: 성공 여부
@@ -66,38 +66,38 @@ class SheetsService:
 
             # 4. 셀 데이터 준비
             cell_data = []
-            for sheet_item in sheet_items:
-                if sheet_item is None:
+            for stock_item in stock_items:
+                if stock_item is None:
                     continue
 
                 # 현재 가격 조회
-                if sheet_item.ticker == "RP":
+                if stock_item.ticker == "RP":
                     # RP는 준비금이므로 구매 가격 사용
-                    cur_price = sheet_item.price
+                    cur_price = stock_item.price
                 else:
                     # 가격 조회 함수가 제공되었으면 사용, 아니면 구매 가격 사용
                     if get_current_price_func:
-                        cur_price = get_current_price_func(sheet_item.ticker)
+                        cur_price = get_current_price_func(stock_item.ticker)
                     else:
-                        cur_price = sheet_item.price
+                        cur_price = stock_item.price
 
                 # 현재 총액 및 수익률 계산
-                cur_total = cur_price * sheet_item.amount
+                cur_total = cur_price * stock_item.amount
 
                 # 수익률 계산 (0으로 나누기 방지)
-                if sheet_item.total_price > 0:
-                    profit_rate = ((cur_total - sheet_item.total_price) / sheet_item.total_price)
+                if stock_item.total_price > 0:
+                    profit_rate = ((cur_total - stock_item.total_price) / stock_item.total_price)
                 else:
                     profit_rate = 0.0
 
                 cell_data.append([
-                    sheet_item.name,
-                    sheet_item.ticker,
-                    sheet_item.amount,
-                    sheet_item.total_price,
+                    stock_item.name,
+                    stock_item.ticker,
+                    stock_item.amount,
+                    stock_item.total_price,
                     cur_total,
                     profit_rate,
-                    cur_total - sheet_item.total_price
+                    cur_total - stock_item.total_price
                 ])
 
                 # API rate limit 회피

@@ -23,6 +23,7 @@ from data.external import send_message_sync
 from data.external.hantoo import HantooService
 from data.external.sheets import SheetsService
 from usecase.portfolio_status_usecase import PortfolioStatusUsecase
+from usecase.overview_usecase import OverviewUsecase
 from presentation.scheduler.message_jobs import MessageJobs
 
 status_bp = Blueprint('status', __name__)
@@ -52,10 +53,17 @@ def _initialize_dependencies():
         hantoo_service=hantoo_service,
         sheets_service=sheets_service,
     )
+    overview_usecase = OverviewUsecase(
+        status_repo=status_repo,
+        bot_info_repo=bot_info_repo,
+        trade_repo=trade_repo,
+        hantoo_service=hantoo_service
+    )
 
     # Jobs
     message_jobs = MessageJobs(
         portfolio_usecase=portfolio_usecase,
+        overview_usecase=overview_usecase,
     )
 
     return status_repo, message_jobs, portfolio_usecase
@@ -84,7 +92,7 @@ def sync_sheets():
         _, message_jobs, _ = _initialize_dependencies()
 
         # 시트 동기화 실행
-        success = message_jobs.sync_all_sheets()
+        success = message_jobs.sync_all_external_portfolio()
 
         if success:
             print("=" * 80)

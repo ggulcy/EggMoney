@@ -20,7 +20,7 @@ from data.external.telegram_client import send_message_sync
 from data.external.sheets import (
     SheetsService,
     SheetsClient,
-    SheetItem,
+    StockItem,
     DepositValues
 )
 
@@ -46,6 +46,6 @@ __all__ = [
     # Sheets
     'SheetsService',
     'SheetsClient',
-    'SheetItem',
+    'StockItem',
     'DepositValues',
 ]

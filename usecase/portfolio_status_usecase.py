@@ -4,7 +4,7 @@ from datetime import datetime
 
 from config import util
 from data.external.hantoo import HantooService
-from data.external.sheets import SheetsService, SheetItem, DepositValues
+from data.external.sheets import SheetsService, StockItem, DepositValues
 from domain.entities.status import Status
 from domain.repositories.bot_info_repository import BotInfoRepository
 from domain.repositories.trade_repository import TradeRepository
@@ -18,14 +18,14 @@ class PortfolioStatusUsecase:
     """포트폴리오 상태 Usecase"""
 
     def __init__(
-        self,
-        bot_info_repo: BotInfoRepository,
-        trade_repo: TradeRepository,
-        history_repo: HistoryRepository,
-        status_repo: StatusRepository,
-        hantoo_service: HantooService,
-        sheets_service: SheetsService,
-        market_indicator_repo: Optional[MarketIndicatorRepository] = None
+            self,
+            bot_info_repo: BotInfoRepository,
+            trade_repo: TradeRepository,
+            history_repo: HistoryRepository,
+            status_repo: StatusRepository,
+            hantoo_service: HantooService,
+            sheets_service: SheetsService,
+            market_indicator_repo: Optional[MarketIndicatorRepository] = None
     ):
         """
         포트폴리오 상태 Usecase 초기화
@@ -150,7 +150,8 @@ class PortfolioStatusUsecase:
 
             # 거래 시작 경과일
             today = datetime.now().date()
-            added_date = cur_trade.date_added.date() if isinstance(cur_trade.date_added, datetime) else cur_trade.date_added
+            added_date = cur_trade.date_added.date() if isinstance(cur_trade.date_added,
+                                                                   datetime) else cur_trade.date_added
             days_passed = (today - added_date).days
 
             return {
@@ -412,95 +413,6 @@ class PortfolioStatusUsecase:
                 "has_profit": False
             }
 
-    # ===== Sheets 동기화 =====
-
-    def sync_status_from_sheets(self) -> bool:
-        """
-        Google Sheets에서 입금액 정보를 읽어와 Status DB에 동기화
-
-        Returns:
-            bool: 성공 여부
-        """
-        try:
-            deposit_values = self.sheets_service.read_deposit_values()
-            if not deposit_values:
-                print("⚠️ Sheets에서 입금액 정보를 읽지 못했습니다")
-                return False
-
-            status = Status(
-                deposit_won=deposit_values.krw_deposit,
-                deposit_dollar=deposit_values.usd_deposit,
-                withdraw_won=deposit_values.krw_withdrawal,
-                withdraw_dollar=deposit_values.usd_withdrawal
-            )
-
-            # 기존 Status 삭제 후 새로 저장 (sync 패턴)
-            self.status_repo.sync_status(status)
-
-            print(f"✅ Status 동기화 완료: Deposit={status.deposit_dollar:,.2f}$, Withdraw={status.withdraw_dollar:,.2f}$")
-            return True
-
-        except Exception as e:
-            print(f"❌ Status 동기화 실패: {str(e)}")
-            return False
-
-    def sync_balance_to_sheets(self) -> bool:
-        """
-        잔고 정보를 Google Sheets에 동기화
-
-        Returns:
-            bool: 성공 여부
-        """
-        try:
-            bot_info_list = self.bot_info_repo.find_all()
-            sheet_items = []
-
-            # 각 봇의 거래 정보 수집
-            for bot_info in bot_info_list:
-                trade = self.trade_repo.find_by_name(bot_info.name)
-                if trade and trade.amount > 0:
-                    sheet_items.append(SheetItem(
-                        name=bot_info.name,
-                        ticker=trade.symbol,
-                        amount=trade.amount,
-                        price=trade.purchase_price,
-                        total_price=trade.total_price
-                    ))
-
-            # RP 추가
-            rp_trade = self.trade_repo.find_by_name("RP")
-            if rp_trade and rp_trade.purchase_price != 0:
-                sheet_items.append(SheetItem(
-                    name="RP",
-                    ticker=rp_trade.symbol,
-                    amount=rp_trade.amount,
-                    price=rp_trade.purchase_price,
-                    total_price=rp_trade.total_price
-                ))
-
-            # 총 잔고 조회
-            balance = self.hantoo_service.get_balance()
-            if balance is None:
-                balance = 0.0
-
-            # Sheets에 작성 (가격 조회 함수 전달)
-            success = self.sheets_service.write_balance(
-                sheet_items=sheet_items,
-                total_balance=balance,
-                get_current_price_func=self.hantoo_service.get_price
-            )
-
-            if success:
-                print(f"✅ Sheets 잔고 동기화 완료: {len(sheet_items)}개 항목, 총 잔고 ${balance:,.2f}")
-            else:
-                print("❌ Sheets 잔고 동기화 실패")
-
-            return success
-
-        except Exception as e:
-            print(f"❌ Sheets 잔고 동기화 실패: {str(e)}")
-            return False
-
     def get_profit_summary(self) -> str:
         """
         연도별/월별 수익 요약 조회
@@ -525,7 +437,8 @@ class PortfolioStatusUsecase:
 
                 if year == current_year:
                     # 현재 연도 → 월별 수익 포함 (현재 월까지만 표시)
-                    monthly_profits_dict = {month: profit for month, profit in self.history_repo.get_monthly_sell_profit_by_year(year)}
+                    monthly_profits_dict = {month: profit for month, profit in
+                                            self.history_repo.get_monthly_sell_profit_by_year(year)}
                     current_month = datetime.now().month
 
                     result.append(f"📅 {year}년 월별 수익 💰")
@@ -901,12 +814,12 @@ class PortfolioStatusUsecase:
             return []
 
     def add_manual_trade(
-        self,
-        name: str,
-        symbol: str,
-        purchase_price: float,
-        amount: float,
-        trade_type: Optional[TradeType] = None
+            self,
+            name: str,
+            symbol: str,
+            purchase_price: float,
+            amount: float,
+            trade_type: Optional[TradeType] = None
     ) -> bool:
         """
         Trade 수동 추가
@@ -941,7 +854,8 @@ class PortfolioStatusUsecase:
             )
 
             self.trade_repo.save(trade)
-            print(f"✅ Trade 수동 추가 완료: {name}, {symbol}, {purchase_price:.2f}$ x {amount:.0f} = {total_price:.2f}$ ({trade_type.value})")
+            print(
+                f"✅ Trade 수동 추가 완료: {name}, {symbol}, {purchase_price:.2f}$ x {amount:.0f} = {total_price:.2f}$ ({trade_type.value})")
             return True
 
         except Exception as e:
@@ -977,13 +891,13 @@ class PortfolioStatusUsecase:
             return False
 
     def add_manual_history(
-        self,
-        name: str,
-        symbol: str,
-        buy_price: float,
-        sell_price: float,
-        amount: float,
-        trade_type
+            self,
+            name: str,
+            symbol: str,
+            buy_price: float,
+            sell_price: float,
+            amount: float,
+            trade_type
     ) -> bool:
         """
         History 수동 추가

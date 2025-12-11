@@ -20,6 +20,7 @@ from usecase.order_usecase import OrderUsecase
 from usecase.trading_usecase import TradingUsecase
 from usecase.portfolio_status_usecase import PortfolioStatusUsecase
 from usecase.bot_management_usecase import BotManagementUsecase
+from usecase.overview_usecase import OverviewUsecase
 
 # KST 시간대 명시 (서버 다른 프로그램과 충돌 방지)
 KST = pytz.timezone('Asia/Seoul')
@@ -100,17 +101,26 @@ def _initialize_dependencies() -> tuple[SessionFactory, TradingJobs, MessageJobs
     )
 
     # MessageJobs 초기화
+    portfolio_usecase = PortfolioStatusUsecase(
+        bot_info_repo=bot_info_repo,
+        trade_repo=trade_repo,
+        history_repo=history_repo,
+        status_repo=status_repo,
+        hantoo_service=hantoo_service,
+        sheets_service=sheets_service,
+        market_indicator_repo=market_indicator_repo,
+    )
+    overview_usecase = OverviewUsecase(
+        status_repo=status_repo,
+        bot_info_repo=bot_info_repo,
+        trade_repo=trade_repo,
+        hantoo_service=hantoo_service
+    )
+
     message_jobs = MessageJobs(
-        portfolio_usecase=PortfolioStatusUsecase(
-            bot_info_repo=bot_info_repo,
-            trade_repo=trade_repo,
-            history_repo=history_repo,
-            status_repo=status_repo,
-            hantoo_service=hantoo_service,
-            sheets_service=sheets_service,
-            market_indicator_repo=market_indicator_repo,
-        ),
+        portfolio_usecase=portfolio_usecase,
         bot_management_usecase=bot_management_usecase,
+        overview_usecase=overview_usecase,
     )
 
     print("✅ Dependencies 초기화 완료")

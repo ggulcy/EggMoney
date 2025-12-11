@@ -7,23 +7,27 @@ from datetime import datetime, timedelta
 from config import util
 from data.external.telegram_client import send_message_sync
 from usecase.portfolio_status_usecase import PortfolioStatusUsecase
+from usecase.overview_usecase import OverviewUsecase
 
 
 class MessageJobs:
     """메시지 작업 클래스"""
 
     def __init__(
-        self,
-        portfolio_usecase: PortfolioStatusUsecase,
-        bot_management_usecase = None
+            self,
+            portfolio_usecase: PortfolioStatusUsecase,
+            bot_management_usecase=None,
+            overview_usecase: OverviewUsecase = None
     ):
         """
         Args:
             portfolio_usecase: PortfolioStatusUsecase 인스턴스
             bot_management_usecase: BotManagementUsecase 인스턴스 (선택)
+            overview_usecase: OverviewUsecase 인스턴스 (선택, status_repo 주입 필요)
         """
         self.portfolio_usecase = portfolio_usecase
         self.bot_management_usecase = bot_management_usecase
+        self.overview_usecase = overview_usecase
 
     def send_trade_status_message(self) -> None:
         """
@@ -195,60 +199,24 @@ class MessageJobs:
         self.send_today_profit_message()
         print("✅ 모든 상태 메시지 전송 완료")
 
-    def sync_balance_to_sheets(self) -> bool:
-        """
-        잔고를 Google Sheets에 동기화
-        """
-        print("📝 Google Sheets 잔고 동기화 중...")
-        try:
-            success = self.portfolio_usecase.sync_balance_to_sheets()
-            if success:
-                print("✅ Google Sheets 잔고 동기화 완료")
-            else:
-                print("❌ Google Sheets 잔고 동기화 실패")
-            return success
-        except Exception as e:
-            print(f"❌ Google Sheets 잔고 동기화 오류: {str(e)}")
-            import traceback
-            traceback.print_exc()
+    def sync_all_external_portfolio(self) -> bool:
+        """Overview와 동기화 (포트폴리오 전송 + 입출금 정보 수신)"""
+        if not self.overview_usecase:
+            print("❌ OverviewUsecase가 설정되지 않았습니다")
             return False
 
-    def sync_status_from_sheets(self) -> bool:
-        """
-        Google Sheets에서 입금액 정보를 읽어와 Status DB에 동기화
-        """
-        print("📥 Google Sheets에서 Status 동기화 중...")
         try:
-            success = self.portfolio_usecase.sync_status_from_sheets()
-            if success:
-                print("✅ Status 동기화 완료")
-            else:
-                print("❌ Status 동기화 실패")
-            return success
-        except Exception as e:
-            print(f"❌ Status 동기화 오류: {str(e)}")
-            import traceback
-            traceback.print_exc()
+            port_success = self.overview_usecase.sync_portfolio()
+            status_success = self.overview_usecase.sync_status()
+
+            if port_success and status_success:
+                print("✅ Overview 동기화 완료")
+                return True
+
+            print(f"⚠️ 동기화 부분 실패 (Portfolio: {port_success}, Status: {status_success})")
             return False
-
-    def sync_all_sheets(self) -> bool:
-        """
-        모든 시트 동기화 작업 (잔고 쓰기 + 입금액 읽기)
-        """
-        print("📊 전체 시트 동기화 시작...")
-        try:
-            # 1. 잔고를 Sheets에 작성
-            self.sync_balance_to_sheets()
-
-            # 2. Sheets에서 입금액 읽어서 Status DB 업데이트
-            self.sync_status_from_sheets()
-
-            print("✅ 전체 시트 동기화 완료")
-            return True
         except Exception as e:
-            print(f"❌ 전체 시트 동기화 실패: {str(e)}")
-            import traceback
-            traceback.print_exc()
+            print(f"❌ Overview 동기화 실패: {str(e)}")
             return False
 
     def sync_bots(self) -> None:
@@ -265,54 +233,6 @@ class MessageJobs:
             import traceback
             traceback.print_exc()
 
-    def send_market_data_message(self) -> None:
-        """
-        시장 지표 데이터를 텔레그램으로 전송
-        VIX + 등록된 봇들의 ticker RSI 정보 포함
-        """
-        print("📨 시장 지표 메시지 전송...")
-
-        try:
-            market_data = self.portfolio_usecase.get_market_data()
-            if not market_data:
-                print("⚠️ 시장 지표 데이터 없음")
-                return
-
-            # 메시지 구성
-            msg_parts = ["📊 시장 지표\n"]
-
-            # VIX 정보
-            if "vix" in market_data:
-                vix = market_data["vix"]
-                msg_parts.append(
-                    f"🔥 VIX 공포 지수 (갱신: {vix['elapsed_hours']:.1f}시간 전)\n"
-                    f"  값: {vix['value']:.2f}\n"
-                    f"  상태: {vix['level']}\n"
-                )
-
-            # RSI 정보 (동적으로 ticker별 출력)
-            if "rsi_data" in market_data:
-                rsi_data = market_data["rsi_data"]
-                for ticker, rsi in rsi_data.items():
-                    msg_parts.append(
-                        f"\n📈 {ticker} RSI (갱신: {rsi['elapsed_hours']:.1f}시간 전)\n"
-                        f"  값: {rsi['value']:.2f}\n"
-                        f"  상태: {rsi['level']}"
-                    )
-                    # 마지막 항목이 아니면 줄바꿈 추가
-                    if ticker != list(rsi_data.keys())[-1]:
-                        msg_parts.append("\n")
-
-            full_msg = "".join(msg_parts)
-            send_message_sync(full_msg)
-
-            ticker_count = len(market_data.get("rsi_data", {}))
-            print(f"✅ 시장 지표 메시지 전송 완료 (VIX + {ticker_count}개 ticker)")
-
-        except Exception as e:
-            print(f"❌ 시장 지표 메시지 전송 실패: {str(e)}")
-            import traceback
-            traceback.print_exc()
 
     def daily_job(self) -> None:
         """
@@ -333,20 +253,15 @@ class MessageJobs:
         # 1. 텔레그램 메시지 전송
         self.send_all_status()
 
-        # 시장 지표 메시지 전송
-        # self.send_market_data_message()
-
-        # # 2. Google Sheets 동기화 (실패해도 무시 - API가 불안정함)
-        # try:
-        #     self.sync_all_sheets()
-        # except Exception as e:
-        #     print(f"⚠️ Sheets 동기화 실패 (무시): {str(e)}")
+        # # 2. External OverView 동기화
+        try:
+            self.sync_all_external_portfolio()
+        except Exception as e:
+            print(f"⚠️ External Overview 동기화 실패 (무시): {str(e)}")
 
         # 3. 봇 동기화 체크
         self.sync_bots()
 
-
         print("=" * 80)
         print("✅ 일일 작업 완료")
         print("=" * 80)
-

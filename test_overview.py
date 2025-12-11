@@ -11,7 +11,7 @@ def main():
     print("=" * 60)
 
     usecase = OverviewUsecase()
-    print(f"서버 주소: {usecase.base_url}")
+    print(f"서버 주소: {usecase.service.client.base_url}")
     print()
 
     result = usecase.get_deposit_info()
