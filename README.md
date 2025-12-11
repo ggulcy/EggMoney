@@ -17,7 +17,7 @@
 | 웹 프레임워크 | Flask |
 | ORM | SQLAlchemy |
 | 스케줄러 | APScheduler |
-| 외부 API | 한국투자증권, Google Sheets, Telegram, yfinance |
+| 외부 API | 한국투자증권, Telegram, yfinance, Overview Server |
 | 데이터 분석 | pandas, numpy, ta (기술지표) |
 
 ## 프로젝트 구조
@@ -48,7 +48,8 @@ EggMoney/
 │   │   ├── trade_repository.py             # Trade CRUD + 평단가/총투자금 조회
 │   │   ├── order_repository.py             # Order CRUD (TWAP 주문)
 │   │   ├── history_repository.py           # History 조회 (거래 이력)
-│   │   └── status_repository.py            # Status 저장/조회
+│   │   ├── status_repository.py            # Status 저장/조회
+│   │   └── market_indicator_repository.py  # 시장 지표 인터페이스
 │   │
 │   └── value_objects/                      # 값 객체
 │       ├── __init__.py
@@ -95,11 +96,11 @@ EggMoney/
 │       │   ├── hantoo_models.py            # 데이터 모델 (Pydantic)
 │       │   └── hantoo_service.py           # 서비스 (가격조회, 매수/매도, 잔고)
 │       │
-│       ├── sheets/                         # Google Sheets API
+│       ├── overview/                       # Overview 서버 API
 │       │   ├── __init__.py
-│       │   ├── sheets_client.py            # Sheets API 클라이언트
-│       │   ├── sheets_models.py            # 데이터 모델
-│       │   └── sheets_service.py           # 서비스 (잔고 동기화)
+│       │   ├── overview_client.py          # Overview API 클라이언트
+│       │   ├── overview_service.py         # Overview 서비스 (포트폴리오 동기화)
+│       │   └── models.py                   # 데이터 모델 (StockItem)
 │       │
 │       └── market_data/                    # 시장 데이터 (yfinance)
 │           ├── __init__.py
@@ -111,9 +112,9 @@ EggMoney/
 │   ├── __init__.py
 │   ├── order_usecase.py                    # 매매 조건 판단 + 주문서 생성/저장 (create_order)
 │   ├── trading_usecase.py                  # TWAP 주문 실행 + DB 저장 (execute_twap, force_sell)
-│   ├── market_analysis_usecase.py          # 시장 지표 분석 (VIX, RSI)
 │   ├── bot_management_usecase.py           # 봇 관리 (check_bot_sync, update)
-│   └── portfolio_status_usecase.py         # 포트폴리오 조회 + 시트 동기화
+│   ├── portfolio_status_usecase.py         # 포트폴리오 조회 + 상태 관리
+│   └── overview_usecase.py                 # Overview 서버 연동 (입출금, 포트폴리오 동기화)
 │
 ├── presentation/                           # 프레젠테이션 계층
 │   ├── __init__.py
@@ -130,13 +131,16 @@ EggMoney/
 │       │   ├── __init__.py                 # Blueprint 노출
 │       │   ├── index_routes.py             # 메인 페이지
 │       │   ├── bot_info_routes.py          # 봇 정보 CRUD
-│       │   ├── trade_routes.py             # 거래 관리 (Trade + History)
-│       │   └── status_routes.py            # 포트폴리오 상태 조회
+│       │   ├── trade_routes.py             # 거래 관리
+│       │   ├── history_routes.py           # 거래 이력 관리
+│       │   ├── status_routes.py            # 입출금 관리 + 메시지 전송
+│       │   └── auth_routes.py              # 인증 (웹 비밀번호)
 │       │
 │       ├── templates/                      # HTML 템플릿 (Jinja2)
-│       │   ├── index.html                  # 메인 네비게이션
+│       │   ├── index.html                  # 메인 대시보드
 │       │   ├── bot_info.html               # 봇 정보 페이지
 │       │   ├── trade.html                  # 거래 페이지
+│       │   ├── history.html                # 거래 이력 페이지
 │       │   └── status.html                 # 입출금 관리 페이지
 │       │
 │       └── static/
@@ -179,8 +183,8 @@ Domain ← Data ← Usecase ← Presentation
 | **OrderUsecase** | 매매 조건 판단 + 주문서 생성/저장 | `create_order()`, `save_buy_order()`, `save_sell_order()` |
 | **TradingUsecase** | TWAP 주문 실행 + DB 저장 | `execute_twap()`, `force_sell()` |
 | **BotManagementUsecase** | 봇 관리 | `check_bot_sync()`, `get_all_bot_info_with_t()`, `update_bot_info()` |
-| **PortfolioStatusUsecase** | 포트폴리오 조회 | `get_portfolio_summary()`, `sync_balance_to_sheets()` |
-| **MarketAnalysisUsecase** | 시장 지표 분석 | `get_vix_indicator()`, `get_rsi_indicator()` |
+| **PortfolioStatusUsecase** | 포트폴리오 조회 | `get_portfolio_summary()`, `get_portfolio_overview()` |
+| **OverviewUsecase** | Overview 서버 연동 | `sync_status()`, `sync_portfolio()`, `get_deposit_info()` |
 
 ## 매매 알고리즘
 
@@ -278,4 +282,4 @@ python main_egg.py
 |------|----------|------|
 | **trade_job** | 설정된 시간 | 매매 조건 판단 + 주문서 생성 |
 | **twap_job** | 5분마다 | TWAP 분할 주문 실행 |
-| **daily_job** | 하루 1회 | 포트폴리오 메시지 + 시트 동기화 + 봇 sync |
+| **daily_job** | 하루 1회 | 포트폴리오 메시지 + Overview 동기화 + 봇 sync |
