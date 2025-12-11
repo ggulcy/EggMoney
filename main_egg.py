@@ -68,6 +68,14 @@ def create_app():
         """500 Internal Server Error 핸들러"""
         return "<h1>500 Internal Server Error</h1><p>서버 오류가 발생했습니다.</p>", 500
 
+    # 요청 종료 시 DB 세션 정리 (커넥션 풀 누수 방지)
+    from data.persistence.sqlalchemy.core.session_factory import SessionFactory
+    _session_factory = SessionFactory()
+
+    @app.teardown_appcontext
+    def shutdown_session(exception=None):
+        _session_factory.remove_session()
+
     return app
 
 

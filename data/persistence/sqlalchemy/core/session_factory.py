@@ -1,7 +1,7 @@
 """SQLAlchemy 세션 팩토리"""
 import os
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker, scoped_session, Session
 from data.persistence.sqlalchemy.core.base import Base
 from config import item
 
@@ -37,8 +37,15 @@ class SessionFactory:
 
         database_url = f'sqlite:///{db_path}'
 
-        # 엔진 생성
-        self.engine = create_engine(database_url, echo=False)
+        # 엔진 생성 (커넥션 풀 설정 포함)
+        self.engine = create_engine(
+            database_url,
+            echo=False,
+            pool_pre_ping=True,      # 연결 상태 확인
+            pool_size=5,             # 기본 풀 크기
+            max_overflow=5,          # 최대 추가 연결
+            pool_recycle=3600        # 1시간마다 연결 갱신
+        )
 
         # busy_timeout 설정 (DB 잠김 방지)
         with self.engine.connect() as conn:
@@ -47,12 +54,19 @@ class SessionFactory:
         # 세션 팩토리 생성
         self.SessionLocal = sessionmaker(bind=self.engine)
 
+        # scoped_session으로 스레드 안전한 세션 관리
+        self.Session = scoped_session(self.SessionLocal)
+
         # 테이블 생성
         Base.metadata.create_all(self.engine)
 
     def create_session(self) -> Session:
-        """새로운 세션 생성"""
-        return self.SessionLocal()
+        """새 세션 생성 (scoped_session 사용)"""
+        return self.Session()
+
+    def remove_session(self):
+        """현재 스레드의 세션 제거 (요청 종료 시 호출)"""
+        self.Session.remove()
 
     def __call__(self) -> Session:
         """SessionFactory를 함수처럼 호출 가능하게"""
