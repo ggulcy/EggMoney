@@ -17,12 +17,6 @@ from data.external.hantoo import (
     TickerItem
 )
 from data.external.telegram_client import send_message_sync
-from data.external.sheets import (
-    SheetsService,
-    SheetsClient,
-    StockItem,
-    DepositValues
-)
 
 __all__ = [
     # Hantoo
@@ -43,9 +37,4 @@ __all__ = [
     'TickerItem',
     # Telegram
     'send_message_sync',
-    # Sheets
-    'SheetsService',
-    'SheetsClient',
-    'StockItem',
-    'DepositValues',
 ]

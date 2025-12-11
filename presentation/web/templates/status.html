@@ -17,12 +17,12 @@
 
         // 시트 동기화
         function syncWithSheet() {
-            if (!confirm('시트 동기화를 실행하시겠습니까?')) {
+            if (!confirm('Overview 동기화를 실행하시겠습니까?')) {
                 return;
             }
 
             showLoading();
-            fetch('/sync_sheets', {
+            fetch('/sync_overview', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'}
             })

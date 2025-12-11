@@ -3,7 +3,7 @@ Status Routes - 입출금 관리 및 텔레그램 메시지 전송
 
 Clean Architecture Pattern:
 - GET /status - 입출금 정보 조회 화면
-- POST /sync_sheets - 시트 동기화 (Fetch API)
+- POST /sync_overview - Overview 서버 동기화 (Fetch API)
 - POST /send_trade_status - 거래 상태 메시지 전송
 - POST /send_history_status - 거래 기록 메시지 전송
 - POST /send_market_status - 마켓 상황 메시지 전송
@@ -21,7 +21,6 @@ from data.persistence.sqlalchemy.repositories import (
 )
 from data.external import send_message_sync
 from data.external.hantoo import HantooService
-from data.external.sheets import SheetsService
 from usecase.portfolio_status_usecase import PortfolioStatusUsecase
 from usecase.overview_usecase import OverviewUsecase
 from presentation.scheduler.message_jobs import MessageJobs
@@ -42,7 +41,6 @@ def _initialize_dependencies():
 
     # Services
     hantoo_service = HantooService(test_mode=is_test)
-    sheets_service = SheetsService()
 
     # Usecases
     portfolio_usecase = PortfolioStatusUsecase(
@@ -51,7 +49,6 @@ def _initialize_dependencies():
         history_repo=history_repo,
         status_repo=status_repo,
         hantoo_service=hantoo_service,
-        sheets_service=sheets_service,
     )
     overview_usecase = OverviewUsecase(
         status_repo=status_repo,
@@ -80,37 +77,37 @@ def status_template():
     return render_template('status.html', status=status, admin=admin.value if admin else None)
 
 
-@status_bp.route('/sync_sheets', methods=['POST'])
+@status_bp.route('/sync_overview', methods=['POST'])
 @require_web_auth
-def sync_sheets():
-    """시트 동기화 (Fetch API)"""
+def sync_overview():
+    """Overview 서버 동기화 (Fetch API)"""
     print("\n" + "=" * 80)
-    print("🔔 /sync_sheets 엔드포인트 호출됨")
+    print("🔔 /sync_overview 엔드포인트 호출됨")
     print("=" * 80)
 
     try:
         _, message_jobs, _ = _initialize_dependencies()
 
-        # 시트 동기화 실행
+        # Overview 동기화 실행
         success = message_jobs.sync_all_external_portfolio()
 
         if success:
             print("=" * 80)
-            print("✅ 시트 동기화 성공")
+            print("✅ Overview 동기화 성공")
             print("=" * 80 + "\n")
-            return jsonify({'message': '✅ 시트 동기화가 완료되었습니다.'})
+            return jsonify({'message': '✅ Overview 동기화가 완료되었습니다.'})
         else:
             print("=" * 80)
-            print("❌ 시트 동기화 실패")
+            print("❌ Overview 동기화 실패")
             print("=" * 80 + "\n")
-            return jsonify({'error': '시트 동기화에 실패했습니다.'}), 500
+            return jsonify({'error': 'Overview 동기화에 실패했습니다.'}), 500
 
     except Exception as e:
-        error_msg = f"❌ Error syncing sheets: {e}"
+        error_msg = f"❌ Error syncing overview: {e}"
         print(error_msg)
         import traceback
         traceback.print_exc()
-        return jsonify({'error': '시트 동기화 중 오류가 발생했습니다.'}), 500
+        return jsonify({'error': 'Overview 동기화 중 오류가 발생했습니다.'}), 500
 
 
 @status_bp.route('/send_trade_status', methods=['POST'])

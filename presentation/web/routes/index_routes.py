@@ -19,7 +19,6 @@ from data.persistence.sqlalchemy.repositories import (
     SQLAlchemyHistoryRepository,
 )
 from data.external.hantoo import HantooService
-from data.external.sheets import SheetsService
 from data.external.market_data.market_indicator_repository_impl import MarketIndicatorRepositoryImpl
 from usecase.portfolio_status_usecase import PortfolioStatusUsecase
 
@@ -38,7 +37,6 @@ def _get_portfolio_usecase():
     market_indicator_repo = MarketIndicatorRepositoryImpl()
 
     hantoo_service = HantooService(test_mode=is_test)
-    sheets_service = SheetsService()
 
     return PortfolioStatusUsecase(
         bot_info_repo=bot_info_repo,
@@ -46,7 +44,6 @@ def _get_portfolio_usecase():
         history_repo=history_repo,
         status_repo=status_repo,
         hantoo_service=hantoo_service,
-        sheets_service=sheets_service,
         market_indicator_repo=market_indicator_repo,
     )
 

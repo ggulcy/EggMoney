@@ -239,7 +239,7 @@ class MessageJobs:
         일일 작업 (egg의 msg_job과 ValueRebalancing의 daily_job 통합)
 
         1. 텔레그램 메시지 전송 (거래 상태, 포트폴리오 요약, 오늘 수익, 시장 지표)
-        2. Google Sheets 동기화 (잔고 쓰기 + 입금액 읽기) - 실패해도 무시
+        2. Overview 서버 동기화
         3. 봇 동기화 체크
         4. CSV 파일 정리
         """

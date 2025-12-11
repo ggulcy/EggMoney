@@ -10,7 +10,6 @@ from data.persistence.sqlalchemy.repositories import (
     SQLAlchemyStatusRepository,
 )
 from data.external.hantoo.hantoo_service import HantooService
-from data.external.sheets.sheets_service import SheetsService
 from usecase import PortfolioStatusUsecase
 from domain.value_objects import TradeType
 from config import item
@@ -28,7 +27,6 @@ def _get_dependencies():
     history_repo = SQLAlchemyHistoryRepository(session)
     status_repo = SQLAlchemyStatusRepository(session)
     hantoo_service = HantooService(test_mode=item.is_test)
-    sheets_service = SheetsService()
 
     return PortfolioStatusUsecase(
         bot_info_repo=bot_info_repo,
@@ -36,7 +34,6 @@ def _get_dependencies():
         history_repo=history_repo,
         status_repo=status_repo,
         hantoo_service=hantoo_service,
-        sheets_service=sheets_service,
     )
 
 

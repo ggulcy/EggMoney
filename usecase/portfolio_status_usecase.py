@@ -4,7 +4,6 @@ from datetime import datetime
 
 from config import util
 from data.external.hantoo import HantooService
-from data.external.sheets import SheetsService, StockItem, DepositValues
 from domain.entities.status import Status
 from domain.repositories.bot_info_repository import BotInfoRepository
 from domain.repositories.trade_repository import TradeRepository
@@ -24,7 +23,6 @@ class PortfolioStatusUsecase:
             history_repo: HistoryRepository,
             status_repo: StatusRepository,
             hantoo_service: HantooService,
-            sheets_service: SheetsService,
             market_indicator_repo: Optional[MarketIndicatorRepository] = None
     ):
         """
@@ -36,7 +34,6 @@ class PortfolioStatusUsecase:
             history_repo: History 리포지토리
             status_repo: Status 리포지토리
             hantoo_service: 한투 서비스
-            sheets_service: Sheets 서비스
             market_indicator_repo: Market Indicator 리포지토리 (선택)
         """
         self.bot_info_repo = bot_info_repo
@@ -44,7 +41,6 @@ class PortfolioStatusUsecase:
         self.history_repo = history_repo
         self.status_repo = status_repo
         self.hantoo_service = hantoo_service
-        self.sheets_service = sheets_service
         self.market_indicator_repo = market_indicator_repo
 
     # ===== 조회 메서드 (Dict 반환) =====

@@ -63,11 +63,9 @@ def _initialize_dependencies() -> tuple[SessionFactory, TradingJobs, MessageJobs
 
     # External Service 초기화
     from data.external.hantoo import HantooService
-    from data.external.sheets import SheetsService
     from data.external.market_data.market_indicator_repository_impl import MarketIndicatorRepositoryImpl
 
     hantoo_service = HantooService(test_mode=item.is_test)
-    sheets_service = SheetsService()
     market_indicator_repo = MarketIndicatorRepositoryImpl()
 
     # Usecase 초기화
@@ -107,7 +105,6 @@ def _initialize_dependencies() -> tuple[SessionFactory, TradingJobs, MessageJobs
         history_repo=history_repo,
         status_repo=status_repo,
         hantoo_service=hantoo_service,
-        sheets_service=sheets_service,
         market_indicator_repo=market_indicator_repo,
     )
     overview_usecase = OverviewUsecase(
