@@ -201,6 +201,13 @@ class MessageJobs:
 
     def sync_all_external_portfolio(self) -> bool:
         """Overview와 동기화 (포트폴리오 전송 + 입출금 정보 수신)"""
+        from config.item import admin, BotAdmin
+
+        # chan, choe만 Overview 동기화
+        if admin not in [BotAdmin.Chan, BotAdmin.Choe]:
+            print(f"⏭️ Overview 동기화 스킵 (admin: {admin})")
+            return True
+
         if not self.overview_usecase:
             print("❌ OverviewUsecase가 설정되지 않았습니다")
             return False
@@ -233,7 +240,6 @@ class MessageJobs:
             import traceback
             traceback.print_exc()
 
-
     def daily_job(self) -> None:
         """
         일일 작업 (egg의 msg_job과 ValueRebalancing의 daily_job 통합)
@@ -257,7 +263,7 @@ class MessageJobs:
         try:
             self.sync_all_external_portfolio()
         except Exception as e:
-            print(f"⚠️ External Overview 동기화 실패 (무시): {str(e)}")
+            send_message_sync(f"⚠️ External Overview 동기화 실패 (무시): {str(e)}")
 
         # 3. 봇 동기화 체크
         self.sync_bots()

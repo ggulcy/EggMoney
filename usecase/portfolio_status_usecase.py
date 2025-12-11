@@ -476,7 +476,7 @@ class PortfolioStatusUsecase:
             }
         """
         try:
-            from utils.exchange_rate_util import get_monthly_exchange_rate
+            from config.util import get_monthly_exchange_rate
 
             current_year = datetime.now().year
             current_month = datetime.now().month
@@ -492,7 +492,7 @@ class PortfolioStatusUsecase:
                 is_current = (year == current_year)
 
                 # 년도 총 수익 원화 계산 (현재 환율 사용)
-                from utils.exchange_rate_util import get_current_exchange_rate
+                from config.util import get_current_exchange_rate
                 current_rate = get_current_exchange_rate()
                 total_profit_krw = total_profit * current_rate
 
