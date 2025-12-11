@@ -213,14 +213,12 @@ class MessageJobs:
             return False
 
         try:
-            port_success = self.overview_usecase.sync_portfolio()
             status_success = self.overview_usecase.sync_status()
-
-            if port_success and status_success:
+            if status_success:
                 print("✅ Overview 동기화 완료")
                 return True
 
-            print(f"⚠️ 동기화 부분 실패 (Portfolio: {port_success}, Status: {status_success})")
+            print(f"⚠️ 동기화 부분 실패 (Status: {status_success})")
             return False
         except Exception as e:
             print(f"❌ Overview 동기화 실패: {str(e)}")
