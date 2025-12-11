@@ -29,10 +29,8 @@ class OverviewClient:
         """
         if is_test:
             self.base_url = "http://localhost:5001"
-        elif admin:
-            self.base_url = f"https://{admin.value}.eggmoney.xyz"
         else:
-            self.base_url = None
+            self.base_url = "https://overview.eggmoney.xyz"
 
     def get_request(
         self,
