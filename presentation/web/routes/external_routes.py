@@ -34,15 +34,20 @@ def _get_balance_data(bot_info_repo, trade_repo, hantoo_service) -> dict:
         dict: {
             "stock_items": [...],
             "total_balance": float,
-            "current_prices": {...}
+            "current_prices": {...},
+            "total_seed": float  # active인 봇들의 seed 합계
         }
     """
     bot_info_list = bot_info_repo.find_all()
     stock_items = []
     current_prices = {}
+    total_seed = 0.0
 
     # 각 봇의 거래 정보 수집
     for bot_info in bot_info_list:
+        # active인 봇의 seed 합산
+        if bot_info.active:
+            total_seed += bot_info.seed
         trade = trade_repo.find_by_name(bot_info.name)
         if trade and trade.amount > 0:
             stock_items.append({
@@ -50,7 +55,8 @@ def _get_balance_data(bot_info_repo, trade_repo, hantoo_service) -> dict:
                 "ticker": trade.symbol,
                 "amount": trade.amount,
                 "price": trade.purchase_price,
-                "total_price": trade.total_price
+                "total_price": trade.total_price,
+                "days_until_next": None
             })
             # 현재가 조회
             if trade.symbol not in current_prices:
@@ -66,7 +72,8 @@ def _get_balance_data(bot_info_repo, trade_repo, hantoo_service) -> dict:
             "ticker": rp_trade.symbol,
             "amount": rp_trade.amount,
             "price": rp_trade.purchase_price,
-            "total_price": rp_trade.total_price
+            "total_price": rp_trade.total_price,
+            "days_until_next": None
         })
 
     # 총 잔고(예수금) 조회
@@ -77,7 +84,8 @@ def _get_balance_data(bot_info_repo, trade_repo, hantoo_service) -> dict:
     return {
         "stock_items": stock_items,
         "total_balance": total_balance,
-        "current_prices": current_prices
+        "current_prices": current_prices,
+        "total_seed": total_seed
     }
 
 
