@@ -33,7 +33,7 @@ def _get_balance_data(bot_info_repo, trade_repo, hantoo_service) -> dict:
     Returns:
         dict: {
             "stock_items": [...],
-            "total_balance": float,
+            "balance": float,
             "current_prices": {...},
             "total_seed": float  # active인 봇들의 seed 합계
         }
@@ -77,15 +77,16 @@ def _get_balance_data(bot_info_repo, trade_repo, hantoo_service) -> dict:
         })
 
     # 총 잔고(예수금) 조회
-    total_balance = hantoo_service.get_balance()
-    if total_balance is None:
-        total_balance = 0.0
+    balance = hantoo_service.get_balance()
+    if balance is None:
+        balance = 0.0
 
     return {
         "stock_items": stock_items,
-        "total_balance": total_balance,
+        "balance": balance,
         "current_prices": current_prices,
-        "total_seed": total_seed
+        "total_seed": total_seed,
+        "wallet_cash": 0
     }
 
 
