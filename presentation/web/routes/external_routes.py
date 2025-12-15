@@ -56,7 +56,8 @@ def _get_balance_data(bot_info_repo, trade_repo, hantoo_service) -> dict:
                 "amount": trade.amount,
                 "price": trade.purchase_price,
                 "total_price": trade.total_price,
-                "days_until_next": None
+                "days_until_next": None,
+                "pool": None
             })
             # 현재가 조회
             if trade.symbol not in current_prices:
@@ -73,7 +74,8 @@ def _get_balance_data(bot_info_repo, trade_repo, hantoo_service) -> dict:
             "amount": rp_trade.amount,
             "price": rp_trade.purchase_price,
             "total_price": rp_trade.total_price,
-            "days_until_next": None
+            "days_until_next": None,
+            "pool": None
         })
 
     # 총 잔고(예수금) 조회
