@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 from config import util
 from data.external.telegram_client import send_message_sync
 from usecase.portfolio_status_usecase import PortfolioStatusUsecase
-from usecase.overview_usecase import OverviewUsecase
 
 
 class MessageJobs:
@@ -16,18 +15,15 @@ class MessageJobs:
     def __init__(
             self,
             portfolio_usecase: PortfolioStatusUsecase,
-            bot_management_usecase=None,
-            overview_usecase: OverviewUsecase = None
+            bot_management_usecase=None
     ):
         """
         Args:
             portfolio_usecase: PortfolioStatusUsecase 인스턴스
             bot_management_usecase: BotManagementUsecase 인스턴스 (선택)
-            overview_usecase: OverviewUsecase 인스턴스 (선택, status_repo 주입 필요)
         """
         self.portfolio_usecase = portfolio_usecase
         self.bot_management_usecase = bot_management_usecase
-        self.overview_usecase = overview_usecase
 
     def send_trade_status_message(self) -> None:
         """
@@ -199,31 +195,6 @@ class MessageJobs:
         self.send_today_profit_message()
         print("✅ 모든 상태 메시지 전송 완료")
 
-    def sync_all_external_portfolio(self) -> bool:
-        """Overview와 동기화 (포트폴리오 전송 + 입출금 정보 수신)"""
-        from config.item import admin, BotAdmin
-
-        # chan, choe만 Overview 동기화
-        if admin not in [BotAdmin.Chan, BotAdmin.Choe]:
-            print(f"⏭️ Overview 동기화 스킵 (admin: {admin})")
-            return True
-
-        if not self.overview_usecase:
-            print("❌ OverviewUsecase가 설정되지 않았습니다")
-            return False
-
-        try:
-            status_success = self.overview_usecase.sync_status()
-            if status_success:
-                print("✅ Overview 동기화 완료")
-                return True
-
-            print(f"⚠️ 동기화 부분 실패 (Status: {status_success})")
-            return False
-        except Exception as e:
-            print(f"❌ Overview 동기화 실패: {str(e)}")
-            return False
-
     def sync_bots(self) -> None:
         """
         봇 동기화 체크 (Job 내에서 호출 가능)
@@ -240,15 +211,12 @@ class MessageJobs:
 
     def daily_job(self) -> None:
         """
-        일일 작업 (egg의 msg_job과 ValueRebalancing의 daily_job 통합)
+        일일 작업
 
-        1. 텔레그램 메시지 전송 (거래 상태, 포트폴리오 요약, 오늘 수익, 시장 지표)
-        2. Overview 서버 동기화
-        3. 봇 동기화 체크
-        4. CSV 파일 정리
+        1. 텔레그램 메시지 전송 (거래 상태, 포트폴리오 요약, 오늘 수익)
+        2. 봇 동기화 체크
         """
         from datetime import datetime
-        import os
 
         print("=" * 80)
         print(f"📊 일일 작업 시작: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -257,13 +225,7 @@ class MessageJobs:
         # 1. 텔레그램 메시지 전송
         self.send_all_status()
 
-        # # 2. External OverView 동기화
-        try:
-            self.sync_all_external_portfolio()
-        except Exception as e:
-            send_message_sync(f"⚠️ External Overview 동기화 실패 (무시): {str(e)}")
-
-        # 3. 봇 동기화 체크
+        # 2. 봇 동기화 체크
         self.sync_bots()
 
         print("=" * 80)

@@ -6,7 +6,7 @@ from data.persistence.sqlalchemy.core.base import Base
 from config import item
 
 # 모든 모델을 import하여 테이블 생성 시 인식되도록 함
-from data.persistence.sqlalchemy.models import BotInfoModel, TradeModel, HistoryModel, OrderModel, StatusModel
+from data.persistence.sqlalchemy.models import BotInfoModel, TradeModel, HistoryModel, OrderModel
 
 
 class SessionFactory:

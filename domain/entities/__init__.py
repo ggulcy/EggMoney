@@ -7,6 +7,3 @@ __all__ = ['BotInfo', 'Trade', 'History']
 from domain.entities.order import Order
 
 __all__.append('Order')
-from domain.entities.status import Status
-
-__all__.append('Status')

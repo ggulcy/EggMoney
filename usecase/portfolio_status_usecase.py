@@ -4,11 +4,9 @@ from datetime import datetime
 
 from config import util
 from data.external.hantoo import HantooService
-from domain.entities.status import Status
 from domain.repositories.bot_info_repository import BotInfoRepository
 from domain.repositories.trade_repository import TradeRepository
 from domain.repositories.history_repository import HistoryRepository
-from domain.repositories.status_repository import StatusRepository
 from domain.repositories.market_indicator_repository import MarketIndicatorRepository
 from domain.value_objects.trade_type import TradeType
 
@@ -21,7 +19,6 @@ class PortfolioStatusUsecase:
             bot_info_repo: BotInfoRepository,
             trade_repo: TradeRepository,
             history_repo: HistoryRepository,
-            status_repo: StatusRepository,
             hantoo_service: HantooService,
             market_indicator_repo: Optional[MarketIndicatorRepository] = None
     ):
@@ -32,14 +29,12 @@ class PortfolioStatusUsecase:
             bot_info_repo: BotInfo 리포지토리
             trade_repo: Trade 리포지토리
             history_repo: History 리포지토리
-            status_repo: Status 리포지토리
             hantoo_service: 한투 서비스
             market_indicator_repo: Market Indicator 리포지토리 (선택)
         """
         self.bot_info_repo = bot_info_repo
         self.trade_repo = trade_repo
         self.history_repo = history_repo
-        self.status_repo = status_repo
         self.hantoo_service = hantoo_service
         self.market_indicator_repo = market_indicator_repo
 
@@ -53,44 +48,6 @@ class PortfolioStatusUsecase:
             List[BotInfo]: 모든 봇 정보 리스트
         """
         return self.bot_info_repo.find_all()
-
-    def get_status(self) -> Status:
-        """
-        입출금 정보 조회
-
-        Returns:
-            Status: 입출금 정보 (없으면 기본값 반환)
-        """
-        status = self.status_repo.get_status()
-        if not status:
-            # Status가 없으면 기본값 생성
-            status = Status(
-                deposit_won=0,
-                deposit_dollar=0,
-                withdraw_won=0,
-                withdraw_dollar=0,
-            )
-        return status
-
-    def save_status(self, deposit_won: float, deposit_dollar: float,
-                    withdraw_won: float, withdraw_dollar: float) -> None:
-        """
-        입출금 정보 저장
-
-        Args:
-            deposit_won: 원화 입금액
-            deposit_dollar: 달러 입금액
-            withdraw_won: 원화 출금액
-            withdraw_dollar: 달러 출금액
-        """
-        status = Status(
-            deposit_won=deposit_won,
-            deposit_dollar=deposit_dollar,
-            withdraw_won=withdraw_won,
-            withdraw_dollar=withdraw_dollar,
-        )
-        # 기존 Status 삭제 후 저장 (sync_status 활용)
-        self.status_repo.sync_status(status)
 
     def get_trade_status(self, bot_info) -> Dict[str, Any]:
         """
@@ -254,32 +211,10 @@ class PortfolioStatusUsecase:
 
         Returns:
             Dict: 포트폴리오 요약
-                {
-                    "hantoo_balance": float,
-                    "invest": float,
-                    "rp": float,
-                    "total_balance": float,
-                    "total_profit": float,
-                    "total_max_seed": float,
-                    "total_one_day_seed": float,
-                    "total_buy": float,
-                    "current_profit": float,
-                    "process_rate": float,
-                    "progress_bar": str,
-                    "pool": float,
-                    "active_bots": int,
-                    "total_bots": int,
-                    "status": {...},
-                    "usd_krw": float
-                }
         """
         try:
             bot_info_list = self.bot_info_repo.find_all()
             if not bot_info_list:
-                return None
-
-            status = self.status_repo.get_status()
-            if not status:
                 return None
 
             hantoo_balance = self.hantoo_service.get_balance()
@@ -342,12 +277,6 @@ class PortfolioStatusUsecase:
                 "active_bots": len([b for b in bot_info_list if b.active]),
                 "total_bots": len(bot_info_list),
                 "seed_per_tier": seed_per_tier,
-                "status": {
-                    "deposit_won": status.deposit_won,
-                    "deposit_dollar": status.deposit_dollar,
-                    "withdraw_won": status.withdraw_won,
-                    "withdraw_dollar": status.withdraw_dollar
-                },
                 "usd_krw": usd_krw
             }
 

@@ -125,31 +125,6 @@ def print_all_history(limit: int = 20):
         print(f"❌ History 출력 실패: {str(e)}")
 
 
-def print_all_status():
-    """Status 정보 출력"""
-    try:
-        from data.persistence.sqlalchemy.core.session_factory import SessionFactory
-        from data.persistence.sqlalchemy.repositories import SQLAlchemyStatusRepository
-
-        session_factory = SessionFactory()
-        session = session_factory.create_session()
-        status_repo = SQLAlchemyStatusRepository(session)
-        status = status_repo.get_status()
-
-        if status:
-            print(f"\n💵 Status:")
-            print(f"   - 입금: {status.deposit_won:,.0f}₩ / {status.deposit_dollar:,.2f}$")
-            print(f"   - 출금: {status.withdraw_won:,.0f}₩ / {status.withdraw_dollar:,.2f}$")
-            net_won = status.deposit_won - status.withdraw_won
-            net_dollar = status.deposit_dollar - status.withdraw_dollar
-            print(f"   - 순입금: {net_won:,.0f}₩ / {net_dollar:,.2f}$")
-        else:
-            print("⚠️ Status 정보가 없습니다.")
-        session.close()
-    except Exception as e:
-        print(f"❌ Status 출력 실패: {str(e)}")
-
-
 def print_all_db():
     """모든 DB 테이블 정보 출력"""
     print("=" * 80)
@@ -159,7 +134,6 @@ def print_all_db():
     print_all_trade()
     print_all_order()
     print_all_history(limit=10)
-    print_all_status()
     print("=" * 80)
 
 

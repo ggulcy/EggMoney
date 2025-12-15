@@ -9,6 +9,3 @@ __all__.append('HistoryRepository')
 from domain.repositories.order_repository import OrderRepository
 
 __all__.append('OrderRepository')
-from domain.repositories.status_repository import StatusRepository
-
-__all__.append('StatusRepository')

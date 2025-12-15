@@ -7,7 +7,6 @@ from data.persistence.sqlalchemy.repositories import (
     SQLAlchemyBotInfoRepository,
     SQLAlchemyTradeRepository,
     SQLAlchemyHistoryRepository,
-    SQLAlchemyStatusRepository,
 )
 from data.external.hantoo.hantoo_service import HantooService
 from usecase import PortfolioStatusUsecase
@@ -25,14 +24,12 @@ def _get_dependencies():
     bot_info_repo = SQLAlchemyBotInfoRepository(session)
     trade_repo = SQLAlchemyTradeRepository(session)
     history_repo = SQLAlchemyHistoryRepository(session)
-    status_repo = SQLAlchemyStatusRepository(session)
     hantoo_service = HantooService(test_mode=item.is_test)
 
     return PortfolioStatusUsecase(
         bot_info_repo=bot_info_repo,
         trade_repo=trade_repo,
         history_repo=history_repo,
-        status_repo=status_repo,
         hantoo_service=hantoo_service,
     )
 

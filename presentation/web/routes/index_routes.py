@@ -14,7 +14,6 @@ from config.item import is_test
 from data.persistence.sqlalchemy.core.session_factory import SessionFactory
 from data.persistence.sqlalchemy.repositories import (
     SQLAlchemyBotInfoRepository,
-    SQLAlchemyStatusRepository,
     SQLAlchemyTradeRepository,
     SQLAlchemyHistoryRepository,
 )
@@ -31,7 +30,6 @@ def _get_portfolio_usecase():
     session = session_factory.create_session()
 
     bot_info_repo = SQLAlchemyBotInfoRepository(session)
-    status_repo = SQLAlchemyStatusRepository(session)
     trade_repo = SQLAlchemyTradeRepository(session)
     history_repo = SQLAlchemyHistoryRepository(session)
     market_indicator_repo = MarketIndicatorRepositoryImpl()
@@ -42,7 +40,6 @@ def _get_portfolio_usecase():
         bot_info_repo=bot_info_repo,
         trade_repo=trade_repo,
         history_repo=history_repo,
-        status_repo=status_repo,
         hantoo_service=hantoo_service,
         market_indicator_repo=market_indicator_repo,
     )

@@ -7,13 +7,14 @@ from data.persistence.sqlalchemy.repositories import (
     SQLAlchemyBotInfoRepository,
     SQLAlchemyTradeRepository,
     SQLAlchemyHistoryRepository,
-    SQLAlchemyStatusRepository,
     SQLAlchemyOrderRepository,
 )
 from data.external.hantoo.hantoo_service import HantooService
+from data.external import send_message_sync
 from usecase import PortfolioStatusUsecase, TradingUsecase, BotManagementUsecase
 from domain.value_objects import TradeType
 from config import item
+from presentation.scheduler.message_jobs import MessageJobs
 
 from presentation.web.routes import trade_bp
 
@@ -26,14 +27,12 @@ def _get_dependencies():
     bot_info_repo = SQLAlchemyBotInfoRepository(session)
     trade_repo = SQLAlchemyTradeRepository(session)
     history_repo = SQLAlchemyHistoryRepository(session)
-    status_repo = SQLAlchemyStatusRepository(session)
     hantoo_service = HantooService(test_mode=item.is_test)
 
     return PortfolioStatusUsecase(
         bot_info_repo=bot_info_repo,
         trade_repo=trade_repo,
         history_repo=history_repo,
-        status_repo=status_repo,
         hantoo_service=hantoo_service,
     )
 
@@ -216,3 +215,65 @@ def force_sell():
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+
+
+# ===== 텔레그램 메시지 전송 라우트 =====
+
+def _get_message_jobs():
+    """MessageJobs 의존성 주입"""
+    portfolio_usecase = _get_dependencies()
+    return MessageJobs(portfolio_usecase=portfolio_usecase)
+
+
+@trade_bp.route('/send_trade_status', methods=['POST'])
+@require_web_auth
+def send_trade_status():
+    """거래 상태 메시지 전송"""
+    print("\n" + "=" * 80)
+    print("🔔 /send_trade_status 엔드포인트 호출됨")
+    print("=" * 80)
+
+    try:
+        message_jobs = _get_message_jobs()
+        message_jobs.send_trade_status_message()
+
+        print("=" * 80)
+        print("✅ 거래 상태 메시지 전송 성공")
+        print("=" * 80 + "\n")
+
+        return jsonify({'message': '✅ 거래 상태 메시지를 전송했습니다.'})
+
+    except Exception as e:
+        error_msg = f"❌ Error sending trade status: {e}"
+        print(error_msg)
+        import traceback
+        traceback.print_exc()
+        send_message_sync("Failed to send Trade Status.")
+        return jsonify({'error': '거래 상태 메시지 전송 실패'}), 500
+
+
+@trade_bp.route('/send_history_status', methods=['POST'])
+@require_web_auth
+def send_history_status():
+    """거래 기록 메시지 전송"""
+    print("\n" + "=" * 80)
+    print("🔔 /send_history_status 엔드포인트 호출됨")
+    print("=" * 80)
+
+    try:
+        message_jobs = _get_message_jobs()
+        message_jobs.send_portfolio_summary_message()
+
+        print("=" * 80)
+        print("✅ 거래 기록 메시지 전송 성공")
+        print("=" * 80 + "\n")
+
+        return jsonify({'message': '✅ 거래 기록 메시지를 전송했습니다.'})
+
+    except Exception as e:
+        error_msg = f"❌ Error sending history status: {e}"
+        print(error_msg)
+        import traceback
+        traceback.print_exc()
+        send_message_sync("Failed to send History Status.")
+        return jsonify({'error': '거래 기록 메시지 전송 실패'}), 500
