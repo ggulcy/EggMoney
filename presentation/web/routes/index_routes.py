@@ -20,19 +20,19 @@ from data.persistence.sqlalchemy.repositories import (
 from data.external.hantoo import HantooService
 from data.external.market_data.market_indicator_repository_impl import MarketIndicatorRepositoryImpl
 from usecase.portfolio_status_usecase import PortfolioStatusUsecase
+from usecase.market_usecase import MarketUsecase
 
 index_bp = Blueprint('index', __name__)
 
 
 def _get_portfolio_usecase():
-    """PortfolioStatusUsecase 초기화 (MarketIndicatorRepo 포함)"""
+    """PortfolioStatusUsecase 초기화"""
     session_factory = SessionFactory()
     session = session_factory.create_session()
 
     bot_info_repo = SQLAlchemyBotInfoRepository(session)
     trade_repo = SQLAlchemyTradeRepository(session)
     history_repo = SQLAlchemyHistoryRepository(session)
-    market_indicator_repo = MarketIndicatorRepositoryImpl()
 
     hantoo_service = HantooService(test_mode=is_test)
 
@@ -41,8 +41,12 @@ def _get_portfolio_usecase():
         trade_repo=trade_repo,
         history_repo=history_repo,
         hantoo_service=hantoo_service,
-        market_indicator_repo=market_indicator_repo,
     )
+
+
+def _get_market_usecase():
+    """MarketUsecase 초기화"""
+    return MarketUsecase(MarketIndicatorRepositoryImpl())
 
 
 @index_bp.route('/', methods=['GET'])
@@ -88,8 +92,14 @@ def get_market_history():
     """시장 지표 히스토리 API"""
     days = request.args.get('days', 30, type=int)
 
+    # 활성 봇들의 tickers 조회
     portfolio_usecase = _get_portfolio_usecase()
-    market_history = portfolio_usecase.get_market_history_data(days=days)
+    bot_info_list = portfolio_usecase.get_all_bot_info()
+    active_tickers = {bot.symbol for bot in bot_info_list if bot.active and bot.symbol}
+
+    # MarketUsecase로 시장 데이터 조회
+    market_usecase = _get_market_usecase()
+    market_history = market_usecase.get_market_history_data(days=days, tickers=active_tickers)
 
     if market_history:
         return jsonify(market_history)

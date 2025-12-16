@@ -13,10 +13,10 @@ class BotManagementUsecase:
     """봇 관리 Usecase"""
 
     def __init__(
-        self,
-        bot_info_repo: BotInfoRepository,
-        trade_repo: TradeRepository,
-        hantoo_service: Optional[HantooService] = None
+            self,
+            bot_info_repo: BotInfoRepository,
+            trade_repo: TradeRepository,
+            hantoo_service: Optional[HantooService] = None
     ):
         """
         봇 관리 Usecase 초기화
@@ -198,8 +198,13 @@ class BotManagementUsecase:
             }
             실패 시: None
         """
-        DROP_RATE_THRESHOLD = 0.03  # 3% 하락 기준
-        MULTIPLIER = 1.5            # 1.5배
+
+        if bot_info.symbol == "TQQQ":
+            DROP_RATE_THRESHOLD = 0.03
+        else:
+            DROP_RATE_THRESHOLD = 0.05
+
+        MULTIPLIER = 1.5  # 1.5배
 
         # 기능 비활성화 (dynamic_seed_max가 0 이하)
         if bot_info.dynamic_seed_max <= 0:

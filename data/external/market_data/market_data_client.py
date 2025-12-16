@@ -165,16 +165,27 @@ class MarketDataClient:
             except Exception as e:
                 logger.warning(f"⚠️ 캐시 파일 읽기 실패: {e}")
 
-        # 새로운 데이터 다운로드
-        today = datetime.today().date()
-        start_date = today - timedelta(days=interval)
-        end_date = today
+        # 새로운 데이터 다운로드 (period 방식 사용)
+        # interval 일수에 따라 적절한 period 선택
+        if interval <= 30:
+            period = "1mo"
+        elif interval <= 90:
+            period = "3mo"
+        elif interval <= 180:
+            period = "6mo"
+        elif interval <= 365:
+            period = "1y"
+        elif interval <= 730:
+            period = "2y"
+        elif interval <= 1825:
+            period = "5y"
+        else:
+            period = "max"
 
         try:
             df = yf.download(
                 tickers=ticker,
-                start=start_date.strftime('%Y-%m-%d'),
-                end=end_date.strftime('%Y-%m-%d'),
+                period=period,
                 progress=False,
                 group_by="ticker"
             )

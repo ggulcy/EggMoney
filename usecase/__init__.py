@@ -3,10 +3,12 @@ from usecase.portfolio_status_usecase import PortfolioStatusUsecase
 from usecase.bot_management_usecase import BotManagementUsecase
 from usecase.order_usecase import OrderUsecase
 from usecase.trading_usecase import TradingUsecase
+from usecase.market_usecase import MarketUsecase
 
 __all__ = [
     'PortfolioStatusUsecase',
     'BotManagementUsecase',
     'OrderUsecase',
-    'TradingUsecase'
+    'TradingUsecase',
+    'MarketUsecase'
 ]

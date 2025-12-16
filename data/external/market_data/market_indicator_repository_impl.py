@@ -102,7 +102,8 @@ class MarketIndicatorRepositoryImpl(MarketIndicatorRepository):
             List[Dict]: [{"date": "2025-12-01", "value": 56.26}, ...] 또는 None
         """
         try:
-            ticker_data = self.client.fetch_ticker_history(ticker, cache_hours=cache_hours)
+            # RSI 계산에 period일이 추가로 필요하므로 days + period 만큼 조회
+            ticker_data = self.client.fetch_ticker_history(ticker, interval=days + period, cache_hours=cache_hours)
             if ticker_data is None:
                 return None
 
@@ -149,11 +150,11 @@ class MarketIndicatorRepositoryImpl(MarketIndicatorRepository):
             List[Dict]: [{"date": "2025-12-01", "value": 85.50}, ...] 또는 None
         """
         try:
-            ticker_data = self.client.fetch_ticker_history(ticker, cache_hours=cache_hours)
+            ticker_data = self.client.fetch_ticker_history(ticker, interval=days, cache_hours=cache_hours)
             if ticker_data is None:
                 return None
 
-            df = ticker_data.df.tail(days)
+            df = ticker_data.df
             result = []
             for idx, row in df.iterrows():
                 result.append({
@@ -165,3 +166,5 @@ class MarketIndicatorRepositoryImpl(MarketIndicatorRepository):
         except Exception as e:
             logger.error(f"{ticker} 가격 히스토리 조회 실패: {e}")
             return None
+
+

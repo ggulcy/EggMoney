@@ -4,12 +4,14 @@ External Routes - 외부 조회 전용 API (인증 불필요)
 Overview 서버에서 데이터 Pull용
 - GET /api/external/portfolio - 포트폴리오 정보 조회
 """
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 
 from data.persistence.sqlalchemy.core.session_factory import SessionFactory
+from data.external.market_data.market_indicator_repository_impl import MarketIndicatorRepositoryImpl
 from data.persistence.sqlalchemy.repositories.bot_info_repository_impl import SQLAlchemyBotInfoRepository
 from data.persistence.sqlalchemy.repositories.trade_repository_impl import SQLAlchemyTradeRepository
 from data.external.hantoo import HantooService
+from usecase.market_usecase import MarketUsecase
 
 external_bp = Blueprint('external', __name__, url_prefix='/api/external')
 
@@ -22,8 +24,9 @@ def _get_dependencies():
     bot_info_repo = SQLAlchemyBotInfoRepository(session)
     trade_repo = SQLAlchemyTradeRepository(session)
     hantoo_service = HantooService()
+    market_usecase = MarketUsecase(MarketIndicatorRepositoryImpl())
 
-    return bot_info_repo, trade_repo, hantoo_service
+    return bot_info_repo, trade_repo, hantoo_service, market_usecase
 
 
 def _get_balance_data(bot_info_repo, trade_repo, hantoo_service) -> dict:
@@ -96,7 +99,7 @@ def _get_balance_data(bot_info_repo, trade_repo, hantoo_service) -> dict:
 def get_portfolio():
     """포트폴리오 정보 조회"""
     try:
-        bot_info_repo, trade_repo, hantoo_service = _get_dependencies()
+        bot_info_repo, trade_repo, hantoo_service, _ = _get_dependencies()
         balance_data = _get_balance_data(bot_info_repo, trade_repo, hantoo_service)
 
         return jsonify({
@@ -108,3 +111,47 @@ def get_portfolio():
             "status": "error",
             "message": str(e)
         }), 500
+
+
+@external_bp.route('/drawdown/<ticker>', methods=['GET'])
+def get_drawdown(ticker: str):
+    """
+    티커의 고점 대비 하락률 조회
+
+    Args:
+        ticker: 종목 심볼 (예: QQQ, TQQQ, SOXL)
+        days: 조회 기간 (쿼리 파라미터, 기본값: 90)
+
+    Returns:
+        {
+            "ticker": "QQQ",
+            "period_days": 90,
+            "high_price": 635.77,
+            "high_date": "2025-10-29",
+            "current_price": 610.54,
+            "current_date": "2025-12-15",
+            "drawdown_pct": -3.97
+        }
+    """
+    try:
+        days = request.args.get('days', 90, type=int)
+        _, _, _, market_usecase = _get_dependencies()
+        drawdown_data = market_usecase.get_drawdown(ticker=ticker, days=days)
+
+        if drawdown_data is None:
+            return jsonify({
+                "status": "error",
+                "message": f"{ticker} 데이터 조회 실패"
+            }), 404
+
+        return jsonify({
+            "status": "ok",
+            "data": drawdown_data
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+

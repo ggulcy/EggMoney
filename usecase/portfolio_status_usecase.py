@@ -7,7 +7,6 @@ from data.external.hantoo import HantooService
 from domain.repositories.bot_info_repository import BotInfoRepository
 from domain.repositories.trade_repository import TradeRepository
 from domain.repositories.history_repository import HistoryRepository
-from domain.repositories.market_indicator_repository import MarketIndicatorRepository
 from domain.value_objects.trade_type import TradeType
 
 
@@ -19,8 +18,7 @@ class PortfolioStatusUsecase:
             bot_info_repo: BotInfoRepository,
             trade_repo: TradeRepository,
             history_repo: HistoryRepository,
-            hantoo_service: HantooService,
-            market_indicator_repo: Optional[MarketIndicatorRepository] = None
+            hantoo_service: HantooService
     ):
         """
         포트폴리오 상태 Usecase 초기화
@@ -30,13 +28,11 @@ class PortfolioStatusUsecase:
             trade_repo: Trade 리포지토리
             history_repo: History 리포지토리
             hantoo_service: 한투 서비스
-            market_indicator_repo: Market Indicator 리포지토리 (선택)
         """
         self.bot_info_repo = bot_info_repo
         self.trade_repo = trade_repo
         self.history_repo = history_repo
         self.hantoo_service = hantoo_service
-        self.market_indicator_repo = market_indicator_repo
 
     # ===== 조회 메서드 (Dict 반환) =====
 
@@ -530,156 +526,6 @@ class PortfolioStatusUsecase:
             print(f"❌ Trade 업데이트 실패 ({name}): {str(e)}")
             return False
 
-    # ===== Market Indicator 조회 =====
-
-    def get_market_data(self) -> Optional[Dict[str, Any]]:
-        """
-        시장 지표 데이터 조회 (VIX + 등록된 봇들의 ticker RSI)
-
-        Returns:
-            Dict: 시장 지표 데이터
-                {
-                    "vix": {
-                        "value": float,
-                        "level": str,
-                        "cached_at": str,
-                        "elapsed_hours": float
-                    },
-                    "rsi_data": {
-                        "TQQQ": {
-                            "value": float,
-                            "level": str,
-                            "cached_at": str,
-                            "elapsed_hours": float
-                        },
-                        "SOXL": {
-                            "value": float,
-                            "level": str,
-                            "cached_at": str,
-                            "elapsed_hours": float
-                        },
-                        ...
-                    }
-                }
-                또는 None (Repository가 없거나 조회 실패 시)
-        """
-        if not self.market_indicator_repo:
-            print("⚠️ MarketIndicatorRepository가 설정되지 않았습니다")
-            return None
-
-        try:
-            result = {}
-
-            # VIX 조회
-            vix = self.market_indicator_repo.get_vix()
-            if vix:
-                result["vix"] = {
-                    "value": vix.value,
-                    "level": vix.level,
-                    "cached_at": vix.cached_at,
-                    "elapsed_hours": vix.elapsed_hours
-                }
-
-            # 등록된 봇들의 ticker 추출 (중복 제거)
-            bot_info_list = self.bot_info_repo.find_all()
-            unique_tickers = set()
-            for bot_info in bot_info_list:
-                if bot_info.symbol:  # symbol이 있는 경우만
-                    unique_tickers.add(bot_info.symbol)
-
-            # 각 ticker별 RSI 조회
-            rsi_data = {}
-            for ticker in sorted(unique_tickers):  # 알파벳 순 정렬
-                rsi = self.market_indicator_repo.get_rsi(ticker)
-                if rsi:
-                    rsi_data[ticker] = {
-                        "value": rsi.value,
-                        "level": rsi.level,
-                        "cached_at": rsi.cached_at,
-                        "elapsed_hours": rsi.elapsed_hours
-                    }
-
-            if rsi_data:
-                result["rsi_data"] = rsi_data
-
-            return result if result else None
-
-        except Exception as e:
-            print(f"❌ 시장 지표 조회 실패: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            return None
-
-    def get_market_history_data(self, days: int = 30) -> Optional[Dict[str, Any]]:
-        """
-        시장 지표 히스토리 데이터 조회 (VIX + 활성 봇들의 ticker RSI + 가격)
-
-        Args:
-            days: 조회 기간 (일수, 기본 30일)
-
-        Returns:
-            Dict: 시장 지표 히스토리 데이터
-                {
-                    "vix_history": [{"date": "2025-12-01", "value": 15.78}, ...],
-                    "rsi_history": {
-                        "TQQQ": [{"date": "2025-12-01", "value": 56.26}, ...],
-                        ...
-                    },
-                    "price_history": {
-                        "TQQQ": [{"date": "2025-12-01", "value": 85.50}, ...],
-                        ...
-                    }
-                }
-                또는 None (Repository가 없거나 조회 실패 시)
-        """
-        if not self.market_indicator_repo:
-            print("⚠️ MarketIndicatorRepository가 설정되지 않았습니다")
-            return None
-
-        try:
-            result = {}
-
-            # VIX 히스토리 조회
-            vix_history = self.market_indicator_repo.get_vix_history(days=days)
-            if vix_history:
-                result["vix_history"] = vix_history
-
-            # 기본 티커 (TQQQ, SOXL) + 활성화된 봇들의 ticker 추출 (중복 제거)
-            default_tickers = {'TQQQ', 'SOXL'}
-            bot_info_list = self.bot_info_repo.find_all()
-            unique_tickers = set(default_tickers)  # 기본 티커부터 시작
-            for bot_info in bot_info_list:
-                if bot_info.active and bot_info.symbol:
-                    unique_tickers.add(bot_info.symbol)
-
-            # 각 ticker별 RSI 히스토리 조회
-            rsi_history = {}
-            for ticker in sorted(unique_tickers):
-                rsi_data = self.market_indicator_repo.get_rsi_history(ticker, days=days)
-                if rsi_data:
-                    rsi_history[ticker] = rsi_data
-
-            if rsi_history:
-                result["rsi_history"] = rsi_history
-
-            # 각 ticker별 가격 히스토리 조회
-            price_history = {}
-            for ticker in sorted(unique_tickers):
-                price_data = self.market_indicator_repo.get_price_history(ticker, days=days)
-                if price_data:
-                    price_history[ticker] = price_data
-
-            if price_history:
-                result["price_history"] = price_history
-
-            return result if result else None
-
-        except Exception as e:
-            print(f"❌ 시장 지표 히스토리 조회 실패: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            return None
-
     # ===== History 관리 메서드 =====
 
     def get_history_by_date_range(self, start_date, end_date) -> List:
@@ -972,3 +818,6 @@ class PortfolioStatusUsecase:
                 'buy_count': 0,
                 'sell_count': 0
             }
+
+
+

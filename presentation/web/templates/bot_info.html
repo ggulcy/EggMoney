@@ -810,8 +810,8 @@
                     <div class="bot-field">
                         <label>1회시드</label>
                         <input type="text" name="seed"
-                               value="$ {{ '{:,.0f}'.format(bot_info.seed) if bot_info.seed else '' }}"
-                               data-original-value="$ {{ '{:,.0f}'.format(bot_info.seed) if bot_info.seed else '' }}"
+                               value="$ {{ '{:,.2f}'.format(bot_info.seed) if bot_info.seed else '' }}"
+                               data-original-value="$ {{ '{:,.2f}'.format(bot_info.seed) if bot_info.seed else '' }}"
                                oninput="formatCurrency(this, '$ '); updateTotalSeed(this.closest('.bot-accordion-content'))">
                     </div>
                     <div class="bot-field">
