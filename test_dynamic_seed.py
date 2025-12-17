@@ -5,6 +5,7 @@ apply_dynamic_seed 목데이터 테스트
 """
 from dataclasses import dataclass
 from typing import Optional, Dict, Any
+from config.item import get_drop_interval_rate
 from config.util import get_seed_ratio_by_drawdown
 
 
@@ -85,7 +86,7 @@ def simulate_apply_dynamic_seed(
 ) -> Dict[str, Any]:
     """apply_dynamic_seed 시뮬레이션"""
 
-    drop_interval_rate = 0.03 if bot.symbol == "TQQQ" else 0.05
+    drop_interval_rate = get_drop_interval_rate(bot.symbol)
 
     old_seed = bot.seed
     target_seed = old_seed
@@ -186,7 +187,7 @@ def run_test():
             print(f"\n[{bot.name}] {bot.symbol}")
             print(f"  가격: 전일 ${price_data.prev_close:.2f} → 현재 ${price_data.current_price:.2f} (전일대비 {daily_drop:+.1f}%)")
             print(f"  고점: ${price_data.high_price_90d:.2f} (고점대비 {drawdown:.1f}%)")
-            print(f"  인터벌: {0.03 * 100 if bot.symbol == 'TQQQ' else 0.05 * 100:.0f}%")
+            print(f"  인터벌: {get_drop_interval_rate(bot.symbol) * 100:.0f}%")
 
             # 단계별 결과
             print(f"  ─────────────────────────────────")

@@ -43,6 +43,7 @@ class HantooClient:
     EXCHANGE_TABLE = {
         "SOXL": ("AMEX", "AMS"),
         "TQQQ": ("NASD", "NAS"),
+        "QQQ": ("NASD", "NAS"),
         "BULZ": ("AMEX", "AMS"),
         "UPRO": ("AMEX", "AMS"),
         "LABU": ("AMEX", "AMS"),

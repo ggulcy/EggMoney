@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Optional, Tuple
 
 from config import util
+from config.item import get_drop_interval_rate
 from config.key_store import read, TWAP_COUNT
 from data.external import send_message_sync
 from data.external.hantoo.hantoo_service import HantooService
@@ -357,7 +358,7 @@ class OrderUsecase:
         """
 
         # 다이나믹 시드가 동작 가능한 경우 빅드랍 체크는 패스
-        if bot_info.seed == bot_info.dynamic_seed_max or bot_info.dynamic_seed_max == 0:
+        if bot_info.seed != bot_info.dynamic_seed_max:
             return bot_info.seed + bot_info.added_seed
 
         prev_price = self.hantoo_service.get_prev_price(bot_info.symbol)  # 전일 종가
@@ -377,7 +378,7 @@ class OrderUsecase:
             send_message_sync(f"[{bot_info.symbol}] 현재가 전일 대비 상승률: {abs(drop_ratio):,.2f}%")
 
         # 종목별 민감도 설정
-        ratio_step = 3 if bot_info.symbol == "TQQQ" else 5
+        ratio_step = get_drop_interval_rate(bot_info.symbol) * 100
 
         # 하락률 구간별 증액 비율 (큰 값부터 체크)
         if drop_ratio >= ratio_step * 3:

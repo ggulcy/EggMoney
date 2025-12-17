@@ -105,3 +105,25 @@ admin = _get_admin_from_env()
 test_buy_prev_price = 53
 test_price = 300
 test_sell_price = test_price
+
+
+# === 티커별 하락률 인터벌 설정 ===
+# TQQQ: 변동성 낮음 → 3%
+# 그 외 (SOXL 등): 변동성 높음 → 5%
+TICKER_DROP_INTERVAL = {
+    "TQQQ": 0.03,
+}
+DEFAULT_DROP_INTERVAL = 0.05
+
+
+def get_drop_interval_rate(symbol: str) -> float:
+    """
+    티커별 하락률 인터벌 반환 (소수)
+
+    Args:
+        symbol: 티커 심볼 (예: TQQQ, SOXL)
+
+    Returns:
+        float: 하락률 인터벌 (예: 0.03 → 3%)
+    """
+    return TICKER_DROP_INTERVAL.get(symbol, DEFAULT_DROP_INTERVAL)

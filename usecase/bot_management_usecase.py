@@ -2,6 +2,7 @@
 from typing import List, Dict, Any, Optional, Tuple, TYPE_CHECKING
 
 from config import item, util
+from config.item import get_drop_interval_rate
 from config.util import get_seed_ratio_by_drawdown
 from data.external import send_message_sync
 from data.external.hantoo.hantoo_service import HantooService
@@ -188,7 +189,7 @@ class BotManagementUsecase:
                 continue
 
             # 티커별 하락률 인터벌 (소수)
-            drop_interval_rate = 0.03 if bot_info.symbol == "TQQQ" else 0.05
+            drop_interval_rate = get_drop_interval_rate(bot_info.symbol)
 
             old_seed = bot_info.seed
             target_seed = old_seed
@@ -284,6 +285,9 @@ class BotManagementUsecase:
             성공 시: {'target_seed': 목표시드, 'trigger': 트리거사유}
             실패 시: None
         """
+
+        return None #기능 비활성화
+
         if self.market_usecase is None:
             return None
 
