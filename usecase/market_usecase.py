@@ -1,20 +1,30 @@
 """Market Usecase - 시장 데이터 조회"""
-from typing import Dict, Any, Optional, Set, List
+from datetime import datetime
+from typing import Dict, Any, Optional, Set, List, TYPE_CHECKING
 
 from domain.repositories.market_indicator_repository import MarketIndicatorRepository
+
+if TYPE_CHECKING:
+    from data.external.hantoo.hantoo_service import HantooService
 
 
 class MarketUsecase:
     """시장 데이터 Usecase"""
 
-    def __init__(self, market_indicator_repo: MarketIndicatorRepository):
+    def __init__(
+            self,
+            market_indicator_repo: MarketIndicatorRepository,
+            hantoo_service: Optional["HantooService"] = None
+    ):
         """
         Market Usecase 초기화
 
         Args:
             market_indicator_repo: MarketIndicatorRepository 인터페이스
+            hantoo_service: HantooService (실시간 가격 조회용, Optional)
         """
         self.market_indicator_repo = market_indicator_repo
+        self.hantoo_service = hantoo_service
 
     def get_drawdown(self, ticker: str, days: int = 90) -> Optional[Dict[str, Any]]:
         """
@@ -52,9 +62,17 @@ class MarketUsecase:
                 if item["value"] == high_price
             )
 
-            # 현재가
-            current_price = price_history[-1]["value"]
-            current_date = price_history[-1]["date"]
+            # 현재가 (HantooService가 있으면 실시간, 없으면 yf 데이터 사용)
+            if self.hantoo_service:
+                current_price = self.hantoo_service.get_price(ticker.upper())
+                current_date = datetime.now().strftime("%Y-%m-%d")
+                if current_price is None:
+                    # 실시간 조회 실패 시 yf 데이터 사용
+                    current_price = price_history[-1]["value"]
+                    current_date = price_history[-1]["date"]
+            else:
+                current_price = price_history[-1]["value"]
+                current_date = price_history[-1]["date"]
 
             # 하락률 계산
             drawdown_pct = round(
@@ -77,7 +95,6 @@ class MarketUsecase:
 
     def get_market_history_data(
             self,
-            days: int = 30,
             tickers: Optional[Set[str]] = None
     ) -> Optional[Dict[str, Any]]:
         """
@@ -102,10 +119,11 @@ class MarketUsecase:
             또는 None (조회 실패 시)
         """
         try:
+            days = 30
             result = {}
 
             # VIX 히스토리 조회
-            vix_history = self.market_indicator_repo.get_vix_history(days=days)
+            vix_history = self.market_indicator_repo.get_price_history(ticker="^VIX", days=days)
             if vix_history:
                 result["vix_history"] = vix_history
 

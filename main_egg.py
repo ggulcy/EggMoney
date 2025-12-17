@@ -120,7 +120,7 @@ def main():
 
     # Flask 서버 실행
     print(f"\n🌐 Flask 서버 시작...\n")
-    app.run(host=HOST, port=PORT, debug=False)
+    app.run(host=HOST, port=PORT, debug=True)
 
 
 if __name__ == '__main__':

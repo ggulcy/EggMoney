@@ -24,7 +24,10 @@ def _get_dependencies():
     bot_info_repo = SQLAlchemyBotInfoRepository(session)
     trade_repo = SQLAlchemyTradeRepository(session)
     hantoo_service = HantooService()
-    market_usecase = MarketUsecase(MarketIndicatorRepositoryImpl())
+    market_usecase = MarketUsecase(
+        market_indicator_repo=MarketIndicatorRepositoryImpl(),
+        hantoo_service=hantoo_service
+    )
 
     return bot_info_repo, trade_repo, hantoo_service, market_usecase
 
@@ -125,7 +128,7 @@ def get_drawdown(ticker: str):
     Returns:
         {
             "ticker": "QQQ",
-            "period_days": 90,
+            "period_days": 80,
             "high_price": 635.77,
             "high_date": "2025-10-29",
             "current_price": 610.54,

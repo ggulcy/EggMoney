@@ -46,7 +46,10 @@ def _get_portfolio_usecase():
 
 def _get_market_usecase():
     """MarketUsecase 초기화"""
-    return MarketUsecase(MarketIndicatorRepositoryImpl())
+    return MarketUsecase(
+        market_indicator_repo=MarketIndicatorRepositoryImpl(),
+        hantoo_service=HantooService(test_mode=is_test)
+    )
 
 
 @index_bp.route('/', methods=['GET'])
@@ -90,7 +93,6 @@ def index():
 @index_bp.route('/api/market_history', methods=['GET'])
 def get_market_history():
     """시장 지표 히스토리 API"""
-    days = request.args.get('days', 30, type=int)
 
     # 활성 봇들의 tickers 조회
     portfolio_usecase = _get_portfolio_usecase()
@@ -99,7 +101,7 @@ def get_market_history():
 
     # MarketUsecase로 시장 데이터 조회
     market_usecase = _get_market_usecase()
-    market_history = market_usecase.get_market_history_data(days=days, tickers=active_tickers)
+    market_history = market_usecase.get_market_history_data(tickers=active_tickers)
 
     if market_history:
         return jsonify(market_history)

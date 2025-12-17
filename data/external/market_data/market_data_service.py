@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 """Market Data Service - 시장 지표 계산 및 변환 로직 (캐싱은 Client에서 전담)"""
-from typing import Optional
+from typing import Optional, List, Dict, Any
 import logging
 from ta.momentum import RSIIndicator as TAIndicator
 
 from data.external.market_data.market_data_client import MarketDataClient
-from domain.value_objects.market_indicator import VixIndicator, RsiIndicator
 
 logger = logging.getLogger(__name__)
 
@@ -16,53 +15,44 @@ class MarketDataService:
     def __init__(self, client: Optional[MarketDataClient] = None):
         self.client = client or MarketDataClient()
 
-    def get_vix_indicator(self, cache_hours: int = 6) -> Optional[VixIndicator]:
-        """
-        VIX 지수 조회 및 VixIndicator 생성
+    # 캐시 통일을 위한 고정 interval (3개월치 데이터)
+    CACHE_INTERVAL = 90
 
-        Args:
-            cache_hours: 캐시 유효 시간 (Client에 전달)
-
-        Returns:
-            VixIndicator: VIX 지표 객체, 실패 시 None
-        """
-        vix_data = self.client.fetch_vix_data(cache_hours=cache_hours)
-        if vix_data is None:
-            return None
-
-        return VixIndicator.from_value(
-            vix_data.value,
-            cached_at=vix_data.cache_info.cached_at,
-            elapsed_hours=vix_data.cache_info.elapsed_hours
-        )
-
-    def get_rsi_indicator(
+    def get_rsi_history(
         self,
         ticker: str,
+        days: int = 30,
         period: int = 14,
         cache_hours: int = 6
-    ) -> Optional[RsiIndicator]:
+    ) -> Optional[List[Dict[str, Any]]]:
         """
-        RSI 지수 계산 및 RsiIndicator 생성
-        ta.momentum.RSIIndicator 사용
+        특정 티커의 RSI 히스토리 조회
 
         Args:
             ticker: 종목 심볼
+            days: 반환할 데이터 개수 (일수, 기본 30일, 최대 66일)
             period: RSI 계산 기간 (기본 14일)
-            cache_hours: 캐시 유효 시간 (Client에 전달)
+            cache_hours: 캐시 유효 시간 (시간 단위, 기본 6시간)
 
         Returns:
-            RsiIndicator: RSI 지표 객체, 실패 시 None
+            List[Dict]: [{"date": "2025-12-01", "value": 56.26}, ...] 또는 None
         """
-        ticker_data = self.client.fetch_ticker_history(
-            ticker,
-            interval=80,
-            cache_hours=cache_hours
-        )
-        if ticker_data is None:
-            return None
+        # RSI 계산에 period일 필요하므로 최대 유효 days = CACHE_INTERVAL - period
+        max_days = self.CACHE_INTERVAL - period
+        if days > max_days:
+            logger.warning(f"days({days})가 최대값({max_days})을 초과하여 {max_days}로 조정")
+            days = max_days
 
         try:
+            # 항상 80일치 데이터 캐시 사용
+            ticker_data = self.client.fetch_ticker_history(
+                ticker,
+                interval=self.CACHE_INTERVAL,
+                cache_hours=cache_hours
+            )
+            if ticker_data is None:
+                return None
+
             df = ticker_data.df
             close_series = df['Close'].astype(float)
 
@@ -70,19 +60,66 @@ class MarketDataService:
                 logger.error(f"{ticker} Close 데이터가 비어 있습니다")
                 return None
 
-            # ta 라이브러리의 RSIIndicator 사용
+            # RSI 계산
             rsi_series = TAIndicator(close_series, window=period).rsi()
-            latest_rsi = rsi_series.dropna().iloc[-1]
-            rsi_value = round(latest_rsi, 2)
 
-            logger.info(f"✅ {ticker} RSI 계산 완료: {rsi_value}")
+            # 최근 days일만 추출
+            rsi_df = rsi_series.dropna().tail(days)
 
-            return RsiIndicator.from_value(
-                rsi_value,
-                cached_at=ticker_data.cache_info.cached_at,
-                elapsed_hours=ticker_data.cache_info.elapsed_hours
-            )
+            result = []
+            for idx, value in rsi_df.items():
+                result.append({
+                    "date": idx.strftime("%Y-%m-%d"),
+                    "value": round(float(value), 2)
+                })
 
+            return result
         except Exception as e:
-            logger.error(f"{ticker} RSI 지표 생성 중 오류: {e}")
+            logger.error(f"{ticker} RSI 히스토리 조회 실패: {e}")
+            return None
+
+    def get_price_history(
+        self,
+        ticker: str,
+        days: int,
+        cache_hours: int = 6
+    ) -> Optional[List[Dict[str, Any]]]:
+        """
+        특정 티커의 가격 히스토리 조회
+
+        Args:
+            ticker: 종목 심볼
+            days: 반환할 데이터 개수 (일수, 기본 30일, 최대 80일)
+            cache_hours: 캐시 유효 시간 (시간 단위, 기본 6시간)
+
+        Returns:
+            List[Dict]: [{"date": "2025-12-01", "value": 85.50}, ...] 또는 None
+        """
+        # 최대 유효 days = CACHE_INTERVAL
+        if days > self.CACHE_INTERVAL:
+            logger.warning(f"days({days})가 최대값({self.CACHE_INTERVAL})을 초과하여 {self.CACHE_INTERVAL}로 조정")
+            days = self.CACHE_INTERVAL
+
+        try:
+            # 항상 80일치 데이터 캐시 사용
+            ticker_data = self.client.fetch_ticker_history(
+                ticker,
+                interval=self.CACHE_INTERVAL,
+                cache_hours=cache_hours
+            )
+            if ticker_data is None:
+                return None
+
+            # 최근 days일만 추출
+            df = ticker_data.df.tail(days)
+            result = []
+            for idx, row in df.iterrows():
+                result.append({
+                    "date": idx.strftime("%Y-%m-%d"),
+                    "value": round(float(row['Close']), 2)
+                })
+
+            return result
+        except Exception as e:
+            logger.error(f"{ticker} 가격 히스토리 조회 실패: {e}")
             return None
