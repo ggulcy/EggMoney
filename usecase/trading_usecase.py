@@ -125,7 +125,7 @@ class TradingUsecase:
             return
 
         current_num = order.total_count - order.trade_count + 1
-        send_message_sync(f"{order.name}의 {current_num}/{order.total_count} 주문검사를 시작합니다")
+        print(f"{order.name}의 {current_num}/{order.total_count} 주문검사를 시작합니다")
 
         if self._is_order_available(order):
             if self._is_buy(order):
@@ -385,7 +385,7 @@ class TradingUsecase:
 
         # 거래 완료 후 order 삭제
         self.order_repo.delete_by_name(order.name)
-        send_message_sync(f"[{order.name}] 주문서 삭제 완료")
+        print(f"[{order.name}] 주문서 삭제 완료")
 
     def _save_buy_to_db(self, bot_info: BotInfo, trade_result: TradeResult) -> None:
         """

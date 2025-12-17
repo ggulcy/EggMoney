@@ -25,12 +25,12 @@ class OrderUsecase:
     """
 
     def __init__(
-        self,
-        bot_info_repo: BotInfoRepository,
-        trade_repo: TradeRepository,
-        history_repo: HistoryRepository,
-        order_repo: OrderRepository,
-        hantoo_service: HantooService
+            self,
+            bot_info_repo: BotInfoRepository,
+            trade_repo: TradeRepository,
+            history_repo: HistoryRepository,
+            order_repo: OrderRepository,
+            hantoo_service: HantooService
     ):
         """
         주문서 생성 Usecase 초기화
@@ -81,13 +81,13 @@ class OrderUsecase:
             self.order_repo.save(order)
 
             send_message_sync(f"{order.name} 구매 요청에 대한 주문 리스트를 생성하였습니다\n"
-                            f"분할 회수 : {order.trade_count}\n"
-                            f"총 구매 금액 : {order.remain_value:,.2f}$")
+                              f"분할 회수 : {order.trade_count}\n"
+                              f"총 구매 금액 : {order.remain_value:,.2f}$")
 
         except ValueError as e:
             send_message_sync(f"❌ [{bot_info.name}] 구매 주문서를 생성할 수 없습니다.\n"
-                            f"이유: 기존 주문서에 미체결 주문(odno_list)이 남아있습니다.\n"
-                            f"상세: {str(e)}")
+                              f"이유: 기존 주문서에 미체결 주문(odno_list)이 남아있습니다.\n"
+                              f"상세: {str(e)}")
 
     def save_sell_order(self, bot_info: BotInfo, amount: int, trade_type: TradeType) -> None:
         """
@@ -120,13 +120,13 @@ class OrderUsecase:
             self.order_repo.save(order)
 
             send_message_sync(f"{order.name} 판매 요청에 대한 주문 리스트를 생성하였습니다\n"
-                            f"분할 회수 : {order.trade_count}\n"
-                            f"총 판매 개수 : {order.remain_value}")
+                              f"분할 회수 : {order.trade_count}\n"
+                              f"총 판매 개수 : {order.remain_value}")
 
         except ValueError as e:
             send_message_sync(f"❌ [{bot_info.name}] 판매 주문서를 생성할 수 없습니다.\n"
-                            f"이유: 기존 주문서에 미체결 주문(odno_list)이 남아있습니다.\n"
-                            f"상세: {str(e)}")
+                              f"이유: 기존 주문서에 미체결 주문(odno_list)이 남아있습니다.\n"
+                              f"상세: {str(e)}")
 
     def create_order(self, bot_info: BotInfo) -> Optional[tuple]:
         """
@@ -149,7 +149,7 @@ class OrderUsecase:
 
         # 2. 매도가 일어난 날(또는 매도 예정인 날)은 구매하지 않음
         if self.history_repo.find_today_sell_by_name(bot_info.name) or \
-           self.order_repo.has_sell_order_today(bot_info.name):
+                self.order_repo.has_sell_order_today(bot_info.name):
             return None
 
         # 3. 매수 주문서 생성
@@ -238,7 +238,6 @@ class OrderUsecase:
         # 첫 구매 (평단가가 없으면)
         if not avr_price:
             send_message_sync(f"첫 구매 {bot_info.seed:,.0f}$ 매수 시도합니다")
-            send_message_sync(f"[{bot_info.name}] 매수 주문서 생성: {bot_info.seed:,.2f}$ ({TradeType.BUY.value})")
             return TradeType.BUY, bot_info.seed
 
         point_price, t, point = self._get_point_price(bot_info)
@@ -283,14 +282,13 @@ class OrderUsecase:
         seed = adjust_seed * buy_ratio if adjust_seed is not None else 0
 
         send_message_sync(msg)
-        send_message_sync(f"[{bot_info.name}] 매수 주문서 생성: {seed:,.2f}$ ({TradeType.BUY.value})")
         return TradeType.BUY, seed
 
     def _calculate_sell_amount(
-        self,
-        condition_3_4: bool,
-        condition_1_4: bool,
-        bot_info: BotInfo
+            self,
+            condition_3_4: bool,
+            condition_1_4: bool,
+            bot_info: BotInfo
     ) -> Tuple[Optional[TradeType], int]:
         """
         매도 조건에 따른 매도 수량 및 타입 계산
@@ -317,11 +315,11 @@ class OrderUsecase:
         return None, int(total_amount)
 
     def _is_sell_skip(
-        self,
-        cur_price: float,
-        avr_price: float,
-        bot_info: BotInfo,
-        profit_std: float
+            self,
+            cur_price: float,
+            avr_price: float,
+            bot_info: BotInfo,
+            profit_std: float
     ) -> bool:
         """
         적은 수익 매도 스킵 여부 판단
@@ -357,6 +355,11 @@ class OrderUsecase:
 
         egg/trade_module.py의 check_big_drop() 이관 (175-222번 줄)
         """
+
+        # 다이나믹 시드가 동작 가능한 경우 빅드랍 체크는 패스
+        if bot_info.seed == bot_info.dynamic_seed_max or bot_info.dynamic_seed_max == 0:
+            return bot_info.seed + bot_info.added_seed
+
         prev_price = self.hantoo_service.get_prev_price(bot_info.symbol)  # 전일 종가
         if not prev_price:
             send_message_sync(f"[{bot_info.name}] 전일 종가 조회 실패")
