@@ -45,12 +45,13 @@ class PortfolioStatusUsecase:
         """
         return self.bot_info_repo.find_all()
 
-    def get_trade_status(self, bot_info) -> Dict[str, Any]:
+    def get_trade_status(self, bot_info, use_dynamic_seed: bool = False) -> Dict[str, Any]:
         """
         거래 상태 조회 (특정 봇 기준)
 
         Args:
             bot_info: 봇 정보
+            use_dynamic_seed: True면 dynamic_seed_max 기준으로 계산
 
         Returns:
             Dict: 거래 상태
@@ -72,6 +73,11 @@ class PortfolioStatusUsecase:
                 }
         """
         try:
+            # use_dynamic_seed=True인데 조건 미충족 시 None 반환
+            if use_dynamic_seed:
+                if bot_info.dynamic_seed_max <= 0 or bot_info.dynamic_seed_max == bot_info.seed:
+                    return None
+
             cur_trade = self.trade_repo.find_by_name(bot_info.name)
             if not cur_trade:
                 return None
@@ -84,10 +90,11 @@ class PortfolioStatusUsecase:
             profit = cur_trade.amount * cur_price - cur_trade.total_price
             profit_rate = util.get_profit_rate(cur_price, cur_trade.purchase_price)
 
-            # 시드 관련 계산
-            max_seed = bot_info.seed * bot_info.max_tier
+            # 시드 관련 계산 (use_dynamic_seed=True면 dynamic_seed_max 기준)
+            base_seed = bot_info.dynamic_seed_max if use_dynamic_seed else bot_info.seed
+            max_seed = base_seed * bot_info.max_tier
             total_invest = self.trade_repo.get_total_investment(bot_info.name)
-            t = util.get_T(total_invest, bot_info.seed)
+            t = util.get_T(total_invest, base_seed)
             point = util.get_point_loc(bot_info.t_div, bot_info.max_tier, t, bot_info.point_loc)
 
             # %지점가 계산 (평단가 * (1 + point))
@@ -143,11 +150,17 @@ class PortfolioStatusUsecase:
             total_buy = 0.0
             active_bots = 0
             total_max_seed = 0.0
+            total_dynamic_max_seed = 0.0
             seed_per_tier = 0.0  # 활성 봇의 1티어 시드 합계
 
             bot_info_list = self.bot_info_repo.find_all()
             for bot_info in bot_info_list:
                 total_max_seed += bot_info.seed * bot_info.max_tier
+                # dynamic_seed_max가 있으면 사용, 없으면 seed로 폴백
+                if bot_info.dynamic_seed_max > 0 and bot_info.dynamic_seed_max != bot_info.seed:
+                    total_dynamic_max_seed += bot_info.dynamic_seed_max * bot_info.max_tier
+                else:
+                    total_dynamic_max_seed += bot_info.seed * bot_info.max_tier
 
                 if bot_info.active:
                     active_bots += 1
@@ -191,6 +204,7 @@ class PortfolioStatusUsecase:
                 "active_bots": active_bots,
                 "total_bots": len(bot_info_list),
                 "total_max_seed": total_max_seed,
+                "total_dynamic_max_seed": total_dynamic_max_seed,
                 "hantoo_balance": hantoo_balance,
                 "seed_per_tier": seed_per_tier,
                 "alert_low_balance": alert_low_balance,

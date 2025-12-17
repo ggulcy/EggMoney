@@ -118,10 +118,10 @@ def _initialize_dependencies() -> tuple[SessionFactory, TradingJobs, MessageJobs
     return session_factory, trading_jobs, message_jobs
 
 
-def _create_trade_job(trading_jobs: TradingJobs):
+def _create_make_order_job(trading_jobs: TradingJobs):
     """메인 거래 작업 팩토리 (클로저)"""
 
-    def trade_job_impl():
+    def make_order_job_impl():
         from datetime import datetime
         print(f"\n🤖 trade_job() called at {datetime.now()}")
 
@@ -131,7 +131,7 @@ def _create_trade_job(trading_jobs: TradingJobs):
             return
 
         try:
-            trading_jobs.trade_job()
+            trading_jobs.make_order_job()
         except Exception as e:
             error_message = f"❌ [trade_job] 거래중 문제가 발생하였습니다. 문제를 확인하세요.\n{e}\n{traceback.format_exc()}"
             send_message_sync(error_message)
@@ -139,7 +139,7 @@ def _create_trade_job(trading_jobs: TradingJobs):
 
         print(f"✅ trade_job() completed at {datetime.now()}\n")
 
-    return trade_job_impl
+    return make_order_job_impl
 
 
 def _create_twap_job(trading_jobs: TradingJobs):
@@ -239,7 +239,7 @@ def start_scheduler():
     # 기존 작업 제거 후 재등록
     _scheduler.remove_all_jobs()
     _register_jobs(_create_msg_job(_message_jobs), msg_times, 'msg_job')
-    _register_jobs(_create_trade_job(_trading_jobs), job_times, 'trade_job')
+    _register_jobs(_create_make_order_job(_trading_jobs), job_times, 'trade_job')
     _register_jobs(_create_twap_job(_trading_jobs), twap_times, 'twap_job')
 
     # 스케줄러 시작 (첫 호출에만)

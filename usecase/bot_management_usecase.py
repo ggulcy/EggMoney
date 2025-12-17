@@ -1,7 +1,7 @@
 """봇 관리 Usecase - 봇 정보 조회/수정 및 자동화 로직"""
 from typing import List, Dict, Any, Optional, Tuple, TYPE_CHECKING
 
-from config import item, util
+from config import item, util, key_store
 from config.item import get_drop_interval_rate
 from config.util import get_seed_ratio_by_drawdown
 from data.external import send_message_sync
@@ -196,7 +196,7 @@ class BotManagementUsecase:
 
             # ===== 1단계: 전일대비 하락 =====
             step1_result = self._apply_daily_drop_seed(bot_info, old_seed, drop_interval_rate)
-            if step1_result:
+            if step1_result and step1_result['applied']:
                 target_seed = step1_result['target_seed']
 
             # ===== 2단계: 고점대비 하락률 =====
@@ -223,6 +223,13 @@ class BotManagementUsecase:
                     f"{trigger}\n"
                     f"${old_seed:,.2f} → ${target_seed:,.2f} (+{increase_rate:.1f}%)"
                 )
+            elif step1_result:
+                # 시드 적용 안됐어도 전일대비 하락 정보 전송
+                drop_rate = step1_result['drop_rate']
+                send_message_sync(
+                    f"📊 [{bot_info.name}] 전일대비 {drop_rate * 100:.1f}% {'하락' if drop_rate >= 0 else '상승'}\n"
+                    f"현재 시드: ${old_seed:,.2f} (적용 기준 미달)"
+                )
 
     def _apply_daily_drop_seed(
             self,
@@ -242,10 +249,10 @@ class BotManagementUsecase:
             drop_interval_rate: 하락률 인터벌 (소수, 예: 0.03 → 3%)
 
         Returns:
-            성공 시: {'target_seed': 목표시드, 'trigger': 트리거사유}
-            실패 시: None
+            항상: {'drop_rate': 하락률, 'applied': 적용여부, 'target_seed': 목표시드(적용시), 'trigger': 트리거사유}
+            가격 조회 실패 시: None
         """
-        MULTIPLIER = 1.2
+        MULTIPLIER = 1.5
 
         if self.hantoo_service is None:
             return None
@@ -257,12 +264,12 @@ class BotManagementUsecase:
             return None
 
         drop_rate = (prev_close - current_price) / prev_close
-
-        if drop_rate < drop_interval_rate:
-            return None
+        applied = drop_rate >= drop_interval_rate
 
         return {
-            'target_seed': current_seed * MULTIPLIER,
+            'drop_rate': drop_rate,
+            'applied': applied,
+            'target_seed': current_seed * MULTIPLIER if applied else current_seed,
             'trigger': f"전일대비 {drop_rate * 100:.1f}% 하락"
         }
 

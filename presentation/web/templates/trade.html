@@ -832,6 +832,7 @@
 
         {% for trade in trade_list %}
         {% set status = trade_status_map.get(trade.name) %}
+        {% set dynamic_status = dynamic_trade_status_map.get(trade.name) %}
         <!-- Trade 아코디언 헤더 -->
         <div class="trade-accordion-header" data-trade-header="{{ trade.name }}" onclick="toggleTradeAccordion('{{ trade.name }}')">
             <div class="trade-accordion-left">
@@ -908,12 +909,13 @@
                         </div>
                     </div>
                     <!-- %지점 -->
-                    <div class="trade-status-card full-width">
+                    <div class="trade-status-card">
                         <div class="label">%지점</div>
                         <div class="value" style="color: #e67e22;">{{ '{:.1f}'.format(status.point * 100) }}% <span style="font-size: 0.8em; color: #888;">(${{ '{:,.2f}'.format(status.point_price) }})</span></div>
                     </div>
+                    <div class="trade-status-card"></div>
                     <!-- 시드 소진율 -->
-                    <div class="trade-status-card full-width">
+                    <div class="trade-status-card">
                         <div class="label">시드 소진율</div>
                         <div class="trade-seed-progress">
                             <div class="progress-info">
@@ -925,6 +927,24 @@
                             </div>
                         </div>
                         <div class="sub-value">{{ '{:.1f}'.format(status.progress_rate) }}% 소진</div>
+                    </div>
+                    <!-- 동적시드 소진율 -->
+                    <div class="trade-status-card">
+                        <div class="label">동적시드 소진율</div>
+                        {% if dynamic_status %}
+                        <div class="trade-seed-progress">
+                            <div class="progress-info">
+                                <span>$ {{ '{:,.0f}'.format(dynamic_status.cur_trade.total_price) }}</span>
+                                <span>$ {{ '{:,.0f}'.format(dynamic_status.max_seed) }}</span>
+                            </div>
+                            <div class="progress-bar-large">
+                                <div class="progress-fill-large" style="width: {{ dynamic_status.progress_rate }}%; background: linear-gradient(90deg, #e67e22, #f39c12);"></div>
+                            </div>
+                        </div>
+                        <div class="sub-value" style="color: #e67e22;">{{ '{:.1f}'.format(dynamic_status.progress_rate) }}% 소진</div>
+                        {% else %}
+                        <div class="value" style="color: #888;">-</div>
+                        {% endif %}
                     </div>
                 </div>
             </div>

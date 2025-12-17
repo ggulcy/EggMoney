@@ -47,11 +47,16 @@ def trade_template():
 
         # 각 trade에 대한 status 정보 조회
         trade_status_map = {}
+        dynamic_trade_status_map = {}
         bot_info_list = portfolio_usecase.get_all_bot_info()
         for bot_info in bot_info_list:
             status = portfolio_usecase.get_trade_status(bot_info)
             if status:
                 trade_status_map[bot_info.name] = status
+
+            dynamic_status = portfolio_usecase.get_trade_status(bot_info, use_dynamic_seed=True)
+            if dynamic_status:
+                dynamic_trade_status_map[bot_info.name] = dynamic_status
 
         # TradeType 목록 (매도/매수 구분)
         sell_types = [t for t in TradeType if t.is_sell()]
@@ -61,6 +66,7 @@ def trade_template():
             'trade.html',
             trade_list=trade_list,
             trade_status_map=trade_status_map,
+            dynamic_trade_status_map=dynamic_trade_status_map,
             sell_types=sell_types,
             buy_types=buy_types
         )

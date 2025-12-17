@@ -23,6 +23,8 @@ TRADE_TIME = "TRADE_TIME"
 TWAP_TIME = "TWAP_TIME"
 TWAP_COUNT = "TWAP_COUNT"
 
+IS_DYNAMIC_SEED_APPLY_TODAY = "IS_DYNAMIC_SEED_APPLY_TODAY"
+
 
 def _get_default_values():
     """기본값 딕셔너리 반환"""
@@ -104,6 +106,9 @@ def read(key):
         elif key == "TWAP_COUNT":
             twap_count = db.get(key)
             return twap_count if twap_count else 3
+        elif key == "IS_DYNAMIC_SEED_APPLY_TODAY":
+            is_apply = db.get(key)
+            return is_apply if is_apply else False
         return db.get(key, None)
 
 
@@ -134,3 +139,6 @@ def delete(key):
         if key in db:
             del db[key]
             _save_db(db)
+
+
+

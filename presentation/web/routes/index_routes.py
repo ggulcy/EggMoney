@@ -72,11 +72,16 @@ def index():
     # Trade 리스트 및 상태 정보 가져오기
     trade_list = portfolio_usecase.get_all_trades()
     trade_status_map = {}
+    dynamic_trade_status_map = {}
     bot_info_list = portfolio_usecase.get_all_bot_info()
     for bot_info in bot_info_list:
         status = portfolio_usecase.get_trade_status(bot_info)
         if status:
             trade_status_map[bot_info.name] = status
+
+        dynamic_status = portfolio_usecase.get_trade_status(bot_info, use_dynamic_seed=True)
+        if dynamic_status:
+            dynamic_trade_status_map[bot_info.name] = dynamic_status
 
     return render_template(
         'index.html',
@@ -86,7 +91,8 @@ def index():
         today_trades=today_trades,
         current_year_profit=current_year_data,
         trade_list=trade_list,
-        trade_status_map=trade_status_map
+        trade_status_map=trade_status_map,
+        dynamic_trade_status_map=dynamic_trade_status_map
     )
 
 

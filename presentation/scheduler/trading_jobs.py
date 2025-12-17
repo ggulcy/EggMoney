@@ -48,7 +48,7 @@ class TradingJobs:
         self.bot_info_repo = bot_info_repo
         self.order_repo = order_repo
 
-    def trade_job(self) -> None:
+    def make_order_job(self) -> None:
         """
         메인 거래 작업 (egg/main.py의 job() 이관)
 
@@ -65,7 +65,6 @@ class TradingJobs:
         self.bot_management_usecase.check_bot_sync()
         self.bot_management_usecase.apply_dynamic_seed()
         # 오래된 주문서 삭제 (전날 미완료 주문 등)
-        self.order_repo.delete_old_orders(before_date=date.today())
 
         # 혹시 남아있는 완료 주문 체크 (비정상 상황)
         remaining_orders = self.order_repo.find_all()
@@ -75,8 +74,9 @@ class TradingJobs:
                 f"주문서 개수: {len(remaining_orders)}\n"
                 f"주문서 목록: {[o.name for o in remaining_orders]}"
             )
+        self.order_repo.delete_old_orders(before_date=date.today())
 
-        # 모든 활성 봇에 대해 거래 실행
+        # 모든 활성 봇에 대해 주문서 생성 실행
         bot_infos = self.bot_info_repo.find_all()
         for bot_info in bot_infos:
             if bot_info.active:
