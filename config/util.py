@@ -442,3 +442,41 @@ def get_current_exchange_rate() -> float:
     except Exception as e:
         print(f"[ExchangeRate] Error getting current exchange rate: {e}")
         return 1450.0
+
+
+# === 시드 비율 계산 ===
+def get_seed_ratio_by_drawdown(
+    drawdown_rate: float,
+    interval_rate: float,
+    max_count: int
+) -> float:
+    """
+    고점 대비 하락률에 따른 시드 투입 비율 계산
+
+    Args:
+        drawdown_rate: 현재 고점 대비 하락률 (소수, 음수, 예: -0.12)
+        interval_rate: 하락률 인터벌 (소수, 예: 0.03)
+        max_count: 최대 하락 카운트 횟수 (예: 5)
+
+    Returns:
+        float: 시드 비율 (0.0 ~ 1.0)
+
+    Example:
+        >>> get_seed_ratio_by_drawdown(-0.12, 0.03, 5)
+        0.8  # 12% / 3% = 4카운트, 4/5 = 0.8
+    """
+    if interval_rate <= 0 or max_count <= 0:
+        return 0.0
+
+    # 하락률을 양수로 변환
+    abs_drawdown = abs(drawdown_rate)
+
+    # 하락 카운트 계산 (반올림 - 부동소수점 오차 방지)
+    drop_count = round(abs_drawdown / interval_rate)
+
+    # 최대 카운트 제한
+    drop_count = min(drop_count, max_count)
+
+    # 시드 비율 반환
+    return drop_count / max_count
+

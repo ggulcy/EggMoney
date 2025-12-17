@@ -195,20 +195,6 @@ class MessageJobs:
         self.send_today_profit_message()
         print("✅ 모든 상태 메시지 전송 완료")
 
-    def sync_bots(self) -> None:
-        """
-        봇 동기화 체크 (Job 내에서 호출 가능)
-        """
-        if not self.bot_management_usecase:
-            return
-
-        try:
-            self.bot_management_usecase.check_bot_sync()
-        except Exception as e:
-            print(f"❌ 봇 동기화 실패: {e}")
-            import traceback
-            traceback.print_exc()
-
     def daily_job(self) -> None:
         """
         일일 작업
@@ -224,9 +210,6 @@ class MessageJobs:
 
         # 1. 텔레그램 메시지 전송
         self.send_all_status()
-
-        # 2. 봇 동기화 체크
-        self.sync_bots()
 
         print("=" * 80)
         print("✅ 일일 작업 완료")

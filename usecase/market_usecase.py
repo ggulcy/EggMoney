@@ -42,7 +42,7 @@ class MarketUsecase:
                 "high_date": "2025-10-29",
                 "current_price": 610.54,
                 "current_date": "2025-12-15",
-                "drawdown_pct": -3.97
+                "drawdown_rate": -0.0397  # 소수 (예: -3.97% → -0.0397)
             }
             또는 None (조회 실패 시)
         """
@@ -74,9 +74,9 @@ class MarketUsecase:
                 current_price = price_history[-1]["value"]
                 current_date = price_history[-1]["date"]
 
-            # 하락률 계산
-            drawdown_pct = round(
-                ((current_price - high_price) / high_price) * 100, 2
+            # 하락률 계산 (소수)
+            drawdown_rate = round(
+                (current_price - high_price) / high_price, 4
             )
 
             return {
@@ -86,7 +86,7 @@ class MarketUsecase:
                 "high_date": high_date,
                 "current_price": current_price,
                 "current_date": current_date,
-                "drawdown_pct": drawdown_pct
+                "drawdown_rate": drawdown_rate
             }
 
         except Exception as e:

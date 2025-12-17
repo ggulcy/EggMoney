@@ -133,7 +133,7 @@ def get_drawdown(ticker: str):
             "high_date": "2025-10-29",
             "current_price": 610.54,
             "current_date": "2025-12-15",
-            "drawdown_pct": -3.97
+            "drawdown_rate": -0.0397  # 소수 (예: -3.97% → -0.0397)
         }
     """
     try:

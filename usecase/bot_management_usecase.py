@@ -1,12 +1,16 @@
 """봇 관리 Usecase - 봇 정보 조회/수정 및 자동화 로직"""
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional, Tuple, TYPE_CHECKING
 
 from config import item, util
+from config.util import get_seed_ratio_by_drawdown
 from data.external import send_message_sync
 from data.external.hantoo.hantoo_service import HantooService
 from domain.entities.bot_info import BotInfo
 from domain.repositories.bot_info_repository import BotInfoRepository
 from domain.repositories.trade_repository import TradeRepository
+
+if TYPE_CHECKING:
+    from usecase.market_usecase import MarketUsecase
 
 
 class BotManagementUsecase:
@@ -16,7 +20,8 @@ class BotManagementUsecase:
             self,
             bot_info_repo: BotInfoRepository,
             trade_repo: TradeRepository,
-            hantoo_service: Optional[HantooService] = None
+            hantoo_service: Optional[HantooService] = None,
+            market_usecase: Optional['MarketUsecase'] = None
     ):
         """
         봇 관리 Usecase 초기화
@@ -25,10 +30,12 @@ class BotManagementUsecase:
             bot_info_repo: BotInfo 리포지토리
             trade_repo: Trade 리포지토리
             hantoo_service: 한투 서비스 (동적 시드 기능용, Optional)
+            market_usecase: 마켓 Usecase (drawdown 조회용, Optional)
         """
         self.bot_info_repo = bot_info_repo
         self.trade_repo = trade_repo
         self.hantoo_service = hantoo_service
+        self.market_usecase = market_usecase
 
     # ===== 봇 자동화 관리 =====
 
@@ -159,96 +166,154 @@ class BotManagementUsecase:
 
     # ===== 동적 시드 관리 =====
 
-    def check_and_apply_dynamic_seed(self) -> None:
+    def apply_dynamic_seed(self) -> None:
         """
-        모든 활성 봇에 대해 동적 시드 적용 체크 및 적용
+        모든 활성 봇에 대해 동적 시드 적용 (2단계)
 
-        데일리잡에서 호출하여 전일 종가 대비 하락 시 시드 조절
+        1단계: 전일대비 하락 → 현재 시드에 multiplier 적용
+        2단계: 고점대비 하락률 → dynamic_seed_max × ratio 보다 적으면 증가
+
+        데일리잡에서 호출
         """
         if self.hantoo_service is None:
             return
 
-        bot_infos = self.bot_info_repo.find_active_bots()
+        for bot_info in self.bot_info_repo.find_active_bots():
+            # 기능 비활성화 체크
+            if bot_info.dynamic_seed_max <= 0:
+                continue
 
-        for bot_info in bot_infos:
-            result = self.apply_dynamic_seed(bot_info)
-            if result is not None:
+            # 이미 max에 도달했으면 스킵
+            if bot_info.seed >= bot_info.dynamic_seed_max:
+                continue
+
+            # 티커별 하락률 인터벌 (소수)
+            drop_interval_rate = 0.03 if bot_info.symbol == "TQQQ" else 0.05
+
+            old_seed = bot_info.seed
+            target_seed = old_seed
+
+            # ===== 1단계: 전일대비 하락 =====
+            step1_result = self._apply_daily_drop_seed(bot_info, old_seed, drop_interval_rate)
+            if step1_result:
+                target_seed = step1_result['target_seed']
+
+            # ===== 2단계: 고점대비 하락률 =====
+            step2_result = self._apply_drawdown_seed(bot_info, drop_interval_rate)
+            if step2_result and step2_result['target_seed'] > target_seed:
+                target_seed = step2_result['target_seed']
+
+            # ===== 최종 적용 =====
+            target_seed = min(target_seed, bot_info.dynamic_seed_max)
+
+            if target_seed > old_seed:
+                bot_info.seed = target_seed
+                self.bot_info_repo.save(bot_info)
+
+                # 적용된 트리거 판별
+                if step2_result and step2_result['target_seed'] >= target_seed:
+                    trigger = step2_result['trigger']
+                else:
+                    trigger = step1_result['trigger']
+
+                increase_rate = ((target_seed - old_seed) / old_seed) * 100
                 send_message_sync(
                     f"📈 [{bot_info.name}] 동적 시드 적용\n"
-                    f"하락률: {result['drop_rate']:.2f}%\n"
-                    f"시드: ${result['old_seed']:,.2f} → ${result['new_seed']:,.2f} (+{result['increase_rate']:.1f}%)"
+                    f"{trigger}\n"
+                    f"${old_seed:,.2f} → ${target_seed:,.2f} (+{increase_rate:.1f}%)"
                 )
 
-    def apply_dynamic_seed(self, bot_info: BotInfo) -> Optional[Dict[str, Any]]:
+    def _apply_daily_drop_seed(
+            self,
+            bot_info: BotInfo,
+            current_seed: float,
+            drop_interval_rate: float
+    ) -> Optional[Dict[str, Any]]:
         """
-        동적 시드 적용
+        1단계: 전일대비 하락 시 시드 증가
 
         전일 종가 대비 현재가가 일정 비율 이상 하락했을 때,
-        시드를 배수로 늘리고 BotInfo를 업데이트
+        시드를 배수로 증가
 
         Args:
             bot_info: 봇 정보
+            current_seed: 현재 시드
+            drop_interval_rate: 하락률 인터벌 (소수, 예: 0.03 → 3%)
 
         Returns:
-            성공 시: {
-                'old_seed': 이전 시드,
-                'new_seed': 새 시드,
-                'drop_rate': 하락률%,
-                'increase_rate': 증가율%
-            }
+            성공 시: {'target_seed': 목표시드, 'trigger': 트리거사유}
             실패 시: None
         """
+        MULTIPLIER = 1.2
 
-        if bot_info.symbol == "TQQQ":
-            DROP_RATE_THRESHOLD = 0.03
-        else:
-            DROP_RATE_THRESHOLD = 0.05
-
-        MULTIPLIER = 1.5  # 1.5배
-
-        # 기능 비활성화 (dynamic_seed_max가 0 이하)
-        if bot_info.dynamic_seed_max <= 0:
-            return None
-
-        # 기본 시드가 이미 max보다 크면 적용 불필요
-        if bot_info.seed >= bot_info.dynamic_seed_max:
-            return None
-
-        # hantoo_service 없으면 기능 비활성화
         if self.hantoo_service is None:
             return None
 
-        # 가격 조회
         prev_close = self.hantoo_service.get_prev_price(bot_info.symbol)
         current_price = self.hantoo_service.get_price(bot_info.symbol)
 
         if prev_close is None or current_price is None or prev_close <= 0:
             return None
 
-        # 하락률 계산
         drop_rate = (prev_close - current_price) / prev_close
 
-        # 기준 미달 → 적용 안함
-        if drop_rate < DROP_RATE_THRESHOLD:
+        if drop_rate < drop_interval_rate:
             return None
 
-        # 동적 시드 계산 (최대값 제한)
-        old_seed = bot_info.seed
-        target_seed = old_seed * MULTIPLIER
-        target_seed = min(target_seed, bot_info.dynamic_seed_max)
+        return {
+            'target_seed': current_seed * MULTIPLIER,
+            'trigger': f"전일대비 {drop_rate * 100:.1f}% 하락"
+        }
 
-        # seed 직접 수정
-        if target_seed > old_seed:
-            bot_info.seed = target_seed
-            self.bot_info_repo.save(bot_info)
+    def _apply_drawdown_seed(
+            self,
+            bot_info: BotInfo,
+            drop_interval_rate: float
+    ) -> Optional[Dict[str, Any]]:
+        """
+        2단계: 고점대비 하락률 기반 시드 조정
 
-            increase_rate = ((target_seed - old_seed) / old_seed) * 100
+        90일 고점 대비 하락률로 seed_ratio 계산 후,
+        dynamic_seed_max × ratio 값을 목표 시드로 반환
 
-            return {
-                'old_seed': old_seed,
-                'new_seed': target_seed,
-                'drop_rate': drop_rate * 100,
-                'increase_rate': increase_rate
-            }
+        Args:
+            bot_info: 봇 정보
+            drop_interval_rate: 하락률 인터벌 (소수, 예: 0.03 → 3%)
 
-        return None
+        Returns:
+            성공 시: {'target_seed': 목표시드, 'trigger': 트리거사유}
+            실패 시: None
+        """
+        if self.market_usecase is None:
+            return None
+
+        MAX_COUNT = 10
+
+        # drawdown 조회
+        drawdown_result = self.market_usecase.get_drawdown(
+            ticker=bot_info.symbol,
+            days=90
+        )
+
+        if drawdown_result is None:
+            return None
+
+        drawdown_rate = drawdown_result['drawdown_rate']
+
+        # seed_ratio 계산
+        seed_ratio = get_seed_ratio_by_drawdown(
+            drawdown_rate=drawdown_rate,
+            interval_rate=drop_interval_rate,
+            max_count=MAX_COUNT
+        )
+
+        # 목표 시드 계산
+        target_seed = bot_info.dynamic_seed_max * seed_ratio
+
+        if target_seed <= 0:
+            return None
+
+        return {
+            'target_seed': target_seed,
+            'trigger': f"고점대비 {drawdown_rate * 100:.1f}% 하락 (ratio: {seed_ratio * 100:.0f}%)"
+        }

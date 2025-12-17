@@ -16,10 +16,12 @@ from data.external import send_message_sync
 from data.persistence.sqlalchemy.core.session_factory import SessionFactory
 from presentation.scheduler.trading_jobs import TradingJobs
 from presentation.scheduler.message_jobs import MessageJobs
+from data.external.market_data import MarketIndicatorRepositoryImpl
 from usecase.order_usecase import OrderUsecase
 from usecase.trading_usecase import TradingUsecase
 from usecase.portfolio_status_usecase import PortfolioStatusUsecase
 from usecase.bot_management_usecase import BotManagementUsecase
+from usecase.market_usecase import MarketUsecase
 
 # KST 시간대 명시 (서버 다른 프로그램과 충돌 방지)
 KST = pytz.timezone('Asia/Seoul')
@@ -78,10 +80,15 @@ def _initialize_dependencies() -> tuple[SessionFactory, TradingJobs, MessageJobs
         order_repo=order_repo,
         hantoo_service=hantoo_service,
     )
+    market_usecase = MarketUsecase(
+        market_indicator_repo=MarketIndicatorRepositoryImpl(),
+        hantoo_service=hantoo_service,
+    )
     bot_management_usecase = BotManagementUsecase(
         bot_info_repo=bot_info_repo,
         trade_repo=trade_repo,
         hantoo_service=hantoo_service,
+        market_usecase=market_usecase,
     )
 
     # TradingJobs 초기화

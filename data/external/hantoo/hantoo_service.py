@@ -48,8 +48,8 @@ class HantooService:
         # 테스트 모드일 경우 테스트 가격 반환
         if self.test_mode:
             test_prices = {
-                "TQQQ": 56.0,  # %지점가(54.82) < 56 < 익절가(58.82)
-                "SOXL": 25.0,
+                "TQQQ": 52.33,  # %지점가(54.82) < 56 < 익절가(58.82)
+                "SOXL": 40.46,
                 "LABU": 15.0,
                 "SPY": 550.0,
                 "QQQ": 400.0,
