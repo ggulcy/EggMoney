@@ -174,6 +174,87 @@ def delete_trade():
         return jsonify({"error": str(e)}), 500
 
 
+@trade_bp.route('/estimate_capital_gains_tax_fee', methods=['POST'])
+@require_web_auth
+def estimate_capital_gains_tax_fee():
+    """양도세처리 예상 수수료 조회"""
+    try:
+        data = request.get_json()
+        name = data.get('name', '').strip()
+
+        if not name:
+            return jsonify({"error": "Name required"}), 400
+
+        # TradingUsecase 생성
+        session_factory = SessionFactory()
+        session = session_factory.create_session()
+        trade_repo = SQLAlchemyTradeRepository(session)
+        hantoo_service = HantooService(test_mode=item.is_test)
+
+        trading_usecase = TradingUsecase(
+            bot_info_repo=SQLAlchemyBotInfoRepository(session),
+            trade_repo=trade_repo,
+            history_repo=SQLAlchemyHistoryRepository(session),
+            order_repo=SQLAlchemyOrderRepository(session),
+            hantoo_service=hantoo_service
+        )
+
+        result = trading_usecase.estimate_capital_gains_tax_fee(name)
+
+        if not result:
+            return jsonify({"error": f"[{name}] Trade를 찾을 수 없거나 수량이 없습니다"}), 404
+
+        return jsonify(result), 200
+
+    except Exception as e:
+        print(f"Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@trade_bp.route('/capital_gains_tax', methods=['POST'])
+@require_web_auth
+def capital_gains_tax():
+    """양도세처리 실행"""
+    try:
+        data = request.get_json()
+        name = data.get('name', '').strip()
+
+        if not name:
+            return jsonify({"error": "Name required"}), 400
+
+        # TradingUsecase 생성
+        session_factory = SessionFactory()
+        session = session_factory.create_session()
+        trade_repo = SQLAlchemyTradeRepository(session)
+        hantoo_service = HantooService(test_mode=item.is_test)
+
+        trading_usecase = TradingUsecase(
+            bot_info_repo=SQLAlchemyBotInfoRepository(session),
+            trade_repo=trade_repo,
+            history_repo=SQLAlchemyHistoryRepository(session),
+            order_repo=SQLAlchemyOrderRepository(session),
+            hantoo_service=hantoo_service
+        )
+
+        result = trading_usecase.execute_capital_gains_tax_wash(name)
+
+        if not result:
+            return jsonify({"error": f"[{name}] 양도세처리 실패"}), 500
+
+        return jsonify({
+            "message": f"[{name}] 양도세처리 완료",
+            "result": result
+        }), 200
+
+    except Exception as e:
+        print(f"Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
 @trade_bp.route('/force_sell', methods=['POST'])
 @require_web_auth
 def force_sell():

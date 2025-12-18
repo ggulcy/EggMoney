@@ -475,6 +475,39 @@
         .trade-accordion-content .trade-header {
             display: none;
         }
+
+        /* 버튼 영역 모바일 대응 */
+        .trade-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .trade-actions button {
+            flex: 0 0 auto;
+        }
+
+        @media (max-width: 768px) {
+            .trade-actions {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+            }
+
+            .trade-actions button {
+                width: 100%;
+                padding: 12px 8px;
+                font-size: 0.85rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .trade-actions button {
+                padding: 10px 6px;
+                font-size: 0.8rem;
+            }
+        }
     </style>
     <script>
         // 로딩 표시
@@ -695,6 +728,88 @@
                     }
                 }
             }
+        }
+
+        // 양도세처리
+        function handleCapitalGainsTax(name) {
+            showLoading();
+
+            // 1. 예상 수수료 조회
+            fetch('/estimate_capital_gains_tax_fee', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name: name})
+            })
+                .then(response => response.json())
+                .then(data => {
+                    hideLoading();
+
+                    if (data.error) {
+                        alert(data.error);
+                        return;
+                    }
+
+                    // 2. 예상 수수료 확인
+                    const confirmMsg = `[${name}] 양도세처리\n` +
+                        `━━━━━━━━━━━━━━━━━━━━\n` +
+                        `심볼: ${data.symbol}\n` +
+                        `수량: ${data.amount.toLocaleString()}개\n` +
+                        `현재가: $${data.current_price.toLocaleString()}\n` +
+                        `━━━━━━━━━━━━━━━━━━━━\n` +
+                        `총 거래금액: $${data.total_value.toLocaleString()}\n` +
+                        `예상 수수료: $${data.estimated_fee.toLocaleString()} (₩${data.estimated_fee_krw.toLocaleString()})\n` +
+                        `━━━━━━━━━━━━━━━━━━━━\n` +
+                        `⚠️ 매수/매도 스프레드로 인해\n` +
+                        `추가 비용이 발생할 수 있습니다.\n` +
+                        `━━━━━━━━━━━━━━━━━━━━\n` +
+                        `30개 단위로 매도 후 매수합니다.\n` +
+                        `진행하시겠습니까?`;
+
+                    if (!confirm(confirmMsg)) {
+                        return;
+                    }
+
+                    // 3. 실행
+                    showLoading();
+                    fetch('/capital_gains_tax', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({name: name})
+                    })
+                        .then(response => response.json())
+                        .then(result => {
+                            hideLoading();
+
+                            if (result.error) {
+                                alert(result.error);
+                                return;
+                            }
+
+                            // 4. 결과 표시
+                            const r = result.result;
+
+                            const resultMsg = `✅ [${name}] 양도세처리 완료\n` +
+                                `━━━━━━━━━━━━━━━━━━━━\n` +
+                                `📉 총 매도: $${r.total_sell_value.toLocaleString()}\n` +
+                                `📈 총 매수: $${r.total_buy_value.toLocaleString()}\n` +
+                                `━━━━━━━━━━━━━━━━━━━━\n` +
+                                `💸 스프레드 비용: $${r.spread_cost.toLocaleString()}\n` +
+                                `💰 거래 수수료: $${r.actual_fee.toLocaleString()} (0.09%)\n` +
+                                `━━━━━━━━━━━━━━━━━━━━\n` +
+                                `📊 총 비용: $${r.total_cost.toLocaleString()} (₩${r.total_cost_krw.toLocaleString()})`;
+
+                            alert(resultMsg);
+                            location.reload();
+                        })
+                        .catch(error => {
+                            hideLoading();
+                            alert('Error: ' + error);
+                        });
+                })
+                .catch(error => {
+                    hideLoading();
+                    alert('Error: ' + error);
+                });
         }
 
         // Trade 삭제
@@ -997,11 +1112,12 @@
             </div>
 
             <div class="trade-actions">
-                <button type="button" onclick="saveTrade(this)" class="btn-success">💾 Save</button>
+                <button type="button" onclick="saveTrade(this)" class="btn-success">💾 저장</button>
+                <button type="button" onclick="deleteTrade('{{ trade.name }}')" class="btn-danger">🗑️ 삭제</button>
                 {% if trade.symbol != 'RP' %}
-                <button type="button" onclick="handleForceSell('{{ trade.name }}')" class="btn-warning">📉 Force Sell</button>
+                <button type="button" onclick="handleForceSell('{{ trade.name }}')" class="btn-warning">📉 강제 매도</button>
+                <button type="button" onclick="handleCapitalGainsTax('{{ trade.name }}')" class="btn-info">📋 양도세처리</button>
                 {% endif %}
-                <button type="button" onclick="deleteTrade('{{ trade.name }}')" class="btn-danger">🗑️ Delete</button>
             </div>
         </div>
         {% endfor %}

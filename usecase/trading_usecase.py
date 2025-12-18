@@ -2,7 +2,7 @@
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 
-from config import util
+from config import util, item
 from data.external import send_message_sync
 from data.external.hantoo.hantoo_service import HantooService
 from domain.entities.bot_info import BotInfo
@@ -217,6 +217,205 @@ class TradingUsecase:
             f"  - {buy_order.name}: Trade/History 저장 완료\n"
             f"  - {sell_order.name}: Trade/History 저장 완료"
         )
+
+    def estimate_capital_gains_tax_fee(self, name: str) -> Optional[Dict[str, Any]]:
+        """
+        양도세처리 예상 수수료 조회
+
+        Args:
+            name: Trade 이름
+
+        Returns:
+            {
+                'amount': 보유 수량,
+                'symbol': 심볼,
+                'current_price': 현재가,
+                'total_value': 총 거래금액 (매도+매수),
+                'estimated_fee': 예상 수수료 (0.09%)
+            }
+        """
+        # 1. Trade 조회
+        trade = self.trade_repo.find_by_name(name)
+        if not trade:
+            return None
+
+        amount = int(trade.amount)
+        symbol = trade.symbol
+
+        if amount <= 0:
+            return None
+
+        # 2. 현재가 조회
+        current_price = self.hantoo_service.get_price(symbol)
+        if not current_price:
+            return None
+
+        # 3. 예상 수수료 계산
+        # 총 거래금액 = 현재가 × 수량 × 2 (매도 + 매수)
+        total_value = current_price * amount * 2
+        estimated_fee = total_value * 0.0009  # 0.09%
+
+        # 4. 환율 조회
+        usd_krw = util.get_naver_exchange_rate()
+
+        return {
+            'amount': amount,
+            'symbol': symbol,
+            'current_price': current_price,
+            'total_value': round(total_value, 2),
+            'estimated_fee': round(estimated_fee, 2),
+            'usd_krw': usd_krw,
+            'estimated_fee_krw': round(estimated_fee * usd_krw, 0)
+        }
+
+    def execute_capital_gains_tax_wash(self, name: str) -> Optional[Dict[str, Any]]:
+        """
+        양도세처리 실행 (30개 단위 매도 후 매수)
+
+        DB 저장 없이 실제 거래만 실행
+
+        Args:
+            name: Trade 이름
+
+        Returns:
+            {
+                'amount': 처리 수량,
+                'symbol': 심볼,
+                'sell_results': 매도 결과 리스트,
+                'buy_results': 매수 결과 리스트,
+                'total_sell_value': 총 매도 금액,
+                'total_buy_value': 총 매수 금액,
+                'actual_fee': 실제 수수료
+            }
+        """
+        BATCH_SIZE = 30
+        FEE_RATE = 0.0009  # 0.09%
+
+        # 1. Trade 조회
+        trade = self.trade_repo.find_by_name(name)
+        if not trade:
+            send_message_sync(f"❌ [{name}] Trade를 찾을 수 없습니다")
+            return None
+
+        amount = int(trade.amount)
+        symbol = trade.symbol
+
+        if amount <= 0:
+            send_message_sync(f"❌ [{name}] 보유 수량이 없습니다")
+            return None
+
+        # 2. 배치 분할 (30개 단위)
+        batches = []
+        remaining = amount
+        while remaining > 0:
+            batch_size = min(BATCH_SIZE, remaining)
+            batches.append(batch_size)
+            remaining -= batch_size
+
+        send_message_sync(
+            f"📋 [{name}] 양도세처리 시작\n"
+            f"  - 심볼: {symbol}\n"
+            f"  - 총 수량: {amount}개\n"
+            f"  - 배치: {batches}"
+        )
+
+        # 3. 매도 실행
+        sell_results = []
+        for i, batch_amount in enumerate(batches):
+            # 첫 번째 거래가 아니면 3초 대기 (테스트 모드에서는 스킵)
+            if i > 0 and not item.is_test:
+                time.sleep(3)
+
+            request_price = self.hantoo_service.get_price(symbol)
+            if not request_price:
+                send_message_sync(f"❌ [{name}] 매도 {i+1}/{len(batches)} 현재가 조회 실패")
+                continue
+
+            result = self.hantoo_service.sell(
+                symbol=symbol,
+                amount=batch_amount,
+                request_price=request_price
+            )
+
+            if result:
+                sell_results.append({
+                    'amount': result.amount,
+                    'unit_price': result.unit_price,
+                    'total_price': result.total_price
+                })
+                send_message_sync(
+                    f"📉 [{name}] 매도 {i+1}/{len(batches)} 완료: "
+                    f"{result.amount}개 × ${result.unit_price:,.2f} = ${result.total_price:,.2f}"
+                )
+            else:
+                send_message_sync(f"❌ [{name}] 매도 {i+1}/{len(batches)} 실패")
+
+        # 4. 매수 실행
+        buy_results = []
+        for i, batch_amount in enumerate(batches):
+            # 매 거래마다 3초 대기 (테스트 모드에서는 스킵)
+            if not item.is_test:
+                time.sleep(3)
+
+            request_price = self.hantoo_service.get_price(symbol)
+            if not request_price:
+                send_message_sync(f"❌ [{name}] 매수 {i+1}/{len(batches)} 현재가 조회 실패")
+                continue
+
+            result = self.hantoo_service.buy(
+                symbol=symbol,
+                amount=batch_amount,
+                request_price=request_price
+            )
+
+            if result:
+                buy_results.append({
+                    'amount': result.amount,
+                    'unit_price': result.unit_price,
+                    'total_price': result.total_price
+                })
+                send_message_sync(
+                    f"📈 [{name}] 매수 {i+1}/{len(batches)} 완료: "
+                    f"{result.amount}개 × ${result.unit_price:,.2f} = ${result.total_price:,.2f}"
+                )
+            else:
+                send_message_sync(f"❌ [{name}] 매수 {i+1}/{len(batches)} 실패")
+
+        # 5. 결과 집계
+        total_sell_value = sum(r['total_price'] for r in sell_results)
+        total_buy_value = sum(r['total_price'] for r in buy_results)
+        total_value = total_sell_value + total_buy_value
+        actual_fee = total_value * FEE_RATE
+        spread_cost = total_buy_value - total_sell_value
+        total_cost = spread_cost + actual_fee
+
+        # 환율 조회
+        usd_krw = util.get_naver_exchange_rate()
+
+        send_message_sync(
+            f"✅ [{name}] 양도세처리 완료\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"📉 총 매도: ${total_sell_value:,.2f}\n"
+            f"📈 총 매수: ${total_buy_value:,.2f}\n"
+            f"💸 스프레드: ${spread_cost:,.2f}\n"
+            f"💰 수수료: ${actual_fee:,.2f} (0.09%)\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"📊 총 비용: ${total_cost:,.2f} (₩{total_cost * usd_krw:,.0f})"
+        )
+
+        return {
+            'amount': amount,
+            'symbol': symbol,
+            'sell_results': sell_results,
+            'buy_results': buy_results,
+            'total_sell_value': round(total_sell_value, 2),
+            'total_buy_value': round(total_buy_value, 2),
+            'actual_fee': round(actual_fee, 2),
+            'usd_krw': usd_krw,
+            'spread_cost': round(spread_cost, 2),
+            'total_cost': round(total_cost, 2),
+            'total_cost_krw': round(total_cost * usd_krw, 0)
+        }
 
     # ===== Private Methods (내부 헬퍼) =====
 
