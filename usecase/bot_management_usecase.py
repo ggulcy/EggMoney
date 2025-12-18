@@ -252,7 +252,7 @@ class BotManagementUsecase:
             항상: {'drop_rate': 하락률, 'applied': 적용여부, 'target_seed': 목표시드(적용시), 'trigger': 트리거사유}
             가격 조회 실패 시: None
         """
-        MULTIPLIER = 1.5
+        MULTIPLIER = 1.3
 
         if self.hantoo_service is None:
             return None

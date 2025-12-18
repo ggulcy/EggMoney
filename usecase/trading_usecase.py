@@ -1,4 +1,5 @@
 """거래 실행 Usecase - TWAP 주문 실행 + DB 저장"""
+import time
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 
@@ -496,7 +497,7 @@ class TradingUsecase:
         request_amount = util.get_buy_amount(request_seed, request_price)
 
         # 요청 정보 출력
-        send_message_sync(f"[{order.name}] 구매 주문을 요청합니다\n"
+        print(f"[{order.name}] 구매 주문을 요청합니다\n"
                         f"  📊 요청 정보:\n"
                         f"    - 이름: {order.name}\n"
                         f"    - 심볼: {order.symbol}\n"
@@ -533,7 +534,7 @@ class TradingUsecase:
 
         # 결과 출력
         if trade_result:
-            send_message_sync(f"✅ 개별 거래 결과 ({current_trade_num}/{order.total_count})\n"
+            send_message_sync(f"✅ [{order.name}] 개별 거래 결과 ({current_trade_num}/{order.total_count})\n"
                             f"  - 거래유형: {trade_result.trade_type.value}\n"
                             f"  - 체결개수: {trade_result.amount}\n"
                             f"  - 체결가: ${trade_result.unit_price:,.2f}")
@@ -605,7 +606,7 @@ class TradingUsecase:
 
         # 결과 출력
         if trade_result:
-            send_message_sync(f"✅ 개별 거래 결과 ({current_trade_num}/{order.total_count})\n"
+            send_message_sync(f"✅ [{order.name}] 개별 거래 결과 ({current_trade_num}/{order.total_count})\n"
                             f"  - 거래유형: {trade_result.trade_type.value}\n"
                             f"  - 체결개수: {trade_result.amount}\n"
                             f"  - 체결가: ${trade_result.unit_price:,.2f}")
@@ -679,7 +680,7 @@ class TradingUsecase:
             send_message_sync(f"[{bot_info.name}] 거래를 찾을 수 없어 종료합니다")
             return
 
-        msg = (f"[거래완료] {bot_info.symbol}({trade_result.trade_type})\n"
+        msg = (f"[거래기록] {bot_info.symbol}({trade_result.trade_type})\n"
                f"총구입금액 : {float(trade_result.total_price):.2f}$\n"
                f"구매단가 : {float(trade_result.unit_price):.2f}$\n"
                f"수량 : {float(trade_result.amount):.0f}개")

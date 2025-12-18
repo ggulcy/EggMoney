@@ -33,7 +33,7 @@ def simulate_daily_drop_seed(
         current_price: float
 ) -> Optional[Dict[str, Any]]:
     """1단계: 전일대비 하락 시뮬레이션"""
-    MULTIPLIER = 1.5
+    MULTIPLIER = 1.3
 
     if prev_close <= 0:
         return None

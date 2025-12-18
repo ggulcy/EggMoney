@@ -31,10 +31,10 @@ def get_msg_times():
 
     if now_ny.dst().total_seconds() != 0:
         # 서머타임 적용 중
-        return ["17:00"]
+        return ["05:00"]
     else:
         # 서머타임 비적용
-        return ["18:00"]
+        return ["06:00"]
 
 
 def get_twap_times():

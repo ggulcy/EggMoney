@@ -224,7 +224,6 @@ def start_scheduler():
         # 초기화 작업 (첫 호출에만)
         print("\n📨 초기화 작업 실행...")
         send_message_sync(f"프로그램을 재시작합니다 {item.is_test}")
-        _message_jobs.daily_job()
     else:
         print("♻️ 재호출 - 기존 Dependencies 재사용 (스케줄만 재등록)")
         send_message_sync("설정이 변경되어 스케줄을 재등록합니다")

@@ -34,7 +34,7 @@ def _get_default_values():
     return {
         TRADE_TIME: "00:05",
         TWAP_TIME: get_twap_times(),
-        TWAP_COUNT: 3
+        TWAP_COUNT: 5
     }
 
 
@@ -105,7 +105,7 @@ def read(key):
             return get_twap_times()
         elif key == "TWAP_COUNT":
             twap_count = db.get(key)
-            return twap_count if twap_count else 3
+            return twap_count if twap_count else 5
         elif key == "IS_DYNAMIC_SEED_APPLY_TODAY":
             is_apply = db.get(key)
             return is_apply if is_apply else False
