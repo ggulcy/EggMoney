@@ -43,3 +43,16 @@ class OrderRepository(ABC):
     def remove_trade_result(self, name: str, trade_result: Dict[str, Any]) -> bool:
         """특정 주문의 trade_result_list에서 거래 결과 제거 (성공 시 True)"""
         pass
+
+    @abstractmethod
+    def find_all_by_symbol(self, symbol: str) -> List[Order]:
+        """
+        같은 symbol의 모든 Order 조회
+
+        Args:
+            symbol: 종목 심볼 (예: "TQQQ")
+
+        Returns:
+            해당 symbol의 Order 리스트
+        """
+        pass

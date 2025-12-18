@@ -15,6 +15,7 @@ from domain.repositories.trade_repository import TradeRepository
 from domain.value_objects.order_type import OrderType
 from domain.value_objects.trade_result import TradeResult
 from domain.value_objects.trade_type import TradeType
+from domain.value_objects.netting_pair import NettingPair
 
 
 class TradingUsecase:
@@ -138,6 +139,84 @@ class TradingUsecase:
             # 주문 완료 시 DB 저장
             if order.trade_count == 0:
                 self._complete_trade(order)
+
+    def execute_netting(self, netting_pair: NettingPair) -> None:
+        """
+        장부거래 실행 (API 호출 없이 내부 정산)
+
+        Args:
+            netting_pair: 상쇄할 Buy/Sell Order 쌍 + 수량 + 현재가
+
+        처리 내용:
+        1. 매수측 TradeResult 생성 → _save_buy_to_db() 호출
+        2. 매도측 TradeResult 생성 → _save_sell_to_db() 호출
+        3. 텔레그램 메시지 발송
+
+        Note:
+            Order 업데이트는 OrderUsecase.update_order_after_netting()에서 처리
+        """
+        buy_order = netting_pair.buy_order
+        sell_order = netting_pair.sell_order
+        amount = netting_pair.netting_amount
+        price = netting_pair.current_price
+
+        # 봇 정보 조회
+        buy_bot_info = self.bot_info_repo.find_by_name(buy_order.name)
+        sell_bot_info = self.bot_info_repo.find_by_name(sell_order.name)
+
+        if not buy_bot_info or not sell_bot_info:
+            send_message_sync(
+                f"⚠️ 장부거래 실패: 봇 정보 조회 실패\n"
+                f"  - 매수봇: {buy_order.name}\n"
+                f"  - 매도봇: {sell_order.name}"
+            )
+            return
+
+        # 장부거래 시작 메시지
+        send_message_sync(
+            f"🔄 [{buy_order.symbol}] 장부거래 시작\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"📈 매수: {buy_order.name} +{amount}개\n"
+            f"📉 매도: {sell_order.name} -{amount}개\n"
+            f"💰 단가: ${price:,.2f}\n"
+            f"💵 총액: ${amount * price:,.2f}\n"
+            f"━━━━━━━━━━━━━━━━━━━━"
+        )
+
+        # 1. 매수측 TradeResult 생성 및 DB 저장
+        buy_trade_result = TradeResult(
+            trade_type=TradeType(buy_order.order_type.value),  # BUY or BUY_FORCE
+            amount=amount,
+            unit_price=price,
+            total_price=round(amount * price, 2)
+        )
+        self._save_buy_to_db(buy_bot_info, buy_trade_result)
+
+        # 2. 매도측 TradeResult 생성 및 DB 저장
+        # 원래 order_type에 따라 trade_type 결정:
+        # - 부분 매도(SELL_1_4, SELL_3_4, SELL_PART): 원래 order_type 유지 → Trade 리밸런싱
+        # - 전체 매도(SELL): 주문서 소진 여부에 따라 결정
+        #   - 전량 소진 → SELL → Trade 삭제
+        #   - 부분 소진 → SELL_PART → Trade 리밸런싱
+        if sell_order.order_type.is_partial_sell():
+            sell_trade_type = TradeType(sell_order.order_type.value)
+        else:
+            is_full_sell = sell_order.remain_value - amount <= 0
+            sell_trade_type = TradeType.SELL if is_full_sell else TradeType.SELL_PART
+
+        sell_trade_result = TradeResult(
+            trade_type=sell_trade_type,
+            amount=amount,
+            unit_price=price,
+            total_price=round(amount * price, 2)
+        )
+        self._save_sell_to_db(sell_bot_info, sell_trade_result)
+
+        send_message_sync(
+            f"✅ [{buy_order.symbol}] 장부거래 완료\n"
+            f"  - {buy_order.name}: Trade/History 저장 완료\n"
+            f"  - {sell_order.name}: Trade/History 저장 완료"
+        )
 
     # ===== Private Methods (내부 헬퍼) =====
 

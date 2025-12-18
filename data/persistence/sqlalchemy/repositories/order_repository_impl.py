@@ -130,6 +130,14 @@ class SQLAlchemyOrderRepository(OrderRepository):
             self.session.rollback()
             raise e
 
+    def find_all_by_symbol(self, symbol: str) -> List[Order]:
+        """같은 symbol의 모든 Order 조회"""
+        models = self.session.query(OrderModel).filter(
+            OrderModel.symbol == symbol.strip().upper()
+        ).order_by(OrderModel.name.asc()).all()
+
+        return [self._to_entity(model) for model in models]
+
     def _to_entity(self, model: OrderModel) -> Order:
         """ORM Model → Entity 변환 (Mapper)"""
         return Order(

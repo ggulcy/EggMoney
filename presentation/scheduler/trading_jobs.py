@@ -6,7 +6,6 @@ egg/main.py의 job(), twap_job() 이관
 """
 import time
 from datetime import date
-from typing import Optional
 
 from config import item
 from config.util import is_trade_date
@@ -83,6 +82,62 @@ class TradingJobs:
                 self._execute_trade_for_bot(bot_info)
                 if not item.is_test:
                     time.sleep(5)
+
+        # 장부거래 상쇄 처리
+        self._execute_netting_if_needed()
+
+    def _execute_netting_if_needed(self) -> None:
+        """
+        주문서 상쇄 처리 (장부거래)
+
+        make_order_job() 완료 후 호출되어:
+        1. 같은 symbol의 매수/매도 Order 쌍 탐색
+        2. 가능한 모든 쌍에 대해 장부거래 실행
+        3. Order 업데이트 (remain_value 차감 또는 삭제)
+        """
+        send_message_sync("🔍 장부거래 가능한 주문서 탐색 중...")
+
+        # 1. 상쇄 가능한 쌍 탐색
+        netting_pairs = self.order_usecase.find_netting_orders()
+
+        if not netting_pairs:
+            send_message_sync("ℹ️ 장부거래 대상 없음 (같은 symbol 매수/매도 쌍 없음)")
+            return
+
+        send_message_sync(
+            f"📋 장부거래 대상 발견: {len(netting_pairs)}쌍\n"
+            f"상세: {[(p.buy_order.name, p.sell_order.name, p.netting_amount) for p in netting_pairs]}"
+        )
+
+        # 2. 각 쌍에 대해 장부거래 실행
+        for pair in netting_pairs:
+            try:
+                # DB 저장 (Trade, History)
+                self.trading_usecase.execute_netting(pair)
+
+                # Order 업데이트 (OrderUsecase)
+                self.order_usecase.update_order_after_netting(
+                    pair.buy_order,
+                    pair.netting_amount,
+                    pair.current_price
+                )
+                self.order_usecase.update_order_after_netting(
+                    pair.sell_order,
+                    pair.netting_amount,
+                    pair.current_price
+                )
+
+            except Exception as e:
+                send_message_sync(
+                    f"❌ 장부거래 실패\n"
+                    f"  - 매수: {pair.buy_order.name}\n"
+                    f"  - 매도: {pair.sell_order.name}\n"
+                    f"  - 오류: {str(e)}"
+                )
+                # 실패해도 다음 쌍 계속 처리
+                continue
+
+        send_message_sync("✅ 장부거래 처리 완료")
 
     def _execute_trade_for_bot(self, bot_info: BotInfo) -> None:
         """

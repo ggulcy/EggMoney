@@ -1,6 +1,6 @@
 """주문서 생성 Usecase - 매도/매수 조건 판단 및 주문서 생성/저장"""
 from datetime import datetime
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List, Dict
 
 from config import util
 from config.item import get_drop_interval_rate
@@ -15,6 +15,7 @@ from domain.repositories.order_repository import OrderRepository
 from domain.repositories.trade_repository import TradeRepository
 from domain.value_objects.order_type import OrderType
 from domain.value_objects.trade_type import TradeType
+from domain.value_objects.netting_pair import NettingPair
 
 
 class OrderUsecase:
@@ -464,3 +465,153 @@ class OrderUsecase:
             return point_price, t, point
         else:
             return None, 0, 0
+
+    # ===== Netting (장부거래) Methods =====
+
+    def find_netting_orders(self) -> List[NettingPair]:
+        """
+        같은 symbol의 Buy/Sell Order 쌍 탐색 (Greedy 1:1 매칭)
+
+        알고리즘:
+        1. 모든 Order를 symbol별로 그룹핑
+        2. 같은 symbol에 Buy와 Sell이 둘 다 있으면:
+           - 반복: 상쇄 가능한 쌍이 없을 때까지
+             - 모든 (Buy, Sell) 쌍 중 가장 많이 상쇄되는 쌍 선택
+             - NettingPair 리스트에 추가
+             - 해당 Order의 remain_value 임시 차감
+        3. 현재가 조회하여 NettingPair에 포함
+
+        Returns:
+            List[NettingPair]: 상쇄할 (buy, sell, amount, price) 쌍 리스트
+        """
+        orders = self.order_repo.find_all()
+
+        if not orders:
+            return []
+
+        # 1. symbol별 그룹핑
+        symbol_groups: Dict[str, Dict[str, List[Order]]] = {}
+        for order in orders:
+            if order.symbol not in symbol_groups:
+                symbol_groups[order.symbol] = {'buy': [], 'sell': []}
+
+            if order.is_buy_order():
+                symbol_groups[order.symbol]['buy'].append(order)
+            elif order.is_sell_order():
+                symbol_groups[order.symbol]['sell'].append(order)
+
+        netting_pairs = []
+
+        # 2. 각 symbol에 대해 상쇄 쌍 찾기
+        for symbol, groups in symbol_groups.items():
+            buy_orders = groups['buy']
+            sell_orders = groups['sell']
+
+            # Buy와 Sell 둘 다 있어야 상쇄 가능
+            if not buy_orders or not sell_orders:
+                continue
+
+            # 현재가 조회 (symbol당 한 번만)
+            current_price = self.hantoo_service.get_price(symbol)
+            if not current_price:
+                send_message_sync(f"⚠️ [{symbol}] 장부거래 현재가 조회 실패")
+                continue
+
+            # 임시 remain_value 추적 (실제 Order 수정 없이 계산용)
+            # 매수: 금액 → 수량으로 변환
+            buy_remains = {
+                o.name: self._get_buy_amount_from_seed(o.remain_value, current_price)
+                for o in buy_orders
+            }
+            # 매도: 수량 그대로
+            sell_remains = {o.name: int(o.remain_value) for o in sell_orders}
+
+            # 3. Greedy 반복: 가장 많이 상쇄되는 쌍 선택
+            while True:
+                best_pair = None
+                best_amount = 0
+
+                for buy in buy_orders:
+                    for sell in sell_orders:
+                        buy_amt = buy_remains.get(buy.name, 0)
+                        sell_amt = sell_remains.get(sell.name, 0)
+
+                        if buy_amt <= 0 or sell_amt <= 0:
+                            continue
+
+                        netting_amt = min(buy_amt, sell_amt)
+                        if netting_amt > best_amount:
+                            best_amount = netting_amt
+                            best_pair = (buy, sell)
+
+                # 더 이상 상쇄 가능한 쌍 없음
+                if best_pair is None or best_amount <= 0:
+                    break
+
+                buy, sell = best_pair
+
+                # NettingPair 생성
+                netting_pairs.append(NettingPair(
+                    buy_order=buy,
+                    sell_order=sell,
+                    netting_amount=best_amount,
+                    current_price=current_price
+                ))
+
+                # 임시 remain 차감 (다음 반복에서 고려)
+                buy_remains[buy.name] -= best_amount
+                sell_remains[sell.name] -= best_amount
+
+        return netting_pairs
+
+    def _get_buy_amount_from_seed(self, seed: float, current_price: float) -> int:
+        """매수 금액(seed)을 수량으로 변환"""
+        if current_price <= 0:
+            return 0
+        return int(seed / current_price)
+
+    def update_order_after_netting(
+        self,
+        order: Order,
+        netted_amount: int,
+        current_price: float
+    ) -> None:
+        """
+        장부거래 후 Order 업데이트
+
+        Args:
+            order: 업데이트할 주문서
+            netted_amount: 상쇄된 수량 (개)
+            current_price: 상쇄 시 사용된 현재가
+
+        Note:
+            - 매수 Order: remain_value는 금액($) → 금액 차감
+            - 매도 Order: remain_value는 수량(개) → 수량 차감
+        """
+        if order.is_buy_order():
+            # 매수: 금액 차감 (수량 × 단가)
+            deducted_value = netted_amount * current_price
+            order.remain_value -= deducted_value
+
+            send_message_sync(
+                f"📝 [{order.name}] 매수 주문서 장부거래 반영\n"
+                f"  - 상쇄 수량: {netted_amount}개\n"
+                f"  - 차감 금액: ${deducted_value:,.2f}\n"
+                f"  - 남은 금액: ${order.remain_value:,.2f}"
+            )
+        else:
+            # 매도: 수량 차감
+            order.remain_value -= netted_amount
+
+            send_message_sync(
+                f"📝 [{order.name}] 매도 주문서 장부거래 반영\n"
+                f"  - 상쇄 수량: {netted_amount}개\n"
+                f"  - 남은 수량: {int(order.remain_value)}개"
+            )
+
+        # Order 저장 또는 삭제
+        if order.remain_value <= 0:
+            self.order_repo.delete_by_name(order.name)
+            send_message_sync(f"🗑️ [{order.name}] 주문서 전량 상쇄 → 삭제 완료")
+        else:
+            self.order_repo.save(order)
