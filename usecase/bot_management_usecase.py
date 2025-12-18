@@ -1,7 +1,7 @@
 """봇 관리 Usecase - 봇 정보 조회/수정 및 자동화 로직"""
 from typing import List, Dict, Any, Optional, Tuple, TYPE_CHECKING
 
-from config import item, util, key_store
+from config import item, util
 from config.item import get_drop_interval_rate
 from config.util import get_seed_ratio_by_drawdown
 from data.external import send_message_sync

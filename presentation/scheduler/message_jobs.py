@@ -208,8 +208,12 @@ class MessageJobs:
         print(f"📊 일일 작업 시작: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print("=" * 80)
 
+        self.bot_management_usecase.check_bot_sync()
+        self.bot_management_usecase.apply_dynamic_seed()
+
         # 1. 텔레그램 메시지 전송
         self.send_all_status()
+
 
         print("=" * 80)
         print("✅ 일일 작업 완료")

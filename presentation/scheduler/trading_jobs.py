@@ -61,8 +61,6 @@ class TradingJobs:
             send_message_sync("설정한 거래요일이 아니라 종료 합니다")
             return
 
-        self.bot_management_usecase.check_bot_sync()
-        self.bot_management_usecase.apply_dynamic_seed()
         # 오래된 주문서 삭제 (전날 미완료 주문 등)
 
         # 혹시 남아있는 완료 주문 체크 (비정상 상황)
