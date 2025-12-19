@@ -534,12 +534,12 @@ class TradingUsecase:
 
         # 결과 출력
         if trade_result:
-            send_message_sync(f"✅ [{order.name}] 개별 거래 결과 ({current_trade_num}/{order.total_count})\n"
+            print(f"✅ [{order.name}] 개별 거래 결과 ({current_trade_num}/{order.total_count})\n"
                             f"  - 거래유형: {trade_result.trade_type.value}\n"
                             f"  - 체결개수: {trade_result.amount}\n"
                             f"  - 체결가: ${trade_result.unit_price:,.2f}")
         else:
-            send_message_sync(f"✅ 거래 결과: 거래 실패 or 거래가 없습니다 ({current_trade_num}/{order.total_count})")
+            print(f"✅ [{order.name}] 거래 결과: 거래 실패 or 거래가 없습니다 ({current_trade_num}/{order.total_count})")
 
         return order
 
@@ -684,7 +684,7 @@ class TradingUsecase:
                f"총구입금액 : {float(trade_result.total_price):.2f}$\n"
                f"구매단가 : {float(trade_result.unit_price):.2f}$\n"
                f"수량 : {float(trade_result.amount):.0f}개")
-        send_message_sync(msg)
+        print(msg)
 
         prev_trade = self.trade_repo.find_by_name(bot_info.name)
         re_balancing_trade = self.trade_repo.rebalance_trade(

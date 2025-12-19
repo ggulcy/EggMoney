@@ -227,7 +227,7 @@ class BotManagementUsecase:
                 # 시드 적용 안됐어도 전일대비 하락 정보 전송
                 drop_rate = step1_result['drop_rate']
                 send_message_sync(
-                    f"📊 [{bot_info.name}] 전일대비 {drop_rate * 100:.1f}% {'하락' if drop_rate >= 0 else '상승'}\n"
+                    f"📊 [{bot_info.name}] 전일대비 {abs(drop_rate * 100):.1f}% {'하락' if drop_rate >= 0 else '상승'}\n"
                     f"현재 시드: ${old_seed:,.2f} (적용 기준 미달)"
                 )
 
