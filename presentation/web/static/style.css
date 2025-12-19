@@ -21,34 +21,37 @@ body {
 
 /* ===== 페이지 헤더 ===== */
 .page-header {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
     align-items: center;
-    margin-bottom: 30px;
-    padding: 20px 30px;
+    margin-bottom: 20px;
+    padding: 16px 20px;
     background: white;
-    border-radius: 15px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.back-arrow {
+    font-size: 1.5rem;
+    color: #667eea;
+    text-decoration: none;
+    padding: 5px;
+    transition: transform 0.2s ease;
+}
+
+.back-arrow:hover {
+    transform: translateX(-3px);
+}
+
+.page-title {
+    text-align: center;
 }
 
 .page-title h1 {
-    font-size: 2rem;
+    margin: 0;
+    font-size: 1.2rem;
     color: #667eea;
-    font-weight: 700;
-}
-
-.back-link {
-    color: #667eea;
-    text-decoration: none;
-    font-size: 1rem;
-    font-weight: 500;
-    padding: 8px 16px;
-    border-radius: 8px;
-    transition: all 0.3s;
-}
-
-.back-link:hover {
-    background-color: #f0f4ff;
+    font-weight: 600;
 }
 
 /* ===== 카드 섹션 ===== */
@@ -758,7 +761,11 @@ input:checked + .slider:before {
 /* ===== 반응형 디자인 ===== */
 @media (max-width: 768px) {
     .page-header {
-        padding: 14px 20px;
+        padding: 12px 14px;
+    }
+
+    .page-title h1 {
+        font-size: 1rem;
     }
 
     .menu-grid {
@@ -796,15 +803,11 @@ input:checked + .slider:before {
     }
 
     .page-header {
-        padding: 12px 14px;
+        padding: 8px 10px;
     }
 
     .page-title h1 {
-        font-size: 1.3rem;
-    }
-
-    .back-link {
-        font-size: 0.85rem;
+        font-size: 0.95rem;
     }
 
     .section-title {
