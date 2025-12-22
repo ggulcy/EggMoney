@@ -170,7 +170,8 @@ def _create_msg_job(message_jobs: MessageJobs):
 
     def msg_job_impl():
         from datetime import datetime
-        print(f"\n📤 msg_job() called at {datetime.now()}")
+        if not is_trade_date():
+            return
 
         try:
             message_jobs.daily_job()

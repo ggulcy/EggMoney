@@ -629,6 +629,51 @@
             }
         }
 
+        /* 매도/매수 필터 체크박스 스타일 */
+        .type-filter-checkbox {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .type-filter-checkbox input[type="checkbox"] {
+            display: none;
+        }
+
+        .type-filter-label {
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border: 1.5px solid transparent;
+            transition: all 0.2s;
+            opacity: 0.4;
+        }
+
+        .type-filter-checkbox input[type="checkbox"]:checked + .type-filter-label {
+            opacity: 1;
+        }
+
+        .type-filter-label.sell {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-color: #c8e6c9;
+        }
+
+        .type-filter-checkbox input[type="checkbox"]:checked + .type-filter-label.sell {
+            border-color: #2e7d32;
+        }
+
+        .type-filter-label.buy {
+            background: #e3f2fd;
+            color: #1565c0;
+            border-color: #bbdefb;
+        }
+
+        .type-filter-checkbox input[type="checkbox"]:checked + .type-filter-label.buy {
+            border-color: #1565c0;
+        }
+
         /* 날짜 선택 버튼 스타일 */
         .date-select-btn {
             display: flex;
@@ -1136,11 +1181,24 @@
                 📜 History List
                 <span id="historyCountDisplay" style="font-size: 0.8em; color: #999; font-weight: 400;"></span>
             </div>
-            <!-- 날짜 선택 버튼 -->
-            <button class="date-select-btn" onclick="openDateModal()">
-                <span id="selectedDateDisplay">1개월</span>
-                <span class="date-select-icon">📅</span>
-            </button>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <!-- 매도/매수 필터 체크박스 -->
+                <div class="type-filter-group" style="display: flex; gap: 8px;">
+                    <label class="type-filter-checkbox">
+                        <input type="checkbox" id="filterSell" checked onchange="applyTypeFilter()">
+                        <span class="type-filter-label sell">매도</span>
+                    </label>
+                    <label class="type-filter-checkbox">
+                        <input type="checkbox" id="filterBuy" onchange="applyTypeFilter()">
+                        <span class="type-filter-label buy">매수</span>
+                    </label>
+                </div>
+                <!-- 날짜 선택 버튼 -->
+                <button class="date-select-btn" onclick="openDateModal()">
+                    <span id="selectedDateDisplay">1개월</span>
+                    <span class="date-select-icon">📅</span>
+                </button>
+            </div>
         </div>
 
         <!-- History 추가 버튼 -->
@@ -1197,6 +1255,7 @@
 <script>
     // ===== 날짜별 히스토리 로딩 =====
     let currentPreset = 'month';
+    let allHistoryData = []; // 전체 히스토리 데이터 저장
 
     function formatDate(date) {
         const year = date.getFullYear();
@@ -1311,7 +1370,6 @@
 
         const container = document.getElementById('historyContainer');
         const noHistoryMsg = document.getElementById('noHistoryMessage');
-        const countDisplay = document.getElementById('historyCountDisplay');
 
         container.innerHTML = '<div class="history-loading">로딩 중...</div>';
         noHistoryMsg.style.display = 'none';
@@ -1325,23 +1383,46 @@
                 return;
             }
 
-            const buyCount = data.history.filter(h => h.type === 'buy').length;
-            const sellCount = data.history.filter(h => h.type === 'sell').length;
-            countDisplay.textContent = `${buyCount}매수 / ${sellCount}매도`;
+            // 전체 데이터 저장
+            allHistoryData = data.history || [];
 
-            if (!data.history || data.history.length === 0) {
-                container.innerHTML = '';
-                noHistoryMsg.style.display = 'block';
-                return;
-            }
-
-            // 히스토리 렌더링
-            container.innerHTML = renderHistoryList(data.history);
+            // 필터 적용하여 렌더링
+            applyTypeFilter();
 
         } catch (error) {
             console.error('히스토리 로딩 오류:', error);
             container.innerHTML = '<div class="history-loading">로딩 실패</div>';
         }
+    }
+
+    function applyTypeFilter() {
+        const showSell = document.getElementById('filterSell').checked;
+        const showBuy = document.getElementById('filterBuy').checked;
+
+        const container = document.getElementById('historyContainer');
+        const noHistoryMsg = document.getElementById('noHistoryMessage');
+        const countDisplay = document.getElementById('historyCountDisplay');
+
+        // 필터링
+        const filteredHistory = allHistoryData.filter(h => {
+            if (h.type === 'sell' && showSell) return true;
+            if (h.type === 'buy' && showBuy) return true;
+            return false;
+        });
+
+        // 카운트 표시 (전체 기준)
+        const buyCount = allHistoryData.filter(h => h.type === 'buy').length;
+        const sellCount = allHistoryData.filter(h => h.type === 'sell').length;
+        countDisplay.textContent = `${buyCount}매수 / ${sellCount}매도`;
+
+        if (filteredHistory.length === 0) {
+            container.innerHTML = '';
+            noHistoryMsg.style.display = 'block';
+            return;
+        }
+
+        noHistoryMsg.style.display = 'none';
+        container.innerHTML = renderHistoryList(filteredHistory);
     }
 
     function renderHistoryList(historyList) {
