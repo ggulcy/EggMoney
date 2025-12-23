@@ -561,7 +561,7 @@
 
         @media (max-width: 480px) {
             .profit-monthly-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, 1fr);
                 gap: 8px;
             }
 
@@ -1021,10 +1021,6 @@
             const card = document.getElementById('year-card-' + year);
             if (card) {
                 card.classList.toggle('active');
-
-                // 확장 상태 저장
-                const isExpanded = card.classList.contains('active');
-                localStorage.setItem('yearExpanded_' + year, isExpanded);
             }
         }
 
@@ -1037,22 +1033,6 @@
                         this.classList.remove('active');
                     }
                 });
-            });
-
-            // 저장된 년도별 확장 상태 복원 (기본값: 현재 년도만 열림)
-            document.querySelectorAll('.profit-year-card').forEach(card => {
-                const year = card.getAttribute('data-year');
-                const isCurrentYear = card.getAttribute('data-current') === 'true';
-                const savedState = localStorage.getItem('yearExpanded_' + year);
-
-                // 저장된 상태가 있으면 그대로, 없으면 현재 년도만 열림
-                if (savedState !== null) {
-                    if (savedState === 'true') {
-                        card.classList.add('active');
-                    }
-                } else if (isCurrentYear) {
-                    card.classList.add('active');
-                }
             });
         });
     </script>
