@@ -5,14 +5,16 @@ from typing import Optional, Tuple, List, Dict
 from config import util
 from config.item import get_drop_interval_rate
 from config.key_store import read, TWAP_COUNT
-from data.external import send_message_sync
-from data.external.hantoo.hantoo_service import HantooService
 from domain.entities.bot_info import BotInfo
 from domain.entities.order import Order
-from domain.repositories.bot_info_repository import BotInfoRepository
-from domain.repositories.history_repository import HistoryRepository
-from domain.repositories.order_repository import OrderRepository
-from domain.repositories.trade_repository import TradeRepository
+from domain.repositories import (
+    BotInfoRepository,
+    TradeRepository,
+    HistoryRepository,
+    OrderRepository,
+    ExchangeRepository,
+    MessageRepository,
+)
 from domain.value_objects.order_type import OrderType
 from domain.value_objects.trade_type import TradeType
 from domain.value_objects.netting_pair import NettingPair
@@ -32,7 +34,8 @@ class OrderUsecase:
             trade_repo: TradeRepository,
             history_repo: HistoryRepository,
             order_repo: OrderRepository,
-            hantoo_service: HantooService
+            exchange_repo: ExchangeRepository,
+            message_repo: MessageRepository
     ):
         """
         주문서 생성 Usecase 초기화
@@ -42,13 +45,15 @@ class OrderUsecase:
             trade_repo: Trade 리포지토리
             history_repo: History 리포지토리 (오늘 매도 이력 확인)
             order_repo: Order 리포지토리 (오늘 매도 주문 확인)
-            hantoo_service: 한투 서비스 (가격 조회)
+            exchange_repo: 증권사 API 리포지토리
+            message_repo: 메시지 발송 리포지토리
         """
         self.bot_info_repo = bot_info_repo
         self.trade_repo = trade_repo
         self.history_repo = history_repo
         self.order_repo = order_repo
-        self.hantoo_service = hantoo_service
+        self.exchange_repo = exchange_repo
+        self.message_repo = message_repo
 
     # ===== Public Methods (Router/Scheduler에서 호출) =====
 
@@ -82,12 +87,12 @@ class OrderUsecase:
 
             self.order_repo.save(order)
 
-            send_message_sync(f"{order.name} 구매 요청에 대한 주문 리스트를 생성하였습니다\n"
+            self.message_repo.send_message(f"{order.name} 구매 요청에 대한 주문 리스트를 생성하였습니다\n"
                               f"분할 회수 : {order.trade_count}\n"
                               f"총 구매 금액 : {order.remain_value:,.2f}$")
 
         except ValueError as e:
-            send_message_sync(f"❌ [{bot_info.name}] 구매 주문서를 생성할 수 없습니다.\n"
+            self.message_repo.send_message(f"❌ [{bot_info.name}] 구매 주문서를 생성할 수 없습니다.\n"
                               f"이유: 기존 주문서에 미체결 주문(odno_list)이 남아있습니다.\n"
                               f"상세: {str(e)}")
 
@@ -121,12 +126,12 @@ class OrderUsecase:
 
             self.order_repo.save(order)
 
-            send_message_sync(f"{order.name} 판매 요청에 대한 주문 리스트를 생성하였습니다\n"
+            self.message_repo.send_message(f"{order.name} 판매 요청에 대한 주문 리스트를 생성하였습니다\n"
                               f"분할 회수 : {order.trade_count}\n"
                               f"총 판매 개수 : {order.remain_value}")
 
         except ValueError as e:
-            send_message_sync(f"❌ [{bot_info.name}] 판매 주문서를 생성할 수 없습니다.\n"
+            self.message_repo.send_message(f"❌ [{bot_info.name}] 판매 주문서를 생성할 수 없습니다.\n"
                               f"이유: 기존 주문서에 미체결 주문(odno_list)이 남아있습니다.\n"
                               f"상세: {str(e)}")
 
@@ -180,9 +185,9 @@ class OrderUsecase:
 
         # 현재 상태 조회
         point_price, t, point = self._get_point_price(bot_info)
-        cur_price = self.hantoo_service.get_price(bot_info.symbol)
+        cur_price = self.exchange_repo.get_price(bot_info.symbol)
         if not cur_price:
-            send_message_sync(f"[{bot_info.name}] 현재가 조회 실패")
+            self.message_repo.send_message(f"[{bot_info.name}] 현재가 조회 실패")
             return None
 
         profit_price = avr_price * (1 + bot_info.profit_rate)
@@ -204,15 +209,15 @@ class OrderUsecase:
 
             # 적은 수익 매도 스킵 (100$ 이하)
             if trade_type and self._is_sell_skip(cur_price, avr_price, bot_info, profit_std=100):
-                send_message_sync(msg + "‼️ 수익금이 100$ 이하라 매도를 스킵합니다")
+                self.message_repo.send_message(msg + "‼️ 수익금이 100$ 이하라 매도를 스킵합니다")
                 return None
 
         # 매도 주문 정보 반환
         if trade_type:
-            send_message_sync(msg + f"\n[{bot_info.name}] 매도 주문서 생성: {amount}주 ({trade_type.value})")
+            self.message_repo.send_message(msg + f"\n[{bot_info.name}] 매도 주문서 생성: {amount}주 ({trade_type.value})")
             return trade_type, amount
         else:
-            send_message_sync(f"[{bot_info.name}] 판매 조건이 없습니다")
+            self.message_repo.send_message(f"[{bot_info.name}] 판매 조건이 없습니다")
             return None
 
     def _create_buy_order(self, bot_info: BotInfo) -> Optional[tuple[TradeType, float]]:
@@ -228,9 +233,9 @@ class OrderUsecase:
         egg/trade_module.py의 buy() 이관 (116-172번 줄)
         """
         avr_price = self.trade_repo.get_average_purchase_price(bot_info.name)
-        cur_price = self.hantoo_service.get_price(bot_info.symbol)
+        cur_price = self.exchange_repo.get_price(bot_info.symbol)
         if not cur_price:
-            send_message_sync(f"[{bot_info.name}] 현재가 조회 실패")
+            self.message_repo.send_message(f"[{bot_info.name}] 현재가 조회 실패")
             return None
 
         # 최대 투자금 체크
@@ -239,7 +244,7 @@ class OrderUsecase:
 
         # 첫 구매 (평단가가 없으면)
         if not avr_price:
-            send_message_sync(f"첫 구매 {bot_info.seed:,.0f}$ 매수 시도합니다")
+            self.message_repo.send_message(f"첫 구매 {bot_info.seed:,.0f}$ 매수 시도합니다")
             return TradeType.BUY, bot_info.seed
 
         point_price, t, point = self._get_point_price(bot_info)
@@ -259,7 +264,7 @@ class OrderUsecase:
 
         # 조건이 하나도 없거나 만족하는 조건이 없으면 구매 불가
         if enabled_count == 0 or satisfied_count == 0:
-            send_message_sync(f"[{bot_info.name}] 구매 조건이 없습니다")
+            self.message_repo.send_message(f"[{bot_info.name}] 구매 조건이 없습니다")
             return None
 
         # 매수 비율 계산 (만족한 조건 수 / 활성화된 조건 수)
@@ -283,7 +288,7 @@ class OrderUsecase:
 
         seed = adjust_seed * buy_ratio if adjust_seed is not None else 0
 
-        send_message_sync(msg)
+        self.message_repo.send_message(msg)
         return TradeType.BUY, seed
 
     def _calculate_sell_amount(
@@ -362,9 +367,9 @@ class OrderUsecase:
         if bot_info.seed != bot_info.dynamic_seed_max:
             return bot_info.seed + bot_info.added_seed
 
-        prev_price = self.hantoo_service.get_prev_price(bot_info.symbol)  # 전일 종가
+        prev_price = self.exchange_repo.get_prev_price(bot_info.symbol)  # 전일 종가
         if not prev_price:
-            send_message_sync(f"[{bot_info.name}] 전일 종가 조회 실패")
+            self.message_repo.send_message(f"[{bot_info.name}] 전일 종가 조회 실패")
             return bot_info.seed + bot_info.added_seed
 
         origin_seed = bot_info.seed
@@ -374,9 +379,9 @@ class OrderUsecase:
 
         # 상승 / 하락 알림
         if drop_ratio > 0:
-            send_message_sync(f"[{bot_info.symbol}] 현재가 전일 대비 하락률: {drop_ratio:,.2f}%")
+            self.message_repo.send_message(f"[{bot_info.symbol}] 현재가 전일 대비 하락률: {drop_ratio:,.2f}%")
         else:
-            send_message_sync(f"[{bot_info.symbol}] 현재가 전일 대비 상승률: {abs(drop_ratio):,.2f}%")
+            self.message_repo.send_message(f"[{bot_info.symbol}] 현재가 전일 대비 상승률: {abs(drop_ratio):,.2f}%")
 
         # 종목별 민감도 설정
         ratio_step = get_drop_interval_rate(bot_info.symbol) * 100
@@ -394,9 +399,9 @@ class OrderUsecase:
         seed += bot_info.added_seed
 
         # 잔고 확인
-        balance = self.hantoo_service.get_balance()
+        balance = self.exchange_repo.get_balance()
         if balance < seed:
-            send_message_sync(
+            self.message_repo.send_message(
                 f"⚠️ [{bot_info.symbol}] 시드 조정 실패 — 잔고 부족 (필요: {seed:,.2f}, 보유: {balance:,.2f})"
             )
             return None
@@ -406,7 +411,7 @@ class OrderUsecase:
             # 증가율 계산 (원래 시드 대비 몇 % 증가했는지)
             increase_ratio = ((seed - origin_seed) / origin_seed) * 100
 
-            send_message_sync(
+            self.message_repo.send_message(
                 f"✅ [{bot_info.symbol}] 전일 대비 {drop_ratio:.2f}% 하락 → "
                 f"seed 조정: {origin_seed:,.2f} → {seed:,.2f} "
                 f"(+{increase_ratio:.1f}%)"
@@ -434,7 +439,7 @@ class OrderUsecase:
 
         if total_investment > max_balance - bot_info.seed:
             msg += "\n투자금이 Max금액을 초과해 구매가 불가능합니다"
-            send_message_sync(msg)
+            self.message_repo.send_message(msg)
             return False
 
         return True
@@ -512,9 +517,9 @@ class OrderUsecase:
                 continue
 
             # 현재가 조회 (symbol당 한 번만)
-            current_price = self.hantoo_service.get_price(symbol)
+            current_price = self.exchange_repo.get_price(symbol)
             if not current_price:
-                send_message_sync(f"⚠️ [{symbol}] 장부거래 현재가 조회 실패")
+                self.message_repo.send_message(f"⚠️ [{symbol}] 장부거래 현재가 조회 실패")
                 continue
 
             # 임시 remain_value 추적 (실제 Order 수정 없이 계산용)
@@ -593,7 +598,7 @@ class OrderUsecase:
             deducted_value = netted_amount * current_price
             order.remain_value -= deducted_value
 
-            send_message_sync(
+            self.message_repo.send_message(
                 f"📝 [{order.name}] 매수 주문서 장부거래 반영\n"
                 f"  - 상쇄 수량: {netted_amount}개\n"
                 f"  - 차감 금액: ${deducted_value:,.2f}\n"
@@ -603,7 +608,7 @@ class OrderUsecase:
             # 매도: 수량 차감
             order.remain_value -= netted_amount
 
-            send_message_sync(
+            self.message_repo.send_message(
                 f"📝 [{order.name}] 매도 주문서 장부거래 반영\n"
                 f"  - 상쇄 수량: {netted_amount}개\n"
                 f"  - 남은 수량: {int(order.remain_value)}개"
@@ -612,6 +617,6 @@ class OrderUsecase:
         # Order 저장 또는 삭제
         if order.remain_value <= 0:
             self.order_repo.delete_by_name(order.name)
-            send_message_sync(f"🗑️ [{order.name}] 주문서 전량 상쇄 → 삭제 완료")
+            self.message_repo.send_message(f"🗑️ [{order.name}] 주문서 전량 상쇄 → 삭제 완료")
         else:
             self.order_repo.save(order)

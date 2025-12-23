@@ -12,7 +12,7 @@ from domain.value_objects.trade_type import TradeType
 from data.persistence.sqlalchemy.models.history_model import HistoryModel
 
 
-class SQLAlchemyHistoryRepository(HistoryRepository):
+class SQLAlchemyHistoryRepositoryImpl(HistoryRepository):
     """SQLAlchemy 기반 History Repository 구현체"""
 
     def __init__(self, session: Session):

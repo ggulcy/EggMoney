@@ -36,3 +36,16 @@ class MarketIndicatorRepository(ABC):
             List[Dict]: [{"date": "2025-12-01", "value": 85.50}, ...] 또는 None
         """
         pass
+
+    @abstractmethod
+    def clear_cache(self, tickers: List[str]) -> List[str]:
+        """
+        특정 티커들의 캐시(타임스탬프) 삭제
+
+        Args:
+            tickers: 캐시 삭제할 티커 목록
+
+        Returns:
+            List[str]: 삭제된 캐시 키 목록
+        """
+        pass

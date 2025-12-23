@@ -10,15 +10,7 @@ from datetime import datetime
 from flask import Blueprint, render_template, jsonify, request
 
 from config import item
-from config.item import is_test
-from data.persistence.sqlalchemy.core.session_factory import SessionFactory
-from data.persistence.sqlalchemy.repositories import (
-    SQLAlchemyBotInfoRepository,
-    SQLAlchemyTradeRepository,
-    SQLAlchemyHistoryRepository,
-)
-from data.external.hantoo import HantooService
-from data.external.market_data.market_indicator_repository_impl import MarketIndicatorRepositoryImpl
+from config.dependencies import get_dependencies
 from usecase.portfolio_status_usecase import PortfolioStatusUsecase
 from usecase.market_usecase import MarketUsecase
 
@@ -26,29 +18,24 @@ index_bp = Blueprint('index', __name__)
 
 
 def _get_portfolio_usecase():
-    """PortfolioStatusUsecase 초기화"""
-    session_factory = SessionFactory()
-    session = session_factory.create_session()
-
-    bot_info_repo = SQLAlchemyBotInfoRepository(session)
-    trade_repo = SQLAlchemyTradeRepository(session)
-    history_repo = SQLAlchemyHistoryRepository(session)
-
-    hantoo_service = HantooService(test_mode=is_test)
+    """DI 컨테이너에서 PortfolioStatusUsecase 초기화"""
+    deps = get_dependencies()
 
     return PortfolioStatusUsecase(
-        bot_info_repo=bot_info_repo,
-        trade_repo=trade_repo,
-        history_repo=history_repo,
-        hantoo_service=hantoo_service,
+        bot_info_repo=deps.bot_info_repo,
+        trade_repo=deps.trade_repo,
+        history_repo=deps.history_repo,
+        exchange_repo=deps.exchange_repo,
     )
 
 
 def _get_market_usecase():
-    """MarketUsecase 초기화"""
+    """DI 컨테이너에서 MarketUsecase 초기화"""
+    deps = get_dependencies()
+
     return MarketUsecase(
-        market_indicator_repo=MarketIndicatorRepositoryImpl(),
-        hantoo_service=HantooService(test_mode=is_test)
+        market_indicator_repo=deps.market_indicator_repo,
+        exchange_repo=deps.exchange_repo
     )
 
 
@@ -147,3 +134,22 @@ def get_trades_by_date():
         return jsonify({"error": f"날짜 형식 오류: {str(e)}"}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@index_bp.route('/api/refresh_market_indicator', methods=['POST'])
+def refresh_market_indicator():
+    """시장 지표 강제 리프레시 API"""
+    try:
+        # 활성 봇들의 tickers 조회
+        portfolio_usecase = _get_portfolio_usecase()
+        bot_info_list = portfolio_usecase.get_all_bot_info()
+        active_tickers = {bot.symbol for bot in bot_info_list if bot.active and bot.symbol}
+
+        # 캐시 삭제
+        market_usecase = _get_market_usecase()
+        result = market_usecase.refresh_market_data(tickers=active_tickers)
+
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500

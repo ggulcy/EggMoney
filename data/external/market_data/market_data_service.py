@@ -123,3 +123,15 @@ class MarketDataService:
         except Exception as e:
             logger.error(f"{ticker} 가격 히스토리 조회 실패: {e}")
             return None
+
+    def clear_cache(self, ticker: str) -> bool:
+        """
+        특정 티커의 캐시(타임스탬프) 삭제
+
+        Args:
+            ticker: 캐시 삭제할 티커
+
+        Returns:
+            bool: 삭제 성공 여부
+        """
+        return self.client.clear_cache(ticker)

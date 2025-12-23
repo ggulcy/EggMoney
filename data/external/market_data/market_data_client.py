@@ -162,3 +162,22 @@ class MarketDataClient:
         except Exception as e:
             logger.error(f"{ticker} 조회 중 오류 발생: {e}")
             return None
+
+    def clear_cache(self, ticker: str) -> bool:
+        """
+        특정 티커의 캐시(타임스탬프) 삭제
+
+        Args:
+            ticker: 캐시 삭제할 티커
+
+        Returns:
+            bool: 삭제 성공 여부
+        """
+        timestamp_key = f"{ticker}_YF_DATA_TIMESTAMP"
+        try:
+            self._key_store.delete(timestamp_key)
+            logger.info(f"🗑️ [{ticker}] 캐시 타임스탬프 삭제: {timestamp_key}")
+            return True
+        except Exception as e:
+            logger.error(f"❌ [{ticker}] 캐시 삭제 실패: {e}")
+            return False

@@ -1,16 +1,15 @@
-from data.external.market_data import MarketIndicatorRepositoryImpl
-from data.external.hantoo import HantooService
+from config.dependencies import init_dependencies, get_dependencies
 from usecase.market_usecase import MarketUsecase
 from config.util import get_seed_ratio_by_drawdown
 
 
 def test_drawdown():
     """MarketUsecase drawdown 테스트"""
-    market_indicator_repo = MarketIndicatorRepositoryImpl()
-    hantoo_service = HantooService(test_mode=True)
+    init_dependencies(test_mode=True)
+    deps = get_dependencies()
     market_usecase = MarketUsecase(
-        market_indicator_repo=market_indicator_repo,
-        hantoo_service=hantoo_service
+        market_indicator_repo=deps.market_indicator_repo,
+        exchange_repo=deps.exchange_repo
     )
 
     tickers = ["QQQ", "TQQQ", "SOXL"]
@@ -29,11 +28,11 @@ def test_drawdown():
 
 def test_seed_ratio():
     """Drawdown 기반 시드 비율 계산 테스트"""
-    market_indicator_repo = MarketIndicatorRepositoryImpl()
-    hantoo_service = HantooService(test_mode=True)
+    init_dependencies(test_mode=True)
+    deps = get_dependencies()
     market_usecase = MarketUsecase(
-        market_indicator_repo=market_indicator_repo,
-        hantoo_service=hantoo_service
+        market_indicator_repo=deps.market_indicator_repo,
+        exchange_repo=deps.exchange_repo
     )
 
     # 티커별 설정: (ticker, interval_rate, max_count)

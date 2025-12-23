@@ -12,7 +12,7 @@ from domain.value_objects.order_type import OrderType
 from data.persistence.sqlalchemy.models.order_model import OrderModel
 
 
-class SQLAlchemyOrderRepository(OrderRepository):
+class SQLAlchemyOrderRepositoryImpl(OrderRepository):
     """SQLAlchemy 기반 Order Repository 구현체"""
 
     def __init__(self, session: Session):

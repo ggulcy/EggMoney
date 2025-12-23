@@ -1,7 +1,7 @@
 """External Services Integration"""
 from data.external.hantoo import (
-    HantooService,
-    HantooClient,
+    HantooExchangeRepositoryImpl,
+    HantooDataSource,
     HantooAccountInfo,
     HantooExd,
     PriceOutput,
@@ -14,15 +14,19 @@ from data.external.hantoo import (
     BalanceForTickerOutput1,
     BalanceForTickerOutput2,
     BalanceForTickerOutput3,
-    TickerItem
+    TickerItem,
+    # Deprecated aliases
+    HantooService,
+    HantooClient,
 )
-from data.external.telegram_client import send_message_sync
+from data.external.telegram import send_message_sync, TelegramMessageRepositoryImpl
 
 __all__ = [
-    # Hantoo
-    'HantooService',
-    'HantooClient',
+    # Hantoo Repository
+    'HantooExchangeRepositoryImpl',
+    'HantooDataSource',
     'HantooAccountInfo',
+    # Hantoo Models
     'HantooExd',
     'PriceOutput',
     'Balance1',
@@ -35,6 +39,10 @@ __all__ = [
     'BalanceForTickerOutput2',
     'BalanceForTickerOutput3',
     'TickerItem',
-    # Telegram
+    # Telegram Repository
+    'TelegramMessageRepositoryImpl',
     'send_message_sync',
+    # Deprecated aliases
+    'HantooService',
+    'HantooClient',
 ]

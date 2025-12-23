@@ -1,15 +1,7 @@
 from flask import render_template, request, jsonify
-from data.persistence.sqlalchemy.core import SessionFactory
-from data.persistence.sqlalchemy.repositories import (
-    SQLAlchemyBotInfoRepository,
-    SQLAlchemyTradeRepository,
-    SQLAlchemyHistoryRepository,
-    SQLAlchemyOrderRepository,
-)
+from config import key_store
+from config.dependencies import get_dependencies
 from usecase import BotManagementUsecase
-from config import item, key_store
-from data.external import send_message_sync
-from data.external.hantoo.hantoo_service import HantooService
 from domain.value_objects import PointLoc
 from domain.entities import BotInfo
 from presentation.scheduler.scheduler_config import start_scheduler
@@ -19,18 +11,14 @@ from presentation.web.routes import bot_info_bp
 
 
 def _get_dependencies():
-    session_factory = SessionFactory()
-    session = session_factory.create_session()
-
-    bot_info_repo = SQLAlchemyBotInfoRepository(session)
-    trade_repo = SQLAlchemyTradeRepository(session)
-
-    hantoo_service = HantooService(test_mode=item.is_test)
+    """DI 컨테이너에서 의존성을 조회하여 Usecase 생성"""
+    deps = get_dependencies()
 
     bot_management_usecase = BotManagementUsecase(
-        bot_info_repo=bot_info_repo,
-        trade_repo=trade_repo,
-        hantoo_service=hantoo_service,
+        bot_info_repo=deps.bot_info_repo,
+        trade_repo=deps.trade_repo,
+        exchange_repo=deps.exchange_repo,
+        message_repo=deps.message_repo,
     )
     return bot_management_usecase
 

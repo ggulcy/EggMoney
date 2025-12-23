@@ -3,10 +3,8 @@ from datetime import datetime
 from typing import Dict, Any, Optional, Set, List, TYPE_CHECKING
 
 from domain.repositories.market_indicator_repository import MarketIndicatorRepository
+from domain.repositories import ExchangeRepository
 from domain.value_objects.indicator_level import IndicatorLevel
-
-if TYPE_CHECKING:
-    from data.external.hantoo.hantoo_service import HantooService
 
 
 class MarketUsecase:
@@ -15,17 +13,17 @@ class MarketUsecase:
     def __init__(
             self,
             market_indicator_repo: MarketIndicatorRepository,
-            hantoo_service: Optional["HantooService"] = None
+            exchange_repo: Optional[ExchangeRepository] = None
     ):
         """
         Market Usecase 초기화
 
         Args:
             market_indicator_repo: MarketIndicatorRepository 인터페이스
-            hantoo_service: HantooService (실시간 가격 조회용, Optional)
+            exchange_repo: ExchangeRepository (실시간 가격 조회용, Optional)
         """
         self.market_indicator_repo = market_indicator_repo
-        self.hantoo_service = hantoo_service
+        self.exchange_repo = exchange_repo
 
     def get_drawdown(self, ticker: str, days: int = 90) -> Optional[Dict[str, Any]]:
         """
@@ -63,9 +61,9 @@ class MarketUsecase:
                 if item["value"] == high_price
             )
 
-            # 현재가 (HantooService가 있으면 실시간, 없으면 yf 데이터 사용)
-            if self.hantoo_service:
-                current_price = self.hantoo_service.get_price(ticker.upper())
+            # 현재가 (ExchangeRepository가 있으면 실시간, 없으면 yf 데이터 사용)
+            if self.exchange_repo:
+                current_price = self.exchange_repo.get_price(ticker.upper())
                 current_date = datetime.now().strftime("%Y-%m-%d")
                 if current_price is None:
                     # 실시간 조회 실패 시 yf 데이터 사용
@@ -160,6 +158,10 @@ class MarketUsecase:
             if price_history:
                 result["price_history"] = price_history
 
+            # 마지막 데이터 날짜 추가 (VIX 기준)
+            if vix_history:
+                result["last_data_date"] = vix_history[-1]["date"]
+
             return result if result else None
 
         except Exception as e:
@@ -167,3 +169,39 @@ class MarketUsecase:
             import traceback
             traceback.print_exc()
             return None
+
+    def refresh_market_data(self, tickers: Optional[Set[str]] = None) -> Dict[str, Any]:
+        """
+        시장 데이터 캐시 삭제 후 재조회
+
+        Args:
+            tickers: 갱신할 티커 Set (None이면 기본값 {'TQQQ', 'SOXL', '^VIX'} 사용)
+
+        Returns:
+            Dict: {
+                "success": True/False,
+                "cleared_tickers": ["TQQQ", "SOXL", "^VIX"],
+                "message": "..."
+            }
+        """
+        try:
+            # 기본 티커 + 전달받은 티커 + VIX
+            default_tickers = {'TQQQ', 'SOXL', '^VIX'}
+            target_tickers = default_tickers.union(tickers) if tickers else default_tickers
+
+            # 캐시 삭제
+            cleared = self.market_indicator_repo.clear_cache(list(target_tickers))
+
+            return {
+                "success": True,
+                "cleared_tickers": cleared,
+                "message": f"{len(cleared)}개 티커 캐시 삭제 완료"
+            }
+
+        except Exception as e:
+            print(f"❌ 시장 데이터 갱신 실패: {str(e)}")
+            return {
+                "success": False,
+                "cleared_tickers": [],
+                "message": str(e)
+            }

@@ -1,43 +1,30 @@
 from datetime import datetime
 from flask import render_template, request, jsonify, Blueprint
 
-from data.persistence.sqlalchemy.core import SessionFactory
+from config.dependencies import get_dependencies
 from presentation.web.middleware.auth_middleware import require_web_auth
-from data.persistence.sqlalchemy.repositories import (
-    SQLAlchemyBotInfoRepository,
-    SQLAlchemyTradeRepository,
-    SQLAlchemyHistoryRepository,
-)
-from data.external.hantoo.hantoo_service import HantooService
 from usecase import PortfolioStatusUsecase
 from domain.value_objects import TradeType
-from config import item
 
 history_bp = Blueprint('history', __name__)
 
 
-def _get_dependencies():
-    """의존성 주입"""
-    session_factory = SessionFactory()
-    session = session_factory.create_session()
-
-    bot_info_repo = SQLAlchemyBotInfoRepository(session)
-    trade_repo = SQLAlchemyTradeRepository(session)
-    history_repo = SQLAlchemyHistoryRepository(session)
-    hantoo_service = HantooService(test_mode=item.is_test)
+def _get_portfolio_usecase():
+    """DI 컨테이너에서 PortfolioStatusUsecase 초기화"""
+    deps = get_dependencies()
 
     return PortfolioStatusUsecase(
-        bot_info_repo=bot_info_repo,
-        trade_repo=trade_repo,
-        history_repo=history_repo,
-        hantoo_service=hantoo_service,
+        bot_info_repo=deps.bot_info_repo,
+        trade_repo=deps.trade_repo,
+        history_repo=deps.history_repo,
+        exchange_repo=deps.exchange_repo,
     )
 
 
 @history_bp.route('/history', methods=['GET', 'POST'])
 def history_template():
     """History 조회 (필터링) + 수익 요약"""
-    portfolio_usecase = _get_dependencies()
+    portfolio_usecase = _get_portfolio_usecase()
     try:
         year = datetime.now().year
         month = datetime.now().month
@@ -93,7 +80,7 @@ def get_history_by_date():
         else:
             end_date = datetime.now().date()
 
-        portfolio_usecase = _get_dependencies()
+        portfolio_usecase = _get_portfolio_usecase()
         history_list = portfolio_usecase.get_history_by_date_range(start_date, end_date)
 
         # JSON 직렬화를 위한 변환
@@ -126,7 +113,7 @@ def get_history_by_date():
 @require_web_auth
 def add_history():
     """History 수동 추가"""
-    portfolio_usecase = _get_dependencies()
+    portfolio_usecase = _get_portfolio_usecase()
     try:
         data = request.get_json()
         name = data.get('name', '').strip()

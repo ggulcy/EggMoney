@@ -4,15 +4,17 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 
 from config import util, item
-from data.external import send_message_sync
-from data.external.hantoo.hantoo_service import HantooService
 from domain.entities.bot_info import BotInfo
 from domain.entities.order import Order
 from domain.entities.trade import Trade
-from domain.repositories.bot_info_repository import BotInfoRepository
-from domain.repositories.history_repository import HistoryRepository
-from domain.repositories.order_repository import OrderRepository
-from domain.repositories.trade_repository import TradeRepository
+from domain.repositories import (
+    BotInfoRepository,
+    TradeRepository,
+    HistoryRepository,
+    OrderRepository,
+    ExchangeRepository,
+    MessageRepository,
+)
 from domain.value_objects.order_type import OrderType
 from domain.value_objects.trade_result import TradeResult
 from domain.value_objects.trade_type import TradeType
@@ -33,7 +35,8 @@ class TradingUsecase:
         trade_repo: TradeRepository,
         history_repo: HistoryRepository,
         order_repo: OrderRepository,
-        hantoo_service: HantooService
+        exchange_repo: ExchangeRepository,
+        message_repo: MessageRepository
     ):
         """
         거래 실행 Usecase 초기화
@@ -43,13 +46,15 @@ class TradingUsecase:
             trade_repo: Trade 리포지토리
             history_repo: History 리포지토리
             order_repo: Order 리포지토리
-            hantoo_service: 한투 서비스 (주문 실행)
+            exchange_repo: 증권사 API 리포지토리
+            message_repo: 메시지 발송 리포지토리
         """
         self.bot_info_repo = bot_info_repo
         self.trade_repo = trade_repo
         self.history_repo = history_repo
         self.order_repo = order_repo
-        self.hantoo_service = hantoo_service
+        self.exchange_repo = exchange_repo
+        self.message_repo = message_repo
 
     # ===== Public Methods (Router/Scheduler에서 호출) =====
 
@@ -74,19 +79,19 @@ class TradingUsecase:
         trade_type = TradeType.SELL if sell_ratio == 100 else TradeType.SELL_PART
 
         if sell_amount == 0:
-            send_message_sync(f"[{bot_info.name}] 판매할 거래가 존재하지 않습니다")
+            self.message_repo.send_message(f"[{bot_info.name}] 판매할 거래가 존재하지 않습니다")
             return
 
-        send_message_sync(f"[{bot_info.name}] 강제 매도 즉시 실행: {sell_amount}주 ({sell_ratio}%)")
+        self.message_repo.send_message(f"[{bot_info.name}] 강제 매도 즉시 실행: {sell_amount}주 ({sell_ratio}%)")
 
         # 2. 현재가 조회
-        request_price = self.hantoo_service.get_price(bot_info.symbol)
+        request_price = self.exchange_repo.get_price(bot_info.symbol)
         if not request_price:
-            send_message_sync(f"❌ [{bot_info.name}] 현재가 조회 실패")
+            self.message_repo.send_message(f"❌ [{bot_info.name}] 현재가 조회 실패")
             return
 
         # 3. 매도 실행
-        trade_result = self.hantoo_service.sell(
+        trade_result = self.exchange_repo.sell(
             symbol=bot_info.symbol,
             amount=sell_amount,
             request_price=request_price
@@ -94,7 +99,7 @@ class TradingUsecase:
 
         # 4. 거래 결과 확인 및 DB 저장
         if trade_result:
-            send_message_sync(f"✅ 강제 매도 체결\n"
+            self.message_repo.send_message(f"✅ 강제 매도 체결\n"
                             f"  - 거래유형: {trade_result.trade_type.value}\n"
                             f"  - 체결개수: {trade_result.amount}\n"
                             f"  - 체결가: ${trade_result.unit_price:,.2f}\n"
@@ -111,7 +116,7 @@ class TradingUsecase:
             # DB 저장
             self._save_sell_to_db(bot_info, trade_result)
         else:
-            send_message_sync(f"❌ [{bot_info.name}] 강제 매도 실패")
+            self.message_repo.send_message(f"❌ [{bot_info.name}] 강제 매도 실패")
 
     def execute_twap(self, bot_info: BotInfo) -> None:
         """
@@ -166,7 +171,7 @@ class TradingUsecase:
         sell_bot_info = self.bot_info_repo.find_by_name(sell_order.name)
 
         if not buy_bot_info or not sell_bot_info:
-            send_message_sync(
+            self.message_repo.send_message(
                 f"⚠️ 장부거래 실패: 봇 정보 조회 실패\n"
                 f"  - 매수봇: {buy_order.name}\n"
                 f"  - 매도봇: {sell_order.name}"
@@ -174,7 +179,7 @@ class TradingUsecase:
             return
 
         # 장부거래 시작 메시지
-        send_message_sync(
+        self.message_repo.send_message(
             f"🔄 [{buy_order.symbol}] 장부거래 시작\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"📈 매수: {buy_order.name} +{amount}개\n"
@@ -213,7 +218,7 @@ class TradingUsecase:
         )
         self._save_sell_to_db(sell_bot_info, sell_trade_result)
 
-        send_message_sync(
+        self.message_repo.send_message(
             f"✅ [{buy_order.symbol}] 장부거래 완료\n"
             f"  - {buy_order.name}: Trade/History 저장 완료\n"
             f"  - {sell_order.name}: Trade/History 저장 완료"
@@ -247,7 +252,7 @@ class TradingUsecase:
             return None
 
         # 2. 현재가 조회
-        current_price = self.hantoo_service.get_price(symbol)
+        current_price = self.exchange_repo.get_price(symbol)
         if not current_price:
             return None
 
@@ -296,14 +301,14 @@ class TradingUsecase:
         # 1. Trade 조회
         trade = self.trade_repo.find_by_name(name)
         if not trade:
-            send_message_sync(f"❌ [{name}] Trade를 찾을 수 없습니다")
+            self.message_repo.send_message(f"❌ [{name}] Trade를 찾을 수 없습니다")
             return None
 
         amount = int(trade.amount)
         symbol = trade.symbol
 
         if amount <= 0:
-            send_message_sync(f"❌ [{name}] 보유 수량이 없습니다")
+            self.message_repo.send_message(f"❌ [{name}] 보유 수량이 없습니다")
             return None
 
         # 2. 배치 분할 (30개 단위)
@@ -314,7 +319,7 @@ class TradingUsecase:
             batches.append(batch_size)
             remaining -= batch_size
 
-        send_message_sync(
+        self.message_repo.send_message(
             f"📋 [{name}] 양도세처리 시작\n"
             f"  - 심볼: {symbol}\n"
             f"  - 총 수량: {amount}개\n"
@@ -328,12 +333,12 @@ class TradingUsecase:
             if i > 0 and not item.is_test:
                 time.sleep(INTERVAL_SECONDS)
 
-            request_price = self.hantoo_service.get_price(symbol)
+            request_price = self.exchange_repo.get_price(symbol)
             if not request_price:
-                send_message_sync(f"❌ [{name}] 매도 {i+1}/{len(batches)} 현재가 조회 실패")
+                self.message_repo.send_message(f"❌ [{name}] 매도 {i+1}/{len(batches)} 현재가 조회 실패")
                 continue
 
-            result = self.hantoo_service.sell(
+            result = self.exchange_repo.sell(
                 symbol=symbol,
                 amount=batch_amount,
                 request_price=request_price
@@ -345,12 +350,12 @@ class TradingUsecase:
                     'unit_price': result.unit_price,
                     'total_price': result.total_price
                 })
-                send_message_sync(
+                self.message_repo.send_message(
                     f"📉 [{name}] 매도 {i+1}/{len(batches)} 완료: "
                     f"{result.amount}개 × ${result.unit_price:,.2f} = ${result.total_price:,.2f}"
                 )
             else:
-                send_message_sync(f"❌ [{name}] 매도 {i+1}/{len(batches)} 실패")
+                self.message_repo.send_message(f"❌ [{name}] 매도 {i+1}/{len(batches)} 실패")
 
         # 4. 매수 실행
         buy_results = []
@@ -359,12 +364,12 @@ class TradingUsecase:
             if not item.is_test:
                 time.sleep(INTERVAL_SECONDS)
 
-            request_price = self.hantoo_service.get_price(symbol)
+            request_price = self.exchange_repo.get_price(symbol)
             if not request_price:
-                send_message_sync(f"❌ [{name}] 매수 {i+1}/{len(batches)} 현재가 조회 실패")
+                self.message_repo.send_message(f"❌ [{name}] 매수 {i+1}/{len(batches)} 현재가 조회 실패")
                 continue
 
-            result = self.hantoo_service.buy(
+            result = self.exchange_repo.buy(
                 symbol=symbol,
                 amount=batch_amount,
                 request_price=request_price
@@ -376,12 +381,12 @@ class TradingUsecase:
                     'unit_price': result.unit_price,
                     'total_price': result.total_price
                 })
-                send_message_sync(
+                self.message_repo.send_message(
                     f"📈 [{name}] 매수 {i+1}/{len(batches)} 완료: "
                     f"{result.amount}개 × ${result.unit_price:,.2f} = ${result.total_price:,.2f}"
                 )
             else:
-                send_message_sync(f"❌ [{name}] 매수 {i+1}/{len(batches)} 실패")
+                self.message_repo.send_message(f"❌ [{name}] 매수 {i+1}/{len(batches)} 실패")
 
         # 5. 결과 집계
         total_sell_value = sum(r['total_price'] for r in sell_results)
@@ -394,7 +399,7 @@ class TradingUsecase:
         # 환율 조회
         usd_krw = util.get_naver_exchange_rate()
 
-        send_message_sync(
+        self.message_repo.send_message(
             f"✅ [{name}] 양도세처리 완료\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"📉 총 매도: ${total_sell_value:,.2f}\n"
@@ -438,20 +443,20 @@ class TradingUsecase:
         order_date = order.date_added.date()
 
         if order_date != today:
-            send_message_sync(f"⚠️ [{order.name}] 주문 날짜가 오늘이 아닙니다. (주문 날짜: {order_date}, 오늘: {today})")
+            self.message_repo.send_message(f"⚠️ [{order.name}] 주문 날짜가 오늘이 아닙니다. (주문 날짜: {order_date}, 오늘: {today})")
             return False
 
         # 2. 거래결과 개수 확인
         current_result_count = len(order.trade_result_list) if order.trade_result_list else 0
 
         if current_result_count >= order.total_count:
-            send_message_sync(
+            self.message_repo.send_message(
                 f"⚠️ [{order.name}] 이미 모든 거래가 완료되었습니다. ({current_result_count}/{order.total_count})")
             return False
 
         # 3. trade_count 확인
         if order.trade_count <= 0:
-            send_message_sync(f"⚠️ [{order.name}] 남은 거래 횟수가 없습니다. (trade_count: {order.trade_count})")
+            self.message_repo.send_message(f"⚠️ [{order.name}] 남은 거래 횟수가 없습니다. (trade_count: {order.trade_count})")
             return False
 
         return True
@@ -483,13 +488,13 @@ class TradingUsecase:
         egg/order_module.py의 request_buy_order() 이관 (122-173번 줄)
         """
         if order.trade_count == 0:
-            send_message_sync("거래가능한 주문이 없습니다")
+            self.message_repo.send_message("거래가능한 주문이 없습니다")
             return order
 
         # 주문 요청 정보 계산
-        request_price = self.hantoo_service.get_available_buy(order.symbol)
+        request_price = self.exchange_repo.get_available_buy(order.symbol)
         if not request_price:
-            send_message_sync(f"❌ [{order.name}] 현재가 조회 실패")
+            self.message_repo.send_message(f"❌ [{order.name}] 현재가 조회 실패")
             order.trade_result_list.append(None)
             order.trade_count -= 1
             return order
@@ -506,7 +511,7 @@ class TradingUsecase:
                         f"    - 총액: ${request_seed:,.0f}")
 
         # 주문 실행
-        trade_result = self.hantoo_service.buy(
+        trade_result = self.exchange_repo.buy(
             symbol=order.symbol,
             amount=request_amount,
             request_price=request_price
@@ -557,28 +562,28 @@ class TradingUsecase:
         egg/order_module.py의 request_sell_order() 이관 (176-225번 줄)
         """
         if order.trade_count == 0:
-            send_message_sync("거래가능한 주문이 없습니다")
+            self.message_repo.send_message("거래가능한 주문이 없습니다")
             return order
 
         # 주문 요청 정보 계산
         request_amount = int(order.remain_value * (1 / order.trade_count))
 
         # 요청 정보 출력
-        send_message_sync(f"[{order.name}] 판매 주문을 요청합니다\n"
+        self.message_repo.send_message(f"[{order.name}] 판매 주문을 요청합니다\n"
                         f"  📊 요청 정보:\n"
                         f"    - 이름: {order.name}\n"
                         f"    - 심볼: {order.symbol}\n"
                         f"    - 수량: {request_amount}")
 
         # 주문 실행
-        request_price = self.hantoo_service.get_available_sell(order.symbol)
+        request_price = self.exchange_repo.get_available_sell(order.symbol)
         if not request_price:
-            send_message_sync(f"❌ [{order.name}] 현재가 조회 실패")
+            self.message_repo.send_message(f"❌ [{order.name}] 현재가 조회 실패")
             order.trade_result_list.append(None)
             order.trade_count -= 1
             return order
 
-        trade_result = self.hantoo_service.sell(
+        trade_result = self.exchange_repo.sell(
             symbol=order.symbol,
             amount=request_amount,
             request_price=request_price
@@ -607,12 +612,12 @@ class TradingUsecase:
 
         # 결과 출력
         if trade_result:
-            send_message_sync(f"✅ [{order.name}] 개별 거래 결과 ({current_trade_num}/{order.total_count})\n"
+            self.message_repo.send_message(f"✅ [{order.name}] 개별 거래 결과 ({current_trade_num}/{order.total_count})\n"
                             f"  - 거래유형: {trade_result.trade_type.value}\n"
                             f"  - 체결개수: {trade_result.amount}\n"
                             f"  - 체결가: ${trade_result.unit_price:,.2f}")
         else:
-            send_message_sync(f"✅ 거래 결과: 거래 실패 or 거래가 없습니다 ({current_trade_num}/{order.total_count})")
+            self.message_repo.send_message(f"✅ 거래 결과: 거래 실패 or 거래가 없습니다 ({current_trade_num}/{order.total_count})")
 
         return order
 
@@ -630,7 +635,7 @@ class TradingUsecase:
 
         bot_info = self.bot_info_repo.find_by_name(order.name)
         if not bot_info:
-            send_message_sync(f"⚠️ [{order.name}] 봇 정보를 찾을 수 없습니다")
+            self.message_repo.send_message(f"⚠️ [{order.name}] 봇 정보를 찾을 수 없습니다")
             return
 
         # dict를 TradeResult 객체로 변환
@@ -645,7 +650,7 @@ class TradingUsecase:
             value_msg = f"전체 구매 요청 시드 : {order.total_value:,.0f}$" \
                 if self._is_buy(order) else f"전체 판매 요청 개수 {order.total_value}개"
 
-            send_message_sync(
+            self.message_repo.send_message(
                 f"[{order.name}] {order.total_count}개의 요청 중 유효한 {len(trade_result_list)}개의 거래 결과를 머지합니다.\n"
                 f"{value_msg}\n"
                 f"📊 거래 결과:\n"
@@ -661,7 +666,7 @@ class TradingUsecase:
                 self._save_sell_to_db(bot_info, trade_result)
 
         else:
-            send_message_sync(f"[{order.name}] 유효한 거래가 없습니다")
+            self.message_repo.send_message(f"[{order.name}] 유효한 거래가 없습니다")
 
         # 거래 완료 후 order 삭제
         self.order_repo.delete_by_name(order.name)
@@ -678,7 +683,7 @@ class TradingUsecase:
         egg/db_usecase.py의 write_buy_db() 이관 (95-110번 줄)
         """
         if not trade_result:
-            send_message_sync(f"[{bot_info.name}] 거래를 찾을 수 없어 종료합니다")
+            self.message_repo.send_message(f"[{bot_info.name}] 거래를 찾을 수 없어 종료합니다")
             return
 
         msg = (f"[거래기록] {bot_info.symbol}({trade_result.trade_type})\n"
@@ -711,14 +716,14 @@ class TradingUsecase:
         """
         is_update_added_seed = False
         if not trade_result:
-            send_message_sync(f"[{bot_info.name}] 거래를 찾을 수 없어 종료합니다")
+            self.message_repo.send_message(f"[{bot_info.name}] 거래를 찾을 수 없어 종료합니다")
             return
 
         msg = (f"[거래완료] {bot_info.symbol}({trade_result.trade_type})\n"
                f"총판매금액 : {float(trade_result.total_price):.2f}$\n"
                f"판매단가 : {float(trade_result.unit_price):.2f}$\n"
                f"수량 : {float(trade_result.amount):.0f}개")
-        send_message_sync(msg)
+        self.message_repo.send_message(msg)
 
         prev_trade = self.trade_repo.find_by_name(bot_info.name)
 
@@ -797,7 +802,7 @@ class TradingUsecase:
         ) / 100
 
         emoji = "💰" if profit > 0 else "😭"
-        send_message_sync(
+        self.message_repo.send_message(
             f"{emoji} [{bot_info.name}] 판매기록\n"
             f"손익금 : {profit}$"
         )
@@ -852,9 +857,9 @@ class TradingUsecase:
                 date = history.trade_date.strftime('%Y년 %m월 %d일')
                 msg += f"📆{date}\n -> {history.trade_type.name} : 💰{history.profit:,.2f}$\n"
 
-            send_message_sync(date_str + msg)
+            self.message_repo.send_message(date_str + msg)
         except Exception as e:
-            send_message_sync(f"사이클종료 메시지에 에러가 생겼습니다. 거래와는 무관합니다 {e}")
+            self.message_repo.send_message(f"사이클종료 메시지에 에러가 생겼습니다. 거래와는 무관합니다 {e}")
 
     def _merge_trade_results(self, trade_result_list: List[TradeResult], order: Order) -> Optional[TradeResult]:
         """
@@ -885,6 +890,18 @@ class TradingUsecase:
         # trade_type은 order.order_type 사용 (부분 매도 구분을 위해)
         from domain.value_objects.trade_type import TradeType
         trade_type = TradeType(order.order_type.value)
+
+        # 전체 매도(SELL)인데 실제 체결 수량이 원래 수량보다 적으면 → SELL_PART로 변경
+        # (TWAP 부분 실패, 장 조기종료 등으로 일부만 체결된 경우)
+        if trade_type == TradeType.SELL and total_amount < order.total_value:
+            trade_type = TradeType.SELL_PART
+            self.message_repo.send_message(
+                f"⚠️ [{order.name}] TWAP 부분 체결 (장 조기종료 등)\n"
+                f"  - 원래 매도 수량: {int(order.total_value)}주\n"
+                f"  - 실제 체결 수량: {int(total_amount)}주\n"
+                f"  - 미체결 수량: {int(order.total_value - total_amount)}주\n"
+                f"  → 거래 타입 변경: SELL → SELL_PART (Trade 유지)"
+            )
 
         # 새 TradeResult 생성
         merged = TradeResult(

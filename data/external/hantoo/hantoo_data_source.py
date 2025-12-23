@@ -36,8 +36,8 @@ class HantooAccountInfo:
             raise ValueError("HANTOO_CANO, HANTOO_APP_KEY, HANTOO_APP_SECRET 환경변수가 필요합니다.")
 
 
-class HantooClient:
-    """한국투자증권 API 클라이언트"""
+class HantooDataSource:
+    """한국투자증권 API 호출 및 토큰 관리 DataSource"""
 
     # 거래소 코드 매핑 테이블
     EXCHANGE_TABLE = {

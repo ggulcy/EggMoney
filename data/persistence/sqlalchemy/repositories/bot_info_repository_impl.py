@@ -9,7 +9,7 @@ from domain.value_objects.point_loc import PointLoc
 from data.persistence.sqlalchemy.models.bot_info_model import BotInfoModel
 
 
-class SQLAlchemyBotInfoRepository(BotInfoRepository):
+class SQLAlchemyBotInfoRepositoryImpl(BotInfoRepository):
     """SQLAlchemy 기반 BotInfo 저장소 구현체"""
 
     def __init__(self, session: Session):

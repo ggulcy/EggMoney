@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
-"""한국투자증권 서비스 레이어 (비즈니스 로직 처리)"""
+"""한국투자증권 ExchangeRepository 구현체"""
 import json
 import time
 from datetime import datetime
 from typing import Optional, List
 
 from config import util
-from data.external.hantoo.hantoo_client import HantooClient
+from domain.repositories import ExchangeRepository
+from data.external.hantoo.hantoo_data_source import HantooDataSource
 from data.external.hantoo.hantoo_models import (
     PriceOutput,
     Balance1,
@@ -22,8 +23,8 @@ from data.external.hantoo.hantoo_models import (
 )
 
 
-class HantooService:
-    """한국투자증권 서비스"""
+class HantooExchangeRepositoryImpl(ExchangeRepository):
+    """한국투자증권 ExchangeRepository 구현체"""
 
     def __init__(self, test_mode: bool = False):
         """
@@ -32,7 +33,7 @@ class HantooService:
         Args:
             test_mode: 테스트 모드 활성화 여부
         """
-        self.client = HantooClient()
+        self.data_source = HantooDataSource()
         self.test_mode = test_mode
 
     def get_price(self, symbol: str) -> Optional[float]:
@@ -61,11 +62,11 @@ class HantooService:
         extra_header = {"tr_id": "HHDFS00000300"}
         extra_param = {
             "AUTH": "",
-            "EXCD": self.client.get_hantoo_exd(symbol).price_exd,
+            "EXCD": self.data_source.get_hantoo_exd(symbol).price_exd,
             "SYMB": symbol
         }
 
-        response = self.client.get_request(end_point=end_point, extra_header=extra_header, extra_param=extra_param)
+        response = self.data_source.get_request(end_point=end_point, extra_header=extra_header, extra_param=extra_param)
 
         # 응답을 파싱하여 반환
         data_dict = json.loads(response.text)
@@ -102,11 +103,11 @@ class HantooService:
         extra_header = {"tr_id": "HHDFS00000300"}
         extra_param = {
             "AUTH": "",
-            "EXCD": self.client.get_hantoo_exd(symbol).price_exd,
+            "EXCD": self.data_source.get_hantoo_exd(symbol).price_exd,
             "SYMB": symbol
         }
 
-        response = self.client.get_request(end_point=end_point, extra_header=extra_header, extra_param=extra_param)
+        response = self.data_source.get_request(end_point=end_point, extra_header=extra_header, extra_param=extra_param)
 
         # 응답을 파싱하여 반환
         data_dict = json.loads(response.text)
@@ -182,14 +183,14 @@ class HantooService:
         end_point = "/uapi/overseas-stock/v1/trading/order"
         extra_header = {"tr_id": "TTTT1002U"}
         body = {
-            "OVRS_EXCG_CD": self.client.get_hantoo_exd(symbol).trading_exd,
+            "OVRS_EXCG_CD": self.data_source.get_hantoo_exd(symbol).trading_exd,
             "PDNO": str(symbol),
             "ORD_QTY": str(int(amount)),
             "OVRS_ORD_UNPR": str(request_price),
             "ORD_SVR_DVSN_CD": "0",
             "ORD_DVSN": "00"
         }
-        buy_response = json.loads(self.client.post_request(end_point, extra_header, body).text)
+        buy_response = json.loads(self.data_source.post_request(end_point, extra_header, body).text)
         odno = buy_response["output"]["ODNO"] if buy_response["rt_cd"] == "0" else None
 
         if odno is not None:
@@ -229,7 +230,7 @@ class HantooService:
         end_point = "/uapi/overseas-stock/v1/trading/order"
         extra_header = {"tr_id": "TTTT1006U"}
         body = {
-            "OVRS_EXCG_CD": self.client.get_hantoo_exd(symbol).trading_exd,
+            "OVRS_EXCG_CD": self.data_source.get_hantoo_exd(symbol).trading_exd,
             "PDNO": str(symbol),
             "ORD_QTY": str(int(amount)),
             "OVRS_ORD_UNPR": str(request_price),
@@ -237,7 +238,7 @@ class HantooService:
             "SLL_TYPE": "00",
             "ORD_DVSN": "00"
         }
-        sell_response = json.loads(self.client.post_request(end_point, extra_header, body).text)
+        sell_response = json.loads(self.data_source.post_request(end_point, extra_header, body).text)
         odno = sell_response["output"]["ODNO"] if sell_response["rt_cd"] == "0" else None
 
         if odno is not None:
@@ -268,14 +269,14 @@ class HantooService:
         end_point = "/uapi/overseas-stock/v1/trading/order"
         extra_header = {"tr_id": "TTTT1002U"}
         body = {
-            "OVRS_EXCG_CD": self.client.get_hantoo_exd(symbol).trading_exd,
+            "OVRS_EXCG_CD": self.data_source.get_hantoo_exd(symbol).trading_exd,
             "PDNO": str(symbol),
             "ORD_QTY": str(int(amount)),
             "OVRS_ORD_UNPR": str(request_price),
             "ORD_SVR_DVSN_CD": "0",
             "ORD_DVSN": "00"
         }
-        buy_response = json.loads(self.client.post_request(end_point, extra_header, body).text)
+        buy_response = json.loads(self.data_source.post_request(end_point, extra_header, body).text)
         odno = buy_response["output"]["ODNO"] if buy_response["rt_cd"] == "0" else None
 
         return odno
@@ -300,7 +301,7 @@ class HantooService:
         end_point = "/uapi/overseas-stock/v1/trading/order"
         extra_header = {"tr_id": "TTTT1006U"}
         body = {
-            "OVRS_EXCG_CD": self.client.get_hantoo_exd(symbol).trading_exd,
+            "OVRS_EXCG_CD": self.data_source.get_hantoo_exd(symbol).trading_exd,
             "PDNO": str(symbol),
             "ORD_QTY": str(int(amount)),
             "OVRS_ORD_UNPR": str(request_price),
@@ -308,7 +309,7 @@ class HantooService:
             "SLL_TYPE": "00",
             "ORD_DVSN": "00"
         }
-        sell_response = json.loads(self.client.post_request(end_point, extra_header, body).text)
+        sell_response = json.loads(self.data_source.post_request(end_point, extra_header, body).text)
         odno = sell_response["output"]["ODNO"] if sell_response["rt_cd"] == "0" else None
 
         return odno
@@ -359,7 +360,7 @@ class HantooService:
             "ORD_END_DT": util.get_previous_date(0),
             "SLL_BUY_DVSN": "00",
             "CCLD_NCCS_DVSN": "01",
-            "OVRS_EXCG_CD": self.client.get_hantoo_exd(symbol).trading_exd,
+            "OVRS_EXCG_CD": self.data_source.get_hantoo_exd(symbol).trading_exd,
             "SORT_SQN": "DS",
             "ORD_DT": "",
             "ORD_GNO_BRNO": "",
@@ -367,7 +368,7 @@ class HantooService:
             "CTX_AREA_NK200": "",
             "CTX_AREA_FK200": "",
         }
-        return json.loads(self.client.get_request(end_point, extra_header, extra_param).text)
+        return json.loads(self.data_source.get_request(end_point, extra_header, extra_param).text)
 
     @staticmethod
     def _find_output_by_odno(data: dict, odno_to_find: str) -> Optional[OrderDetail]:
@@ -427,13 +428,13 @@ class HantooService:
         end_point = "/uapi/overseas-stock/v1/trading/inquire-balance"
         extra_header = {"tr_id": "TTTS3012R"}
         extra_param = {
-            "OVRS_EXCG_CD": self.client.get_hantoo_exd(symbol).trading_exd,
+            "OVRS_EXCG_CD": self.data_source.get_hantoo_exd(symbol).trading_exd,
             "TR_CRCY_CD": "USD",
             "CTX_AREA_NK200": "",
             "CTX_AREA_FK200": "",
         }
 
-        data = json.loads(self.client.get_request(end_point, extra_header, extra_param).text)
+        data = json.loads(self.data_source.get_request(end_point, extra_header, extra_param).text)
 
         # 데이터 클래스로 변환하여 반환
         output1_objects = [Balance1(**item) for item in data['output1']]
@@ -513,12 +514,12 @@ class HantooService:
         end_point = "/uapi/overseas-stock/v1/trading/inquire-psamount"
         extra_header = {"tr_id": "TTTS3007R"}
         extra_param = {
-            "OVRS_EXCG_CD": self.client.get_hantoo_exd(symbol).trading_exd,
+            "OVRS_EXCG_CD": self.data_source.get_hantoo_exd(symbol).trading_exd,
             "OVRS_ORD_UNPR": str(price),
             "ITEM_CD": symbol
         }
 
-        data = json.loads(self.client.get_request(end_point, extra_header, extra_param).text)
+        data = json.loads(self.data_source.get_request(end_point, extra_header, extra_param).text)
         result = AvailableAmount(**data['output'])
         return float(result.ovrs_ord_psbl_amt)
 
@@ -551,7 +552,7 @@ class HantooService:
             "INQR_DVSN_CD": "00"
         }
 
-        data = json.loads(self.client.get_request(end_point, extra_header, extra_param).text)
+        data = json.loads(self.data_source.get_request(end_point, extra_header, extra_param).text)
 
         # BalanceForTickers 형태로 데이터 파싱
         result = BalanceForTickers(

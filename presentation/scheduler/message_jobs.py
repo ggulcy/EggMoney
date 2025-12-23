@@ -5,7 +5,7 @@ TradingJobs와 동일하게 생성자에서 의존성 주입받습니다.
 from datetime import datetime, timedelta
 
 from config import util
-from data.external.telegram_client import send_message_sync
+from domain.repositories import MessageRepository
 from usecase.portfolio_status_usecase import PortfolioStatusUsecase
 
 
@@ -15,15 +15,18 @@ class MessageJobs:
     def __init__(
             self,
             portfolio_usecase: PortfolioStatusUsecase,
-            bot_management_usecase=None
+            bot_management_usecase=None,
+            message_repo: MessageRepository = None
     ):
         """
         Args:
             portfolio_usecase: PortfolioStatusUsecase 인스턴스
             bot_management_usecase: BotManagementUsecase 인스턴스 (선택)
+            message_repo: MessageRepository 인스턴스
         """
         self.portfolio_usecase = portfolio_usecase
         self.bot_management_usecase = bot_management_usecase
+        self.message_repo = message_repo
 
     def send_trade_status_message(self) -> None:
         """
@@ -73,7 +76,7 @@ class MessageJobs:
                     f"{added_msg}\n"
                 )
 
-                send_message_sync(msg)
+                self.message_repo.send_message(msg)
 
             print(f"✅ 거래 상태 메시지 전송 완료 ({len(bot_info_list)}개 봇)")
 
@@ -122,7 +125,7 @@ class MessageJobs:
                 f" 여유 출금 가능액 : {summary['pool']:,.0f}$"
             )
 
-            send_message_sync(msg)
+            self.message_repo.send_message(msg)
             print("✅ 포트폴리오 요약 메시지 전송 완료")
 
         except Exception as e:
@@ -170,9 +173,9 @@ class MessageJobs:
 
             # 수익이 있으면 사진과 함께, 손절이면 텍스트만
             if total_profit > 0:
-                send_message_sync(full_msg, "pepe_glass.png")
+                self.message_repo.send_message(full_msg, "pepe_glass.png")
             else:
-                send_message_sync(full_msg)
+                self.message_repo.send_message(full_msg)
 
             print(f"✅ 오늘의 수익 메시지 전송 완료 (총 ${total_profit:,.2f})")
 

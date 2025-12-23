@@ -3,10 +3,12 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 
 from config import util
-from data.external.hantoo import HantooService
-from domain.repositories.bot_info_repository import BotInfoRepository
-from domain.repositories.trade_repository import TradeRepository
-from domain.repositories.history_repository import HistoryRepository
+from domain.repositories import (
+    BotInfoRepository,
+    TradeRepository,
+    HistoryRepository,
+    ExchangeRepository,
+)
 from domain.value_objects.trade_type import TradeType
 
 
@@ -18,7 +20,7 @@ class PortfolioStatusUsecase:
             bot_info_repo: BotInfoRepository,
             trade_repo: TradeRepository,
             history_repo: HistoryRepository,
-            hantoo_service: HantooService
+            exchange_repo: ExchangeRepository
     ):
         """
         포트폴리오 상태 Usecase 초기화
@@ -27,12 +29,12 @@ class PortfolioStatusUsecase:
             bot_info_repo: BotInfo 리포지토리
             trade_repo: Trade 리포지토리
             history_repo: History 리포지토리
-            hantoo_service: 한투 서비스
+            exchange_repo: 증권사 API 리포지토리
         """
         self.bot_info_repo = bot_info_repo
         self.trade_repo = trade_repo
         self.history_repo = history_repo
-        self.hantoo_service = hantoo_service
+        self.exchange_repo = exchange_repo
 
     # ===== 조회 메서드 (Dict 반환) =====
 
@@ -83,7 +85,7 @@ class PortfolioStatusUsecase:
                 return None
 
             # 현재가, 손익, 수익률
-            cur_price = self.hantoo_service.get_price(bot_info.symbol)
+            cur_price = self.exchange_repo.get_price(bot_info.symbol)
             if cur_price is None:
                 cur_price = cur_trade.purchase_price
 
@@ -144,7 +146,7 @@ class PortfolioStatusUsecase:
             Dict: 포트폴리오 개요
         """
         try:
-            hantoo_balance = self.hantoo_service.get_balance() or 0.0
+            hantoo_balance = self.exchange_repo.get_balance() or 0.0
 
             invest = 0.0
             total_buy = 0.0
@@ -172,7 +174,7 @@ class PortfolioStatusUsecase:
                 # 보유 중인 봇의 1티어 시드 누적
                 seed_per_tier += bot_info.seed
 
-                price = self.hantoo_service.get_price(bot_info.symbol)
+                price = self.exchange_repo.get_price(bot_info.symbol)
                 if price is None:
                     price = trade.purchase_price
                 invest += trade.amount * price
@@ -227,7 +229,7 @@ class PortfolioStatusUsecase:
             if not bot_info_list:
                 return None
 
-            hantoo_balance = self.hantoo_service.get_balance()
+            hantoo_balance = self.exchange_repo.get_balance()
             if hantoo_balance is None:
                 hantoo_balance = 0.0
 
@@ -252,7 +254,7 @@ class PortfolioStatusUsecase:
                 if trade.amount > 0:
                     seed_per_tier += bot_info.seed
                     max_seed += bot_info.seed * bot_info.max_tier
-                    price = self.hantoo_service.get_price(bot_info.symbol)
+                    price = self.exchange_repo.get_price(bot_info.symbol)
                     if price is None:
                         price = trade.purchase_price
                     invest += trade.amount * price

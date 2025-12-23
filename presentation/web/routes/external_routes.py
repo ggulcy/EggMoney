@@ -6,33 +6,23 @@ Overview 서버에서 데이터 Pull용
 """
 from flask import Blueprint, jsonify, request
 
-from data.persistence.sqlalchemy.core.session_factory import SessionFactory
-from data.external.market_data.market_indicator_repository_impl import MarketIndicatorRepositoryImpl
-from data.persistence.sqlalchemy.repositories.bot_info_repository_impl import SQLAlchemyBotInfoRepository
-from data.persistence.sqlalchemy.repositories.trade_repository_impl import SQLAlchemyTradeRepository
-from data.external.hantoo import HantooService
+from config.dependencies import get_dependencies
 from usecase.market_usecase import MarketUsecase
 
 external_bp = Blueprint('external', __name__, url_prefix='/api/external')
 
 
-def _get_dependencies():
-    """의존성 초기화"""
-    session_factory = SessionFactory()
-    session = session_factory.create_session()
-
-    bot_info_repo = SQLAlchemyBotInfoRepository(session)
-    trade_repo = SQLAlchemyTradeRepository(session)
-    hantoo_service = HantooService()
+def _get_deps():
+    """DI 컨테이너에서 의존성 조회"""
+    deps = get_dependencies()
     market_usecase = MarketUsecase(
-        market_indicator_repo=MarketIndicatorRepositoryImpl(),
-        hantoo_service=hantoo_service
+        market_indicator_repo=deps.market_indicator_repo,
+        exchange_repo=deps.exchange_repo
     )
+    return deps.bot_info_repo, deps.trade_repo, deps.exchange_repo, market_usecase
 
-    return bot_info_repo, trade_repo, hantoo_service, market_usecase
 
-
-def _get_balance_data(bot_info_repo, trade_repo, hantoo_service) -> dict:
+def _get_balance_data(bot_info_repo, trade_repo, exchange_repo) -> dict:
     """
     잔고 데이터 조회
 
@@ -67,7 +57,7 @@ def _get_balance_data(bot_info_repo, trade_repo, hantoo_service) -> dict:
             })
             # 현재가 조회
             if trade.symbol not in current_prices:
-                price = hantoo_service.get_price(trade.symbol)
+                price = exchange_repo.get_price(trade.symbol)
                 if price:
                     current_prices[trade.symbol] = price
 
@@ -85,7 +75,7 @@ def _get_balance_data(bot_info_repo, trade_repo, hantoo_service) -> dict:
         })
 
     # 총 잔고(예수금) 조회
-    balance = hantoo_service.get_balance()
+    balance = exchange_repo.get_balance()
     if balance is None:
         balance = 0.0
 
@@ -102,8 +92,8 @@ def _get_balance_data(bot_info_repo, trade_repo, hantoo_service) -> dict:
 def get_portfolio():
     """포트폴리오 정보 조회"""
     try:
-        bot_info_repo, trade_repo, hantoo_service, _ = _get_dependencies()
-        balance_data = _get_balance_data(bot_info_repo, trade_repo, hantoo_service)
+        bot_info_repo, trade_repo, exchange_repo, _ = _get_deps()
+        balance_data = _get_balance_data(bot_info_repo, trade_repo, exchange_repo)
 
         return jsonify({
             "status": "ok",
@@ -138,7 +128,7 @@ def get_drawdown(ticker: str):
     """
     try:
         days = request.args.get('days', 90, type=int)
-        _, _, _, market_usecase = _get_dependencies()
+        _, _, _, market_usecase = _get_deps()
         drawdown_data = market_usecase.get_drawdown(ticker=ticker, days=days)
 
         if drawdown_data is None:

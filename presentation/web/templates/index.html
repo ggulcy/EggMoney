@@ -1525,7 +1525,16 @@
             <!-- 시장 지표 차트 섹션 -->
             <div>
                 <div class="card-section">
-                    <div class="section-title">📉 시장 지표 (30일) <span style="font-size: 0.7em; color: #999; font-weight: 400;">생성된 봇 티커만 조회</span></div>
+                    <div class="section-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            📉 시장 지표 (30일) <span style="font-size: 0.7em; color: #999; font-weight: 400;">생성된 봇 티커만 조회</span>
+                        </div>
+                        <!-- 강제 리프레시 버튼 -->
+                        <button id="refreshMarketBtn" class="refresh-market-btn" onclick="refreshMarketIndicator()">
+                            <span class="refresh-icon">🔄</span>
+                            <span class="refresh-text">갱신</span>
+                        </button>
+                    </div>
 
                     <!-- VIX 아코디언 -->
                     <div class="ticker-accordion-header" id="vixAccordionHeader" onclick="toggleVixAccordion()">
@@ -1778,6 +1787,54 @@
                     }
                 }
 
+                /* 시장 지표 리프레시 버튼 스타일 */
+                .refresh-market-btn {
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                    padding: 6px 12px;
+                    border: 1px solid #e67e22;
+                    border-radius: 20px;
+                    background: #fff;
+                    font-size: 0.8rem;
+                    color: #e67e22;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    font-weight: 500;
+                }
+
+                .refresh-market-btn:hover {
+                    background: #fef5e7;
+                    border-color: #d35400;
+                    color: #d35400;
+                }
+
+                .refresh-market-btn:disabled {
+                    opacity: 0.6;
+                    cursor: not-allowed;
+                }
+
+                .refresh-market-btn .refresh-icon {
+                    font-size: 0.9rem;
+                    transition: transform 0.3s;
+                }
+
+                .refresh-market-btn.loading .refresh-icon {
+                    animation: spin 1s linear infinite;
+                }
+
+                @keyframes spin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+
+                @media (max-width: 480px) {
+                    .refresh-market-btn {
+                        padding: 5px 10px;
+                        font-size: 0.75rem;
+                    }
+                }
+
             </style>
         </div>
     </div>
@@ -1873,8 +1930,49 @@
                 const data = await response.json();
                 renderVixChart(data.vix_history, data.vix_current);
                 renderTickerCharts(data.rsi_history, data.price_history, data.rsi_current);
+
+                // 마지막 데이터 날짜 확인 후 리프레시 버튼 표시
+                checkAndShowRefreshButton(data.last_data_date);
             } catch (error) {
                 console.error('시장 지표 로딩 오류:', error);
+            }
+        }
+
+        // 마지막 데이터 날짜를 버튼 툴팁에 표시
+        function checkAndShowRefreshButton(lastDataDate) {
+            const refreshBtn = document.getElementById('refreshMarketBtn');
+            if (lastDataDate) {
+                refreshBtn.title = `마지막 데이터: ${lastDataDate}`;
+            }
+        }
+
+        // 시장 지표 강제 리프레시
+        async function refreshMarketIndicator() {
+            const refreshBtn = document.getElementById('refreshMarketBtn');
+            refreshBtn.disabled = true;
+            refreshBtn.classList.add('loading');
+
+            try {
+                const response = await fetch('/api/refresh_market_indicator', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // 캐시 삭제 후 페이지 리로드
+                    window.location.reload();
+                } else {
+                    console.error('시장 지표 갱신 실패:', data.message);
+                    alert('시장 지표 갱신 실패: ' + data.message);
+                }
+            } catch (error) {
+                console.error('시장 지표 갱신 오류:', error);
+            } finally {
+                refreshBtn.disabled = false;
+                refreshBtn.classList.remove('loading');
             }
         }
 

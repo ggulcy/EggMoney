@@ -18,6 +18,7 @@ sys.path.insert(0, str(project_root))
 # .env 파일은 config.item에서 로드됨
 from flask import Flask
 from config.item import is_test, admin
+from config.dependencies import init_dependencies
 
 # 환경 설정
 HOST = os.getenv('HOST')
@@ -108,6 +109,9 @@ def main():
     print(f"📍 Test Mode: {is_test}")
     print(f"📍 Admin: {admin}")
     print("=" * 80)
+
+    # 의존성 초기화 (앱 시작 시 한 번만)
+    init_dependencies(test_mode=is_test)
 
     # Flask 앱 생성
     app = create_app()

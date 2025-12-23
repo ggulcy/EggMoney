@@ -104,14 +104,14 @@ class TestOrderUsecaseNetting:
         self.trade_repo = Mock()
         self.history_repo = Mock()
         self.order_repo = Mock()
-        self.hantoo_service = Mock()
+        self.exchange_repo = Mock()
 
         self.usecase = OrderUsecase(
             bot_info_repo=self.bot_info_repo,
             trade_repo=self.trade_repo,
             history_repo=self.history_repo,
             order_repo=self.order_repo,
-            hantoo_service=self.hantoo_service
+            exchange_repo=self.exchange_repo
         )
 
     def test_find_netting_orders_no_orders(self):
@@ -158,7 +158,7 @@ class TestOrderUsecaseNetting:
         )
 
         self.order_repo.find_all.return_value = [buy_order, sell_order]
-        self.hantoo_service.get_price.return_value = 100.0  # 현재가 $100
+        self.exchange_repo.get_price.return_value = 100.0  # 현재가 $100
 
         result = self.usecase.find_netting_orders()
 
@@ -210,7 +210,7 @@ class TestOrderUsecaseNetting:
         )
 
         self.order_repo.find_all.return_value = [order_a, order_b, order_c, order_d]
-        self.hantoo_service.get_price.return_value = 100.0
+        self.exchange_repo.get_price.return_value = 100.0
 
         result = self.usecase.find_netting_orders()
 
@@ -250,7 +250,7 @@ class TestOrderUsecaseNetting:
         )
 
         self.order_repo.find_all.return_value = [buy_tqqq, sell_soxl]
-        self.hantoo_service.get_price.return_value = 100.0
+        self.exchange_repo.get_price.return_value = 100.0
 
         result = self.usecase.find_netting_orders()
 

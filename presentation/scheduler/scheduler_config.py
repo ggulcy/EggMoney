@@ -10,13 +10,11 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 import pytz
 
-from config import item, key_store
+from config import item
 from config.util import get_schedule_times, is_trade_date
-from data.external import send_message_sync
-from data.persistence.sqlalchemy.core.session_factory import SessionFactory
+from config.dependencies import get_dependencies
 from presentation.scheduler.trading_jobs import TradingJobs
 from presentation.scheduler.message_jobs import MessageJobs
-from data.external.market_data import MarketIndicatorRepositoryImpl
 from usecase.order_usecase import OrderUsecase
 from usecase.trading_usecase import TradingUsecase
 from usecase.portfolio_status_usecase import PortfolioStatusUsecase
@@ -32,62 +30,44 @@ _trading_jobs: Optional['TradingJobs'] = None
 _message_jobs: Optional['MessageJobs'] = None
 
 
-def _initialize_dependencies() -> tuple[SessionFactory, TradingJobs, MessageJobs]:
+def _initialize_dependencies() -> tuple[TradingJobs, MessageJobs]:
     """
-    모든 Usecase, Repository, Job 인스턴스들을 초기화합니다.
+    DI 컨테이너에서 의존성을 주입받아 Job 인스턴스들을 초기화합니다.
 
     Returns:
-        (session_factory, trading_jobs, message_jobs)
+        (trading_jobs, message_jobs)
     """
     print("📦 Dependencies 초기화 중...")
 
-    # SessionFactory
-    session_factory = SessionFactory()
+    # DI 컨테이너에서 의존성 조회
+    deps = get_dependencies()
 
-    # 모든 Repository가 공유할 Session 생성
-    session = session_factory.create_session()
-
-    # Repository 초기화
-    from data.persistence.sqlalchemy.repositories import (
-        SQLAlchemyBotInfoRepository,
-        SQLAlchemyTradeRepository,
-        SQLAlchemyHistoryRepository,
-        SQLAlchemyOrderRepository,
-    )
-
-    bot_info_repo = SQLAlchemyBotInfoRepository(session)
-    trade_repo = SQLAlchemyTradeRepository(session)
-    history_repo = SQLAlchemyHistoryRepository(session)
-    order_repo = SQLAlchemyOrderRepository(session)
-
-    # External Service 초기화
-    from data.external.hantoo import HantooService
-
-    hantoo_service = HantooService(test_mode=item.is_test)
-
-    # Usecase 초기화
+    # Usecase 초기화 (의존성 주입)
     order_usecase = OrderUsecase(
-        bot_info_repo=bot_info_repo,
-        trade_repo=trade_repo,
-        history_repo=history_repo,
-        order_repo=order_repo,
-        hantoo_service=hantoo_service,
+        bot_info_repo=deps.bot_info_repo,
+        trade_repo=deps.trade_repo,
+        history_repo=deps.history_repo,
+        order_repo=deps.order_repo,
+        exchange_repo=deps.exchange_repo,
+        message_repo=deps.message_repo,
     )
     trading_usecase = TradingUsecase(
-        bot_info_repo=bot_info_repo,
-        trade_repo=trade_repo,
-        history_repo=history_repo,
-        order_repo=order_repo,
-        hantoo_service=hantoo_service,
+        bot_info_repo=deps.bot_info_repo,
+        trade_repo=deps.trade_repo,
+        history_repo=deps.history_repo,
+        order_repo=deps.order_repo,
+        exchange_repo=deps.exchange_repo,
+        message_repo=deps.message_repo,
     )
     market_usecase = MarketUsecase(
-        market_indicator_repo=MarketIndicatorRepositoryImpl(),
-        hantoo_service=hantoo_service,
+        market_indicator_repo=deps.market_indicator_repo,
+        exchange_repo=deps.exchange_repo,
     )
     bot_management_usecase = BotManagementUsecase(
-        bot_info_repo=bot_info_repo,
-        trade_repo=trade_repo,
-        hantoo_service=hantoo_service,
+        bot_info_repo=deps.bot_info_repo,
+        trade_repo=deps.trade_repo,
+        exchange_repo=deps.exchange_repo,
+        message_repo=deps.message_repo,
         market_usecase=market_usecase,
     )
 
@@ -96,26 +76,28 @@ def _initialize_dependencies() -> tuple[SessionFactory, TradingJobs, MessageJobs
         order_usecase=order_usecase,
         trading_usecase=trading_usecase,
         bot_management_usecase=bot_management_usecase,
-        bot_info_repo=bot_info_repo,
-        order_repo=order_repo,
+        bot_info_repo=deps.bot_info_repo,
+        order_repo=deps.order_repo,
+        message_repo=deps.message_repo,
     )
 
     # MessageJobs 초기화
     portfolio_usecase = PortfolioStatusUsecase(
-        bot_info_repo=bot_info_repo,
-        trade_repo=trade_repo,
-        history_repo=history_repo,
-        hantoo_service=hantoo_service,
+        bot_info_repo=deps.bot_info_repo,
+        trade_repo=deps.trade_repo,
+        history_repo=deps.history_repo,
+        exchange_repo=deps.exchange_repo,
     )
 
     message_jobs = MessageJobs(
         portfolio_usecase=portfolio_usecase,
         bot_management_usecase=bot_management_usecase,
+        message_repo=deps.message_repo,
     )
 
     print("✅ Dependencies 초기화 완료")
 
-    return session_factory, trading_jobs, message_jobs
+    return trading_jobs, message_jobs
 
 
 def _create_make_order_job(trading_jobs: TradingJobs):
@@ -123,18 +105,19 @@ def _create_make_order_job(trading_jobs: TradingJobs):
 
     def make_order_job_impl():
         from datetime import datetime
+        deps = get_dependencies()
         print(f"\n🤖 trade_job() called at {datetime.now()}")
 
         if not is_trade_date():
             msg = "⏸️ 설정한 거래요일이 아니라 종료합니다"
-            send_message_sync(msg)
+            deps.message_repo.send_message(msg)
             return
 
         try:
             trading_jobs.make_order_job()
         except Exception as e:
             error_message = f"❌ [trade_job] 거래중 문제가 발생하였습니다. 문제를 확인하세요.\n{e}\n{traceback.format_exc()}"
-            send_message_sync(error_message)
+            deps.message_repo.send_message(error_message)
             stop_scheduler()
 
         print(f"✅ trade_job() completed at {datetime.now()}\n")
@@ -147,6 +130,7 @@ def _create_twap_job(trading_jobs: TradingJobs):
 
     def twap_job_impl():
         from datetime import datetime
+        deps = get_dependencies()
         print(f"\n⏱️ twap_job() called at {datetime.now()}")
 
         if not is_trade_date():
@@ -157,7 +141,7 @@ def _create_twap_job(trading_jobs: TradingJobs):
             trading_jobs.twap_job()
         except Exception as e:
             error_message = f"❌ [twap_job] 거래중 문제가 발생하였습니다. 문제를 확인하세요.\n{e}\n{traceback.format_exc()}"
-            send_message_sync(error_message)
+            deps.message_repo.send_message(error_message)
             stop_scheduler()
 
         print(f"✅ twap_job() completed at {datetime.now()}\n")
@@ -170,6 +154,7 @@ def _create_msg_job(message_jobs: MessageJobs):
 
     def msg_job_impl():
         from datetime import datetime
+        deps = get_dependencies()
         if not is_trade_date():
             return
 
@@ -177,7 +162,7 @@ def _create_msg_job(message_jobs: MessageJobs):
             message_jobs.daily_job()
         except Exception as e:
             error_message = f"❌ [msg_job] 치명적 오류 발생!\n{e}\n{traceback.format_exc()}"
-            send_message_sync(error_message)
+            deps.message_repo.send_message(error_message)
             raise  # ← 스케줄러가 job을 disable하도록
 
         print(f"✅ msg_job() completed at {datetime.now()}\n")
@@ -217,17 +202,21 @@ def start_scheduler():
 
     print("🔄 Scheduler 시작...")
 
+    # DI 컨테이너에서 MessageRepository 조회
+    deps = get_dependencies()
+    message_repo = deps.message_repo
+
     # Dependencies 초기화 (첫 호출에만)
     if _trading_jobs is None or _message_jobs is None:
         print("📦 첫 호출 - Dependencies 초기화")
-        session_factory, _trading_jobs, _message_jobs = _initialize_dependencies()
+        _trading_jobs, _message_jobs = _initialize_dependencies()
 
         # 초기화 작업 (첫 호출에만)
         print("\n📨 초기화 작업 실행...")
-        send_message_sync(f"프로그램을 재시작합니다 {item.is_test}")
+        message_repo.send_message(f"프로그램을 재시작합니다 {item.is_test}")
     else:
         print("♻️ 재호출 - 기존 Dependencies 재사용 (스케줄만 재등록)")
-        send_message_sync("설정이 변경되어 스케줄을 재등록합니다")
+        message_repo.send_message("설정이 변경되어 스케줄을 재등록합니다")
 
     # 스케줄 시간 설정 (매번 새로 읽음)
     job_times, msg_times, twap_times = get_schedule_times()

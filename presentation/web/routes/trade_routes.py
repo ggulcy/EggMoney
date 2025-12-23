@@ -1,46 +1,57 @@
 from datetime import datetime
 from flask import render_template, request, redirect, url_for, jsonify
 
-from data.persistence.sqlalchemy.core import SessionFactory
+from config.dependencies import get_dependencies
 from presentation.web.middleware.auth_middleware import require_web_auth
-from data.persistence.sqlalchemy.repositories import (
-    SQLAlchemyBotInfoRepository,
-    SQLAlchemyTradeRepository,
-    SQLAlchemyHistoryRepository,
-    SQLAlchemyOrderRepository,
-)
-from data.external.hantoo.hantoo_service import HantooService
-from data.external import send_message_sync
 from usecase import PortfolioStatusUsecase, TradingUsecase, BotManagementUsecase
 from domain.value_objects import TradeType
-from config import item
 from presentation.scheduler.message_jobs import MessageJobs
 
 from presentation.web.routes import trade_bp
 
 
-def _get_dependencies():
-    """의존성 주입"""
-    session_factory = SessionFactory()
-    session = session_factory.create_session()
-
-    bot_info_repo = SQLAlchemyBotInfoRepository(session)
-    trade_repo = SQLAlchemyTradeRepository(session)
-    history_repo = SQLAlchemyHistoryRepository(session)
-    hantoo_service = HantooService(test_mode=item.is_test)
+def _get_portfolio_usecase():
+    """DI 컨테이너에서 PortfolioStatusUsecase 초기화"""
+    deps = get_dependencies()
 
     return PortfolioStatusUsecase(
-        bot_info_repo=bot_info_repo,
-        trade_repo=trade_repo,
-        history_repo=history_repo,
-        hantoo_service=hantoo_service,
+        bot_info_repo=deps.bot_info_repo,
+        trade_repo=deps.trade_repo,
+        history_repo=deps.history_repo,
+        exchange_repo=deps.exchange_repo,
+    )
+
+
+def _get_trading_usecase():
+    """DI 컨테이너에서 TradingUsecase 초기화"""
+    deps = get_dependencies()
+
+    return TradingUsecase(
+        bot_info_repo=deps.bot_info_repo,
+        trade_repo=deps.trade_repo,
+        history_repo=deps.history_repo,
+        order_repo=deps.order_repo,
+        exchange_repo=deps.exchange_repo,
+        message_repo=deps.message_repo,
+    )
+
+
+def _get_bot_management_usecase():
+    """DI 컨테이너에서 BotManagementUsecase 초기화"""
+    deps = get_dependencies()
+
+    return BotManagementUsecase(
+        bot_info_repo=deps.bot_info_repo,
+        trade_repo=deps.trade_repo,
+        exchange_repo=deps.exchange_repo,
+        message_repo=deps.message_repo,
     )
 
 
 @trade_bp.route('/trade', methods=['GET'])
 def trade_template():
     """Trade 조회"""
-    portfolio_usecase = _get_dependencies()
+    portfolio_usecase = _get_portfolio_usecase()
     try:
         # Usecase를 통한 조회
         trade_list = portfolio_usecase.get_all_trades()
@@ -81,7 +92,7 @@ def trade_template():
 @require_web_auth
 def save_trade():
     """Trade 수정 저장"""
-    portfolio_usecase = _get_dependencies()
+    portfolio_usecase = _get_portfolio_usecase()
     try:
         data = request.get_json()
         name = data.get('name')
@@ -110,7 +121,7 @@ def save_trade():
 @require_web_auth
 def add_trade():
     """Trade 수동 추가"""
-    portfolio_usecase = _get_dependencies()
+    portfolio_usecase = _get_portfolio_usecase()
     try:
         data = request.get_json()
         name = data.get('name', '').strip()
@@ -152,7 +163,7 @@ def add_trade():
 @require_web_auth
 def delete_trade():
     """Trade 삭제"""
-    portfolio_usecase = _get_dependencies()
+    portfolio_usecase = _get_portfolio_usecase()
     try:
         data = request.get_json()
         name = data.get('name', '').strip()
@@ -185,20 +196,7 @@ def estimate_capital_gains_tax_fee():
         if not name:
             return jsonify({"error": "Name required"}), 400
 
-        # TradingUsecase 생성
-        session_factory = SessionFactory()
-        session = session_factory.create_session()
-        trade_repo = SQLAlchemyTradeRepository(session)
-        hantoo_service = HantooService(test_mode=item.is_test)
-
-        trading_usecase = TradingUsecase(
-            bot_info_repo=SQLAlchemyBotInfoRepository(session),
-            trade_repo=trade_repo,
-            history_repo=SQLAlchemyHistoryRepository(session),
-            order_repo=SQLAlchemyOrderRepository(session),
-            hantoo_service=hantoo_service
-        )
-
+        trading_usecase = _get_trading_usecase()
         result = trading_usecase.estimate_capital_gains_tax_fee(name)
 
         if not result:
@@ -224,20 +222,7 @@ def capital_gains_tax():
         if not name:
             return jsonify({"error": "Name required"}), 400
 
-        # TradingUsecase 생성
-        session_factory = SessionFactory()
-        session = session_factory.create_session()
-        trade_repo = SQLAlchemyTradeRepository(session)
-        hantoo_service = HantooService(test_mode=item.is_test)
-
-        trading_usecase = TradingUsecase(
-            bot_info_repo=SQLAlchemyBotInfoRepository(session),
-            trade_repo=trade_repo,
-            history_repo=SQLAlchemyHistoryRepository(session),
-            order_repo=SQLAlchemyOrderRepository(session),
-            hantoo_service=hantoo_service
-        )
-
+        trading_usecase = _get_trading_usecase()
         result = trading_usecase.execute_capital_gains_tax_wash(name)
 
         if not result:
@@ -265,35 +250,12 @@ def force_sell():
         sell_ratio = float(data.get('sell_ratio', 0))
         print(f"[FORCE SELL] {name} - {sell_ratio}%")
 
-        # BotManagementUsecase로 bot_info 조회
-        session_factory = SessionFactory()
-        session = session_factory.create_session()
-        bot_info_repo = SQLAlchemyBotInfoRepository(session)
-        trade_repo = SQLAlchemyTradeRepository(session)
-
-        hantoo_service = HantooService(test_mode=item.is_test)
-        bot_management_usecase = BotManagementUsecase(
-            bot_info_repo=bot_info_repo,
-            trade_repo=trade_repo,
-            hantoo_service=hantoo_service,
-        )
+        bot_management_usecase = _get_bot_management_usecase()
         bot_info = bot_management_usecase.get_bot_info_by_name(name)
         if not bot_info:
             return jsonify({"error": f"Bot not found: {name}"}), 404
 
-        # TradingUsecase 생성 및 force_sell 호출
-        history_repo = SQLAlchemyHistoryRepository(session)
-        order_repo = SQLAlchemyOrderRepository(session)
-
-        trading_usecase = TradingUsecase(
-            bot_info_repo=bot_info_repo,
-            trade_repo=trade_repo,
-            history_repo=history_repo,
-            order_repo=order_repo,
-            hantoo_service=hantoo_service
-        )
-
-        # 실제 매도 실행
+        trading_usecase = _get_trading_usecase()
         trading_usecase.force_sell(bot_info, sell_ratio)
 
         return jsonify({"message": f"{name} {sell_ratio}% sold"}), 200
@@ -308,8 +270,12 @@ def force_sell():
 
 def _get_message_jobs():
     """MessageJobs 의존성 주입"""
-    portfolio_usecase = _get_dependencies()
-    return MessageJobs(portfolio_usecase=portfolio_usecase)
+    deps = get_dependencies()
+    portfolio_usecase = _get_portfolio_usecase()
+    return MessageJobs(
+        portfolio_usecase=portfolio_usecase,
+        message_repo=deps.message_repo
+    )
 
 
 @trade_bp.route('/send_trade_status', methods=['POST'])
@@ -335,7 +301,8 @@ def send_trade_status():
         print(error_msg)
         import traceback
         traceback.print_exc()
-        send_message_sync("Failed to send Trade Status.")
+        deps = get_dependencies()
+        deps.message_repo.send_message("Failed to send Trade Status.")
         return jsonify({'error': '거래 상태 메시지 전송 실패'}), 500
 
 
@@ -362,5 +329,6 @@ def send_history_status():
         print(error_msg)
         import traceback
         traceback.print_exc()
-        send_message_sync("Failed to send History Status.")
+        deps = get_dependencies()
+        deps.message_repo.send_message("Failed to send History Status.")
         return jsonify({'error': '거래 기록 메시지 전송 실패'}), 500

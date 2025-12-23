@@ -72,4 +72,18 @@ class MarketIndicatorRepositoryImpl(MarketIndicatorRepository):
             logger.error(f"{ticker} 가격 히스토리 조회 실패: {e}")
             return None
 
+    def clear_cache(self, tickers: list) -> list:
+        """
+        특정 티커들의 캐시(타임스탬프) 삭제
 
+        Args:
+            tickers: 캐시 삭제할 티커 목록
+
+        Returns:
+            List[str]: 삭제된 티커 목록
+        """
+        cleared = []
+        for ticker in tickers:
+            if self.service.clear_cache(ticker):
+                cleared.append(ticker)
+        return cleared

@@ -10,7 +10,7 @@ from domain.value_objects.trade_type import TradeType
 from data.persistence.sqlalchemy.models.trade_model import TradeModel
 
 
-class SQLAlchemyTradeRepository(TradeRepository):
+class SQLAlchemyTradeRepositoryImpl(TradeRepository):
     """SQLAlchemy 기반 Trade 저장소 구현체"""
 
     def __init__(self, session: Session):

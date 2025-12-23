@@ -9,10 +9,8 @@ from datetime import date
 
 from config import item
 from config.util import is_trade_date
-from data.external import send_message_sync
 from domain.entities.bot_info import BotInfo
-from domain.repositories.bot_info_repository import BotInfoRepository
-from domain.repositories.order_repository import OrderRepository
+from domain.repositories import BotInfoRepository, OrderRepository, MessageRepository
 from usecase.bot_management_usecase import BotManagementUsecase
 from usecase.order_usecase import OrderUsecase
 from usecase.trading_usecase import TradingUsecase
@@ -31,7 +29,8 @@ class TradingJobs:
         trading_usecase: TradingUsecase,
         bot_management_usecase: BotManagementUsecase,
         bot_info_repo: BotInfoRepository,
-        order_repo: OrderRepository
+        order_repo: OrderRepository,
+        message_repo: MessageRepository
     ):
         """
         Args:
@@ -40,12 +39,14 @@ class TradingJobs:
             bot_management_usecase: 봇 관리 Usecase
             bot_info_repo: BotInfo 저장소
             order_repo: Order 저장소
+            message_repo: 메시지 발송 리포지토리
         """
         self.order_usecase = order_usecase
         self.trading_usecase = trading_usecase
         self.bot_management_usecase = bot_management_usecase
         self.bot_info_repo = bot_info_repo
         self.order_repo = order_repo
+        self.message_repo = message_repo
 
     def make_order_job(self) -> None:
         """
@@ -58,7 +59,7 @@ class TradingJobs:
         참고: egg/main.py의 job() (121-143번 줄)
         """
         if not is_trade_date():
-            send_message_sync("설정한 거래요일이 아니라 종료 합니다")
+            self.message_repo.send_message("설정한 거래요일이 아니라 종료 합니다")
             return
 
         # 오래된 주문서 삭제 (전날 미완료 주문 등)
@@ -66,7 +67,7 @@ class TradingJobs:
         # 혹시 남아있는 완료 주문 체크 (비정상 상황)
         remaining_orders = self.order_repo.find_all()
         if remaining_orders:
-            send_message_sync(
+            self.message_repo.send_message(
                 f"⚠️ 메인 거래 시작 전 미처리 주문서 발견!\n"
                 f"주문서 개수: {len(remaining_orders)}\n"
                 f"주문서 목록: {[o.name for o in remaining_orders]}"
@@ -91,16 +92,16 @@ class TradingJobs:
         2. 가능한 모든 쌍에 대해 장부거래 실행
         3. Order 업데이트 (remain_value 차감 또는 삭제)
         """
-        send_message_sync("🔍 장부거래 가능한 주문서 탐색 중...")
+        self.message_repo.send_message("🔍 장부거래 가능한 주문서 탐색 중...")
 
         # 1. 상쇄 가능한 쌍 탐색
         netting_pairs = self.order_usecase.find_netting_orders()
 
         if not netting_pairs:
-            send_message_sync("ℹ️ 장부거래 대상 없음 (같은 symbol 매수/매도 쌍 없음)")
+            self.message_repo.send_message("ℹ️ 장부거래 대상 없음 (같은 symbol 매수/매도 쌍 없음)")
             return
 
-        send_message_sync(
+        self.message_repo.send_message(
             f"📋 장부거래 대상 발견: {len(netting_pairs)}쌍\n"
             f"상세: {[(p.buy_order.name, p.sell_order.name, p.netting_amount) for p in netting_pairs]}"
         )
@@ -124,7 +125,7 @@ class TradingJobs:
                 )
 
             except Exception as e:
-                send_message_sync(
+                self.message_repo.send_message(
                     f"❌ 장부거래 실패\n"
                     f"  - 매수: {pair.buy_order.name}\n"
                     f"  - 매도: {pair.sell_order.name}\n"
@@ -133,7 +134,7 @@ class TradingJobs:
                 # 실패해도 다음 쌍 계속 처리
                 continue
 
-        send_message_sync("✅ 장부거래 처리 완료")
+        self.message_repo.send_message("✅ 장부거래 처리 완료")
 
     def _execute_trade_for_bot(self, bot_info: BotInfo) -> None:
         """

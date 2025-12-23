@@ -2,11 +2,13 @@
 from typing import List, Dict, Any, Optional, Tuple, TYPE_CHECKING
 
 from config import item, util
-from data.external import send_message_sync
-from data.external.hantoo.hantoo_service import HantooService
 from domain.entities.bot_info import BotInfo
-from domain.repositories.bot_info_repository import BotInfoRepository
-from domain.repositories.trade_repository import TradeRepository
+from domain.repositories import (
+    BotInfoRepository,
+    TradeRepository,
+    ExchangeRepository,
+    MessageRepository,
+)
 
 if TYPE_CHECKING:
     from usecase.market_usecase import MarketUsecase
@@ -19,7 +21,8 @@ class BotManagementUsecase:
             self,
             bot_info_repo: BotInfoRepository,
             trade_repo: TradeRepository,
-            hantoo_service: Optional[HantooService] = None,
+            exchange_repo: Optional[ExchangeRepository] = None,
+            message_repo: Optional[MessageRepository] = None,
             market_usecase: Optional['MarketUsecase'] = None
     ):
         """
@@ -28,12 +31,14 @@ class BotManagementUsecase:
         Args:
             bot_info_repo: BotInfo 리포지토리
             trade_repo: Trade 리포지토리
-            hantoo_service: 한투 서비스 (동적 시드 기능용, Optional)
+            exchange_repo: 증권사 API 리포지토리 (동적 시드 기능용, Optional)
+            message_repo: 메시지 발송 리포지토리 (Optional)
             market_usecase: 마켓 Usecase (drawdown 조회용, Optional)
         """
         self.bot_info_repo = bot_info_repo
         self.trade_repo = trade_repo
-        self.hantoo_service = hantoo_service
+        self.exchange_repo = exchange_repo
+        self.message_repo = message_repo
         self.market_usecase = market_usecase
 
     # ===== 봇 자동화 관리 =====
@@ -62,13 +67,13 @@ class BotManagementUsecase:
 
             # T가 1/3을 초과하면 평단가 구매 조건 활성화
             if t >= bot_info.max_tier * 1 / 3 and not bot_info.is_check_buy_avr_price:
-                send_message_sync(f"{bot_info.name}의 T가 1/3을 초과 하여 평단가 구매 조건을 활성화 합니다")
+                self.message_repo.send_message(f"{bot_info.name}의 T가 1/3을 초과 하여 평단가 구매 조건을 활성화 합니다")
                 bot_info.is_check_buy_avr_price = True
                 self.bot_info_repo.save(bot_info)
 
             # T가 1/3 이하면 평단가 구매 조건 비활성화
             elif t < bot_info.max_tier * 1 / 3 and bot_info.is_check_buy_avr_price:
-                send_message_sync(f"{bot_info.name}의 T가 1/3 이하라 평단가 구매 조건을 비활성화 합니다")
+                self.message_repo.send_message(f"{bot_info.name}의 T가 1/3 이하라 평단가 구매 조건을 비활성화 합니다")
                 bot_info.is_check_buy_avr_price = False
                 self.bot_info_repo.save(bot_info)
 
@@ -175,7 +180,7 @@ class BotManagementUsecase:
 
         데일리잡에서 호출
         """
-        if self.hantoo_service is None:
+        if self.exchange_repo is None:
             return
 
         # 시드 오름차순 정렬 (작은 시드 우선 처리)ㄹ
@@ -233,11 +238,11 @@ class BotManagementUsecase:
 
     def _get_daily_drop_rate(self, bot_info: BotInfo) -> Optional[float]:
         """전일대비 하락률 조회"""
-        if self.hantoo_service is None:
+        if self.exchange_repo is None:
             return None
 
-        prev_close = self.hantoo_service.get_prev_price(bot_info.symbol)
-        current_price = self.hantoo_service.get_price(bot_info.symbol)
+        prev_close = self.exchange_repo.get_prev_price(bot_info.symbol)
+        current_price = self.exchange_repo.get_price(bot_info.symbol)
 
         if prev_close is None or current_price is None or prev_close <= 0:
             return None
@@ -283,12 +288,12 @@ class BotManagementUsecase:
             msg += f"전일대비: {drop_rate * 100:.1f}% {'하락' if drop_rate >= 0 else '상승'}\n"
         msg += f"${old_seed:,.2f} → ${target_seed:,.2f} (+{increase_rate:.1f}%)"
 
-        send_message_sync(msg)
+        self.message_repo.send_message(msg)
         return True
 
     def _send_no_increase_message(self, bot_info: BotInfo, old_seed: float, drop_rate: float) -> None:
         """증액 미적용 시 하락 정보 메시지 전송"""
-        send_message_sync(
+        self.message_repo.send_message(
             f"📊 [{bot_info.name}] 전일대비 {abs(drop_rate * 100):.1f}% {'하락' if drop_rate >= 0 else '상승'}\n"
             f"현재 시드: ${old_seed:,.2f} (적용 기준 미달)"
         )
