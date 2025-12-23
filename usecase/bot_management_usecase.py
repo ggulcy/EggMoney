@@ -2,8 +2,6 @@
 from typing import List, Dict, Any, Optional, Tuple, TYPE_CHECKING
 
 from config import item, util
-from config.item import get_drop_interval_rate
-from config.util import get_seed_ratio_by_drawdown
 from data.external import send_message_sync
 from data.external.hantoo.hantoo_service import HantooService
 from domain.entities.bot_info import BotInfo
@@ -169,91 +167,72 @@ class BotManagementUsecase:
 
     def apply_dynamic_seed(self) -> None:
         """
-        모든 활성 봇에 대해 동적 시드 적용 (2단계)
+        모든 활성 봇에 대해 동적 시드 적용
 
-        1단계: 전일대비 하락 → 현재 시드에 multiplier 적용
-        2단계: 고점대비 하락률 → dynamic_seed_max × ratio 보다 적으면 증가
+        - 같은 심볼은 한 번만 증액 (시드 작은 봇 우선)
+        - T값이 max_tier의 1/3 이상이면 강제 증액
+        - 전일대비 하락 시 증액
 
         데일리잡에서 호출
         """
         if self.hantoo_service is None:
             return
 
-        for bot_info in self.bot_info_repo.find_active_bots():
-            # 기능 비활성화 체크
-            if bot_info.dynamic_seed_max <= 0:
+        # 시드 오름차순 정렬 (작은 시드 우선 처리)ㄹ
+        bots = self.bot_info_repo.find_active_bots()
+        bots.sort(key=lambda x: x.seed)
+
+        processed_symbols = set()  # 증액 완료된 심볼 추적
+
+        for bot_info in bots:
+            if self._should_skip_dynamic_seed(bot_info, processed_symbols):
                 continue
 
-            # 이미 max에 도달했으면 스킵
-            if bot_info.seed >= bot_info.dynamic_seed_max:
-                continue
+            applied = self._process_dynamic_seed(bot_info)
+            if applied:
+                processed_symbols.add(bot_info.symbol)
 
-            # 티커별 하락률 인터벌 (소수)
-            drop_interval_rate = get_drop_interval_rate(bot_info.symbol)
+    def _should_skip_dynamic_seed(self, bot_info: BotInfo, processed_symbols: set) -> bool:
+        """동적 시드 스킵 여부 판단"""
+        # 기능 비활성화
+        if not bot_info.dynamic_seed_enabled:
+            return True
+        # 이미 max 도달
+        if bot_info.seed >= bot_info.dynamic_seed_max:
+            return True
+        # 이미 증액된 심볼
+        if bot_info.symbol in processed_symbols:
+            return True
+        return False
 
-            old_seed = bot_info.seed
-            target_seed = old_seed
-
-            # ===== 1단계: 전일대비 하락 =====
-            step1_result = self._apply_daily_drop_seed(bot_info, old_seed, drop_interval_rate)
-            if step1_result and step1_result['applied']:
-                target_seed = step1_result['target_seed']
-
-            # ===== 2단계: 고점대비 하락률 =====
-            step2_result = self._apply_drawdown_seed(bot_info, drop_interval_rate)
-            if step2_result and step2_result['target_seed'] > target_seed:
-                target_seed = step2_result['target_seed']
-
-            # ===== 최종 적용 =====
-            target_seed = min(target_seed, bot_info.dynamic_seed_max)
-
-            if target_seed > old_seed:
-                bot_info.seed = target_seed
-                self.bot_info_repo.save(bot_info)
-
-                # 적용된 트리거 판별
-                if step2_result and step2_result['target_seed'] >= target_seed:
-                    trigger = step2_result['trigger']
-                else:
-                    trigger = step1_result['trigger']
-
-                increase_rate = ((target_seed - old_seed) / old_seed) * 100
-                send_message_sync(
-                    f"📈 [{bot_info.name}] 동적 시드 적용\n"
-                    f"{trigger}\n"
-                    f"${old_seed:,.2f} → ${target_seed:,.2f} (+{increase_rate:.1f}%)"
-                )
-            elif step1_result:
-                # 시드 적용 안됐어도 전일대비 하락 정보 전송
-                drop_rate = step1_result['drop_rate']
-                send_message_sync(
-                    f"📊 [{bot_info.name}] 전일대비 {abs(drop_rate * 100):.1f}% {'하락' if drop_rate >= 0 else '상승'}\n"
-                    f"현재 시드: ${old_seed:,.2f} (적용 기준 미달)"
-                )
-
-    def _apply_daily_drop_seed(
-            self,
-            bot_info: BotInfo,
-            current_seed: float,
-            drop_interval_rate: float
-    ) -> Optional[Dict[str, Any]]:
+    def _process_dynamic_seed(self, bot_info: BotInfo) -> bool:
         """
-        1단계: 전일대비 하락 시 시드 증가
-
-        전일 종가 대비 현재가가 일정 비율 이상 하락했을 때,
-        시드를 배수로 증가
-
-        Args:
-            bot_info: 봇 정보
-            current_seed: 현재 시드
-            drop_interval_rate: 하락률 인터벌 (소수, 예: 0.03 → 3%)
+        개별 봇 동적 시드 처리
 
         Returns:
-            항상: {'drop_rate': 하락률, 'applied': 적용여부, 'target_seed': 목표시드(적용시), 'trigger': 트리거사유}
-            가격 조회 실패 시: None
+            증액 적용 여부
         """
-        MULTIPLIER = 1.3
+        old_seed = bot_info.seed
 
+        # 트리거 체크
+        drop_rate = self._get_daily_drop_rate(bot_info)
+        t, t_threshold = self._get_t_info(bot_info)
+
+        t_triggered = t >= t_threshold
+        drop_triggered = drop_rate is not None and drop_rate >= bot_info.dynamic_seed_drop_rate
+
+        if t_triggered or drop_triggered:
+            return self._apply_seed_increase(
+                bot_info, old_seed,
+                t_triggered, t, t_threshold, drop_rate
+            )
+        elif drop_rate is not None:
+            self._send_no_increase_message(bot_info, old_seed, drop_rate)
+
+        return False
+
+    def _get_daily_drop_rate(self, bot_info: BotInfo) -> Optional[float]:
+        """전일대비 하락률 조회"""
         if self.hantoo_service is None:
             return None
 
@@ -263,68 +242,55 @@ class BotManagementUsecase:
         if prev_close is None or current_price is None or prev_close <= 0:
             return None
 
-        drop_rate = (prev_close - current_price) / prev_close
-        applied = drop_rate >= drop_interval_rate
+        return (prev_close - current_price) / prev_close
 
-        return {
-            'drop_rate': drop_rate,
-            'applied': applied,
-            'target_seed': current_seed * MULTIPLIER if applied else current_seed,
-            'trigger': f"전일대비 {drop_rate * 100:.1f}% 하락"
-        }
+    def _get_t_info(self, bot_info: BotInfo) -> Tuple[float, float]:
+        """T값 및 임계값 계산"""
+        total_investment = self.trade_repo.get_total_investment(bot_info.name)
+        t = util.get_T(total_investment, bot_info.seed)
+        t_threshold = bot_info.max_tier * bot_info.dynamic_seed_t_threshold
+        return t, t_threshold
 
-    def _apply_drawdown_seed(
+    def _apply_seed_increase(
             self,
             bot_info: BotInfo,
-            drop_interval_rate: float
-    ) -> Optional[Dict[str, Any]]:
-        """
-        2단계: 고점대비 하락률 기반 시드 조정
+            old_seed: float,
+            t_triggered: bool,
+            t: float,
+            t_threshold: float,
+            drop_rate: Optional[float]
+    ) -> bool:
+        """시드 증액 적용 및 메시지 전송"""
+        target_seed = min(old_seed * (1 + bot_info.dynamic_seed_multiplier), bot_info.dynamic_seed_max)
 
-        90일 고점 대비 하락률로 seed_ratio 계산 후,
-        dynamic_seed_max × ratio 값을 목표 시드로 반환
+        if target_seed <= old_seed:
+            return False
 
-        Args:
-            bot_info: 봇 정보
-            drop_interval_rate: 하락률 인터벌 (소수, 예: 0.03 → 3%)
+        bot_info.seed = target_seed
+        self.bot_info_repo.save(bot_info)
 
-        Returns:
-            성공 시: {'target_seed': 목표시드, 'trigger': 트리거사유}
-            실패 시: None
-        """
+        # 트리거 사유
+        if t_triggered:
+            trigger = f"T값 {t:.1f} (기준: {t_threshold:.1f} 돌파)"
+        else:
+            trigger = f"전일대비 {drop_rate * 100:.1f}% 하락"
 
-        return None #기능 비활성화
+        increase_rate = ((target_seed - old_seed) / old_seed) * 100
 
-        if self.market_usecase is None:
-            return None
+        msg = f"📈 [{bot_info.name}] 동적 시드 적용\n"
+        msg += f"트리거: {trigger}\n"
+        if drop_rate is not None:
+            msg += f"전일대비: {drop_rate * 100:.1f}% {'하락' if drop_rate >= 0 else '상승'}\n"
+        msg += f"${old_seed:,.2f} → ${target_seed:,.2f} (+{increase_rate:.1f}%)"
 
-        MAX_COUNT = 10
+        send_message_sync(msg)
+        return True
 
-        # drawdown 조회
-        drawdown_result = self.market_usecase.get_drawdown(
-            ticker=bot_info.symbol,
-            days=90
+    def _send_no_increase_message(self, bot_info: BotInfo, old_seed: float, drop_rate: float) -> None:
+        """증액 미적용 시 하락 정보 메시지 전송"""
+        send_message_sync(
+            f"📊 [{bot_info.name}] 전일대비 {abs(drop_rate * 100):.1f}% {'하락' if drop_rate >= 0 else '상승'}\n"
+            f"현재 시드: ${old_seed:,.2f} (적용 기준 미달)"
         )
 
-        if drawdown_result is None:
-            return None
 
-        drawdown_rate = drawdown_result['drawdown_rate']
-
-        # seed_ratio 계산
-        seed_ratio = get_seed_ratio_by_drawdown(
-            drawdown_rate=drawdown_rate,
-            interval_rate=drop_interval_rate,
-            max_count=MAX_COUNT
-        )
-
-        # 목표 시드 계산
-        target_seed = bot_info.dynamic_seed_max * seed_ratio
-
-        if target_seed <= 0:
-            return None
-
-        return {
-            'target_seed': target_seed,
-            'trigger': f"고점대비 {drawdown_rate * 100:.1f}% 하락 (ratio: {seed_ratio * 100:.0f}%)"
-        }

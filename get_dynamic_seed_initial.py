@@ -1,6 +1,6 @@
-target = 875
-times = 4
-multiplier = 1.5
+target = 625
+times = 5
+multiplier = 1.3
 
 initial = (target+10) / (multiplier ** times)
 print(f"목표값: {target+10} ÷ {multiplier}^{times} = 초기값: {initial:.2f}")

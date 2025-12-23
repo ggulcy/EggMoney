@@ -291,6 +291,7 @@ class TradingUsecase:
         """
         BATCH_SIZE = 30
         FEE_RATE = 0.0009  # 0.09%
+        INTERVAL_SECONDS = 5
 
         # 1. Trade 조회
         trade = self.trade_repo.find_by_name(name)
@@ -323,9 +324,9 @@ class TradingUsecase:
         # 3. 매도 실행
         sell_results = []
         for i, batch_amount in enumerate(batches):
-            # 첫 번째 거래가 아니면 3초 대기 (테스트 모드에서는 스킵)
+            # 첫 번째 거래가 아니면 5초 대기 (테스트 모드에서는 스킵)
             if i > 0 and not item.is_test:
-                time.sleep(3)
+                time.sleep(INTERVAL_SECONDS)
 
             request_price = self.hantoo_service.get_price(symbol)
             if not request_price:
@@ -356,7 +357,7 @@ class TradingUsecase:
         for i, batch_amount in enumerate(batches):
             # 매 거래마다 3초 대기 (테스트 모드에서는 스킵)
             if not item.is_test:
-                time.sleep(3)
+                time.sleep(INTERVAL_SECONDS)
 
             request_price = self.hantoo_service.get_price(symbol)
             if not request_price:

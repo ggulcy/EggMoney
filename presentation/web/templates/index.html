@@ -1871,8 +1871,8 @@
                 }
 
                 const data = await response.json();
-                renderVixChart(data.vix_history);
-                renderTickerCharts(data.rsi_history, data.price_history);
+                renderVixChart(data.vix_history, data.vix_current);
+                renderTickerCharts(data.rsi_history, data.price_history, data.rsi_current);
             } catch (error) {
                 console.error('시장 지표 로딩 오류:', error);
             }
@@ -1942,7 +1942,7 @@
             }
         }
 
-        function renderTickerCharts(rsiHistory, priceHistory) {
+        function renderTickerCharts(rsiHistory, priceHistory, rsiCurrent) {
             const container = document.getElementById('tickerChartsContainer');
             container.innerHTML = '';
 
@@ -1965,24 +1965,14 @@
                 const rsiData = rsiHistory ? rsiHistory[ticker] : null;
                 const priceData = priceHistory ? priceHistory[ticker] : null;
 
-                const currentRsi = rsiData ? rsiData[rsiData.length - 1].value : '-';
                 const currentPrice = priceData ? priceData[priceData.length - 1].value : '-';
 
-                // RSI 레벨 판단 (RsiIndicator 클래스 기준)
-                let rsiLevel = '', rsiEmoji = '', rsiClass = '';
-                if (currentRsi !== '-') {
-                    if (currentRsi >= 70) {
-                        rsiLevel = '극탐욕'; rsiEmoji = '🤩'; rsiClass = 'greed';
-                    } else if (currentRsi >= 60) {
-                        rsiLevel = '탐욕'; rsiEmoji = '😄'; rsiClass = 'greed';
-                    } else if (currentRsi >= 50) {
-                        rsiLevel = '중립'; rsiEmoji = '😐'; rsiClass = 'neutral';
-                    } else if (currentRsi >= 40) {
-                        rsiLevel = '공포'; rsiEmoji = '😨'; rsiClass = 'fear';
-                    } else {
-                        rsiLevel = '극공포'; rsiEmoji = '😱'; rsiClass = 'fear';
-                    }
-                }
+                // 서버에서 받은 RSI 레벨 정보 사용
+                const tickerLevel = rsiCurrent && rsiCurrent[ticker] ? rsiCurrent[ticker] : null;
+                const currentRsi = tickerLevel ? tickerLevel.value : '-';
+                const rsiLevel = tickerLevel ? tickerLevel.level : '';
+                const rsiEmoji = tickerLevel ? tickerLevel.emoji : '';
+                const rsiClass = tickerLevel ? tickerLevel.css_class : '';
 
                 // 아코디언 HTML 생성
                 const accordionHtml = `
@@ -2088,7 +2078,7 @@
             tickerCharts[ticker] = true;  // 렌더링 완료 표시
         }
 
-        function renderVixChart(vixHistory) {
+        function renderVixChart(vixHistory, vixCurrent) {
             if (!vixHistory || vixHistory.length === 0) {
                 document.getElementById('vixCurrentDisplay').textContent = '데이터 없음';
                 return;
@@ -2096,19 +2086,9 @@
 
             const labels = vixHistory.map(d => d.date.slice(5));  // MM-DD 형식
             const values = vixHistory.map(d => d.value);
-            const currentValue = values[values.length - 1];
 
-            // VIX 레벨 판단 (VixIndicator 클래스 기준)
-            let vixLevel, vixEmoji, vixClass;
-            if (currentValue < 15) {
-                vixLevel = '안정'; vixEmoji = '🤩'; vixClass = 'greed';
-            } else if (currentValue < 20) {
-                vixLevel = '중립'; vixEmoji = '😊'; vixClass = 'neutral';
-            } else if (currentValue < 30) {
-                vixLevel = '불안'; vixEmoji = '😟'; vixClass = 'fear';
-            } else {
-                vixLevel = '공포'; vixEmoji = '😱'; vixClass = 'fear';
-            }
+            // 서버에서 받은 레벨 정보 사용
+            const { value: currentValue, level: vixLevel, emoji: vixEmoji, css_class: vixClass } = vixCurrent;
 
             // 헤더에 표시
             const vixBadge = document.getElementById('vixBadge');

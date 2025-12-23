@@ -81,6 +81,14 @@ def save_bot_info():
         point_loc_value = data.get('point_loc', 'P1')
         point_loc = PointLoc(point_loc_value)
         dynamic_seed_max = float(data.get('dynamic_seed_max', 0))
+        dynamic_seed_enabled = data.get('dynamic_seed_enabled', False)
+        dynamic_seed_multiplier = float(data.get('dynamic_seed_multiplier', 1.3))
+        dynamic_seed_t_threshold = float(data.get('dynamic_seed_t_threshold', 0.3))
+        dynamic_seed_drop_rate = float(data.get('dynamic_seed_drop_rate', 0.03))
+
+        # 기존 봇 정보에서 added_seed 유지
+        existing = bot_management_usecase.get_bot_info_by_name(name)
+        added_seed = existing.added_seed if existing else 0
 
         bot_info = BotInfo(
             name=name,
@@ -94,8 +102,12 @@ def save_bot_info():
             active=active,
             skip_sell=skip_sell,
             point_loc=point_loc,
-            added_seed=0,
+            added_seed=added_seed,
             dynamic_seed_max=dynamic_seed_max,
+            dynamic_seed_enabled=dynamic_seed_enabled,
+            dynamic_seed_multiplier=dynamic_seed_multiplier,
+            dynamic_seed_t_threshold=dynamic_seed_t_threshold,
+            dynamic_seed_drop_rate=dynamic_seed_drop_rate,
         )
         bot_management_usecase.update_bot_info(bot_info)
         return jsonify({"message": f"{name} saved"}), 200

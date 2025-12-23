@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional, Set, List, TYPE_CHECKING
 
 from domain.repositories.market_indicator_repository import MarketIndicatorRepository
+from domain.value_objects.indicator_level import IndicatorLevel
 
 if TYPE_CHECKING:
     from data.external.hantoo.hantoo_service import HantooService
@@ -126,6 +127,9 @@ class MarketUsecase:
             vix_history = self.market_indicator_repo.get_price_history(ticker="^VIX", days=days)
             if vix_history:
                 result["vix_history"] = vix_history
+                # VIX 현재 레벨 추가
+                current_vix = vix_history[-1]["value"]
+                result["vix_current"] = IndicatorLevel.from_vix(current_vix).to_dict()
 
             # 기본 티커 + 전달받은 티커
             default_tickers = {'TQQQ', 'SOXL'}
@@ -133,13 +137,18 @@ class MarketUsecase:
 
             # 각 ticker별 RSI 히스토리 조회
             rsi_history = {}
+            rsi_current = {}
             for ticker in sorted(unique_tickers):
                 rsi_data = self.market_indicator_repo.get_rsi_history(ticker, days=days)
                 if rsi_data:
                     rsi_history[ticker] = rsi_data
+                    # RSI 현재 레벨 추가
+                    current_rsi = rsi_data[-1]["value"]
+                    rsi_current[ticker] = IndicatorLevel.from_rsi(current_rsi).to_dict()
 
             if rsi_history:
                 result["rsi_history"] = rsi_history
+                result["rsi_current"] = rsi_current
 
             # 각 ticker별 가격 히스토리 조회
             price_history = {}

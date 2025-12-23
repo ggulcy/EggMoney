@@ -24,7 +24,11 @@ class BotInfo:
         point_loc: PointLoc,
         added_seed: float = 0.0,
         skip_sell: bool = False,
-        dynamic_seed_max: float = 0.0
+        dynamic_seed_max: float = 0.0,
+        dynamic_seed_enabled: bool = False,
+        dynamic_seed_multiplier: float = 0.3,
+        dynamic_seed_t_threshold: float = 1.0,
+        dynamic_seed_drop_rate: float = 0.03
     ):
         self.name = name
         self.symbol = symbol
@@ -39,6 +43,10 @@ class BotInfo:
         self.added_seed = added_seed
         self.skip_sell = skip_sell
         self.dynamic_seed_max = dynamic_seed_max
+        self.dynamic_seed_enabled = dynamic_seed_enabled
+        self.dynamic_seed_multiplier = dynamic_seed_multiplier
+        self.dynamic_seed_t_threshold = dynamic_seed_t_threshold
+        self.dynamic_seed_drop_rate = dynamic_seed_drop_rate
 
         self._validate()
 

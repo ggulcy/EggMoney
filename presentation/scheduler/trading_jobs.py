@@ -78,8 +78,6 @@ class TradingJobs:
         for bot_info in bot_infos:
             if bot_info.active:
                 self._execute_trade_for_bot(bot_info)
-                if not item.is_test:
-                    time.sleep(5)
 
         # 장부거래 상쇄 처리
         self._execute_netting_if_needed()
