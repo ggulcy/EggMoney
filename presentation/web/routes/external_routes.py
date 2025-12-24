@@ -28,15 +28,13 @@ def _get_balance_data(bot_info_repo, trade_repo, exchange_repo) -> dict:
 
     Returns:
         dict: {
-            "stock_items": [...],
+            "stock_items": [...],  # 각 item에 current_price 포함
             "balance": float,
-            "current_prices": {...},
             "total_seed": float  # active인 봇들의 seed 합계
         }
     """
     bot_info_list = bot_info_repo.find_all()
     stock_items = []
-    current_prices = {}
     total_seed = 0.0
 
     # 각 봇의 거래 정보 수집
@@ -46,22 +44,21 @@ def _get_balance_data(bot_info_repo, trade_repo, exchange_repo) -> dict:
             total_seed += bot_info.seed
         trade = trade_repo.find_by_name(bot_info.name)
         if trade and trade.amount > 0:
+            # 현재가 조회
+            current_price = exchange_repo.get_price(trade.symbol)
+
             stock_items.append({
                 "name": bot_info.name,
                 "ticker": trade.symbol,
                 "amount": trade.amount,
                 "price": trade.purchase_price,
                 "total_price": trade.total_price,
+                "current_price": current_price,
                 "days_until_next": None,
                 "pool": None
             })
-            # 현재가 조회
-            if trade.symbol not in current_prices:
-                price = exchange_repo.get_price(trade.symbol)
-                if price:
-                    current_prices[trade.symbol] = price
 
-    # RP 추가
+    # RP 추가 (현재가 = 구매가)
     rp_trade = trade_repo.find_by_name("RP")
     if rp_trade and rp_trade.purchase_price != 0:
         stock_items.append({
@@ -70,6 +67,7 @@ def _get_balance_data(bot_info_repo, trade_repo, exchange_repo) -> dict:
             "amount": rp_trade.amount,
             "price": rp_trade.purchase_price,
             "total_price": rp_trade.total_price,
+            "current_price": rp_trade.purchase_price,
             "days_until_next": None,
             "pool": None
         })
@@ -82,7 +80,6 @@ def _get_balance_data(bot_info_repo, trade_repo, exchange_repo) -> dict:
     return {
         "stock_items": stock_items,
         "balance": balance,
-        "current_prices": current_prices,
         "total_seed": total_seed,
         "wallet_cash": 0
     }
