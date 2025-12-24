@@ -240,11 +240,12 @@ class OrderUsecase:
 
         # 최대 투자금 체크
         if not self._is_buy_available_for_max_balance(bot_info):
+            self.message_repo.send_message(f"[{bot_info.name}] 최대투자금을 초과하여 주문서를 생성하지 않습니다")
             return None
 
         # 첫 구매 (평단가가 없으면)
-        if not avr_price:
-            self.message_repo.send_message(f"첫 구매 {bot_info.seed:,.0f}$ 매수 시도합니다")
+        if not avr_price or bot_info.skip_sell:
+            self.message_repo.send_message(f"[첫 구매 or 판매스킵] 모든시드 {bot_info.seed:,.0f}$ 매수 시도합니다")
             return TradeType.BUY, bot_info.seed
 
         point_price, t, point = self._get_point_price(bot_info)

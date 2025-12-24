@@ -177,10 +177,6 @@ class HantooDataSource:
 
         # [DEBUG] 토큰 상태 로깅
         token_preview = token[:20] + "..." if token else None
-        print(f"\n[DEBUG] _get_token() 호출")
-        print(f"[DEBUG] 토큰 존재 여부: {token is not None} (preview: {token_preview})")
-        print(f"[DEBUG] 만료일 존재 여부: {token_expiration is not None} (value: {token_expiration})")
-        logging.info(f"[DEBUG] 토큰={token is not None}, 만료일={token_expiration}")
 
         # 토큰이 없으면 새로 발급
         if token is None:
@@ -199,14 +195,9 @@ class HantooDataSource:
                 expiration_with_buffer = expiration_datetime - timedelta(hours=1)
 
                 # [DEBUG] 시간 비교 로깅
-                print(f"[DEBUG] 현재 시간: {current_time}")
-                print(f"[DEBUG] 만료 시간: {expiration_datetime}")
-                print(f"[DEBUG] 만료 1시간 전: {expiration_with_buffer}")
-                print(f"[DEBUG] 토큰 유효 여부: {current_time < expiration_with_buffer}")
                 logging.info(f"[DEBUG] 현재={current_time}, 만료={expiration_datetime}, 유효={current_time < expiration_with_buffer}")
 
                 if current_time < expiration_with_buffer:
-                    print(f"[DEBUG] ✅ 토큰 유효 (만료까지 {expiration_with_buffer - current_time} 남음)")
                     return token
                 else:
                     logging.info("토큰이 만료되었습니다. 새로운 토큰을 발급합니다.")

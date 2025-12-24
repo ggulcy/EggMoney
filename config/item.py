@@ -27,28 +27,18 @@ def _get_is_test_from_env():
     Returns:
         bool: 테스트 모드 여부 (기본값: True)
     """
-    print("\n" + "=" * 80)
-    print("🔍 IS_TEST 환경변수 확인 중...")
-    print("=" * 80)
 
     test_value = os.getenv('IS_TEST')
     print(f"📌 IS_TEST 환경변수: {test_value if test_value else '(설정되지 않음)'}")
 
     if test_value:
         test_value_lower = test_value.lower()
-        print(f"✅ 환경변수에서 읽은 값: '{test_value}' (소문자: '{test_value_lower}')")
 
         if test_value_lower == 'false':
-            print(f"✅ IS_TEST 설정: False (프로덕션 모드)")
-            print("=" * 80 + "\n")
             return False
         else:
-            print(f"✅ IS_TEST 설정: True ('{test_value}'는 False가 아님)")
-            print("=" * 80 + "\n")
             return True
 
-    print("⚠️  IS_TEST 환경변수가 설정되지 않음 → 기본값: True (테스트 모드)")
-    print("=" * 80 + "\n")
     return True
 
 
@@ -74,27 +64,16 @@ def _get_admin_from_env():
 
     if admin_value:
         admin_value_lower = admin_value.lower()
-        print(f"✅ 환경변수에서 읽은 값: '{admin_value}' (소문자: '{admin_value_lower}')")
 
         if admin_value_lower == 'chan':
-            print(f"✅ ADMIN 설정: Chan (환경변수에서 읽음)")
-            print("=" * 80 + "\n")
             return BotAdmin.Chan
         elif admin_value_lower == 'choe':
-            print(f"✅ ADMIN 설정: Choe (환경변수에서 읽음)")
-            print("=" * 80 + "\n")
             return BotAdmin.Choe
         elif admin_value_lower == 'sk':
-            print(f"✅ ADMIN 설정: SK (환경변수에서 읽음)")
-            print("=" * 80 + "\n")
             return BotAdmin.SK
         else:
-            print(f"⚠️  알 수 없는 ADMIN 값: '{admin_value}' → 기본값: Chan")
-            print("=" * 80 + "\n")
             return BotAdmin.Chan
 
-    print("⚠️  ADMIN 환경변수가 설정되지 않음 → 기본값: None")
-    print("=" * 80 + "\n")
     return None
 
 
