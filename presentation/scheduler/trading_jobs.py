@@ -58,9 +58,6 @@ class TradingJobs:
 
         참고: egg/main.py의 job() (121-143번 줄)
         """
-        if not is_trade_date():
-            self.message_repo.send_message("설정한 거래요일이 아니라 종료 합니다")
-            return
 
         # 오래된 주문서 삭제 (전날 미완료 주문 등)
 
@@ -171,8 +168,6 @@ class TradingJobs:
 
         참고: egg/main.py의 twap_job() (145-162번 줄)
         """
-        if not is_trade_date():
-            return
 
         # 활성화된 봇 중 주문서가 있는 봇만 처리
         for bot_info in self.bot_info_repo.find_all():

@@ -14,14 +14,20 @@ from domain.value_objects.point_loc import PointLoc
 
 
 def is_trade_date():
-    """오늘이 거래일인지 확인 (미국 주식 기준 - 한국 시간 화~토)"""
-    today_weekday = datetime.today().weekday()  # 월=0, 일=6
-    # 미국 월~금 거래일 = 한국 화(1) ~ 토(5)
-    # 일요일(6), 월요일(0) 제외
-    is_trade_day = 1 <= today_weekday <= 5
-    print(f"today: {today_weekday}, is_trade_day: {is_trade_day}")
-    return is_trade_day
+    """오늘이 거래일인지 확인 (미국 주식 기준 - NYSE 캘린더 사용, 한국 시간 기준)"""
+    import pandas_market_calendars as mcal
 
+    nyse = mcal.get_calendar('NYSE')
+    today_kst = datetime.today()
+
+    # 한국 시간 기준 어제 = 미국 시간 기준 오늘
+    # (한국 화요일 새벽 = 미국 월요일 장)
+    us_date = (today_kst - timedelta(days=1)).strftime('%Y-%m-%d')
+
+    schedule = nyse.schedule(start_date=us_date, end_date=us_date)
+    is_open = len(schedule) > 0
+
+    return is_open
 
 # === 날짜/시간 유틸 ===
 def get_msg_times():
@@ -462,8 +468,8 @@ def get_seed_ratio_by_drawdown(
         float: 시드 비율 (0.0 ~ 1.0)
 
     Example:
-        >>> get_seed_ratio_by_drawdown(-0.12, 0.03, 5)
-        0.8  # 12% / 3% = 4카운트, 4/5 = 0.8
+        >>> get_seed_ratio_by_drawdown(-0.12, 0.03, 5)  # 12% / 3% = 4카운트, 4/5 = 0.8
+        0.8
     """
     if interval_rate <= 0 or max_count <= 0:
         return 0.0

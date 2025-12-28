@@ -108,13 +108,9 @@ def _create_make_order_job(trading_jobs: TradingJobs):
         deps = get_dependencies()
         print(f"\n🤖 trade_job() called at {datetime.now()}")
 
-        if not is_trade_date():
-            msg = "⏸️ 설정한 거래요일이 아니라 종료합니다"
-            deps.message_repo.send_message(msg)
-            return
-
         try:
-            trading_jobs.make_order_job()
+            if is_trade_date():
+                trading_jobs.make_order_job()
         except Exception as e:
             error_message = f"❌ [trade_job] 거래중 문제가 발생하였습니다. 문제를 확인하세요.\n{e}\n{traceback.format_exc()}"
             deps.message_repo.send_message(error_message)
@@ -133,12 +129,9 @@ def _create_twap_job(trading_jobs: TradingJobs):
         deps = get_dependencies()
         print(f"\n⏱️ twap_job() called at {datetime.now()}")
 
-        if not is_trade_date():
-            print("⏸️ 거래 비활성 날짜")
-            return
-
         try:
-            trading_jobs.twap_job()
+            if is_trade_date():
+                trading_jobs.twap_job()
         except Exception as e:
             error_message = f"❌ [twap_job] 거래중 문제가 발생하였습니다. 문제를 확인하세요.\n{e}\n{traceback.format_exc()}"
             deps.message_repo.send_message(error_message)
@@ -155,11 +148,10 @@ def _create_msg_job(message_jobs: MessageJobs):
     def msg_job_impl():
         from datetime import datetime
         deps = get_dependencies()
-        if not is_trade_date():
-            return
 
         try:
-            message_jobs.daily_job()
+            if is_trade_date():
+                message_jobs.daily_job()
         except Exception as e:
             error_message = f"❌ [msg_job] 치명적 오류 발생!\n{e}\n{traceback.format_exc()}"
             deps.message_repo.send_message(error_message)
