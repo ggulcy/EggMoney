@@ -302,12 +302,13 @@ class BotManagementUsecase:
 
     # ===== 봇 팩토리 - 리뉴얼 =====
 
-    def preview_bot_renewal(self, market_stage: int) -> Dict[str, Any]:
+    def preview_bot_renewal(self, market_stage: int, custom_total_budget: float = None) -> Dict[str, Any]:
         """
         봇 리뉴얼 미리보기 - 변경될 필드만 반환 (DB 저장 안 함)
 
         Args:
             market_stage: 시장 단계 (0=수비, 1=중립, 2=공격, 3=매우공격)
+            custom_total_budget: 사용자 지정 총 예산 (None이면 현재 봇 예산 합계 사용)
 
         Returns:
             {
@@ -336,14 +337,19 @@ class BotManagementUsecase:
             return None
 
         # 2. 현재 상태 분석
-        total_budget = 0
         ticker_bot_counts = {}  # {ticker: count}
 
-        for bot in current_bots:
-            # 예산 = seed × max_tier
-            bot_budget = bot.seed * bot.max_tier
-            total_budget += bot_budget
+        # 사용자 지정 예산이 있으면 사용, 없으면 현재 봇 예산 합계 사용
+        if custom_total_budget is not None:
+            total_budget = custom_total_budget
+        else:
+            total_budget = 0
+            for bot in current_bots:
+                # 예산 = seed × max_tier
+                bot_budget = bot.seed * bot.max_tier
+                total_budget += bot_budget
 
+        for bot in current_bots:
             # 티커별 봇 개수
             ticker_bot_counts[bot.symbol] = ticker_bot_counts.get(bot.symbol, 0) + 1
 
@@ -380,12 +386,13 @@ class BotManagementUsecase:
             "bots": renewal_bots
         }
 
-    def apply_bot_renewal(self, market_stage: int) -> Dict[str, Any]:
+    def apply_bot_renewal(self, market_stage: int, custom_total_budget: float = None) -> Dict[str, Any]:
         """
         봇 리뉴얼 적용 - 실제로 DB에 저장
 
         Args:
             market_stage: 시장 단계 (0=수비, 1=중립, 2=공격, 3=매우공격)
+            custom_total_budget: 사용자 지정 총 예산 (선택사항)
 
         Returns:
             {
@@ -394,7 +401,7 @@ class BotManagementUsecase:
             }
         """
         # 1. 미리보기로 변경될 설정 조회
-        preview = self.preview_bot_renewal(market_stage)
+        preview = self.preview_bot_renewal(market_stage, custom_total_budget=custom_total_budget)
 
         if preview is None:
             return {

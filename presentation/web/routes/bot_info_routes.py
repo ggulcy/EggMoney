@@ -34,6 +34,8 @@ def bot_info_template():
         trade_time = key_store.read(key_store.TRADE_TIME) or "04:35"
         twap_time = key_store.read(key_store.TWAP_TIME) or ["04:40", "09:00"]
         twap_count = key_store.read(key_store.TWAP_COUNT) or 5
+        market_state_level = key_store.read(key_store.MARKET_STATE_LEVEL)
+        total_budget = key_store.read(key_store.TOTAL_BUDGET)
 
         return render_template('bot_info.html',
                                bot_info_with_tiers=bot_info_with_tiers,
@@ -41,7 +43,9 @@ def bot_info_template():
                                trade_time=trade_time,
                                PointLoc=PointLoc,
                                twap_time=twap_time,
-                               twap_count=twap_count)
+                               twap_count=twap_count,
+                               market_state_level=market_state_level,
+                               saved_total_budget=total_budget)
     except Exception as e:
         print(f"Error: {e}")
         import traceback
@@ -98,6 +102,10 @@ def save_bot_info():
             dynamic_seed_drop_rate=dynamic_seed_drop_rate,
         )
         bot_management_usecase.update_bot_info(bot_info)
+
+        # 수동 설정 변경 시 시장 레벨을 -1(수동설정)으로 변경
+        key_store.write(key_store.MARKET_STATE_LEVEL, -1)
+
         return jsonify({"message": f"{name} saved"}), 200
     except Exception as e:
         print(f"Error: {e}")
@@ -201,6 +209,82 @@ def save_all_settings():
         start_scheduler()
 
         return jsonify({"message": "All settings saved"}), 200
+    except Exception as e:
+        print(f"Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@bot_info_bp.route('/preview_bot_renewal', methods=['POST'])
+def preview_bot_renewal():
+    """시장 단계에 따른 봇 리뉴얼 미리보기"""
+    bot_management_usecase = _get_dependencies()
+    try:
+        data = request.get_json()
+        market_stage = data.get('market_stage')
+        total_budget = data.get('total_budget')  # 사용자 지정 총 예산 (선택사항)
+
+        if market_stage is None:
+            return jsonify({"error": "market_stage required"}), 400
+
+        # 시장 단계 유효성 검증
+        if market_stage not in [0, 1, 2, 3]:
+            return jsonify({"error": "Invalid market_stage (must be 0-3)"}), 400
+
+        # 총 예산 유효성 검증 (있는 경우)
+        if total_budget is not None:
+            if not isinstance(total_budget, (int, float)) or total_budget <= 0:
+                return jsonify({"error": "Invalid total_budget (must be positive number)"}), 400
+
+        # 봇 리뉴얼 미리보기
+        preview = bot_management_usecase.preview_bot_renewal(market_stage, custom_total_budget=total_budget)
+
+        return jsonify(preview), 200
+    except Exception as e:
+        print(f"Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@bot_info_bp.route('/apply_bot_renewal', methods=['POST'])
+@require_web_auth
+def apply_bot_renewal():
+    """시장 단계에 따른 봇 리뉴얼 적용"""
+    bot_management_usecase = _get_dependencies()
+    try:
+        data = request.get_json()
+        market_stage = data.get('market_stage')
+        total_budget = data.get('total_budget')  # 사용자 지정 총 예산 (선택사항)
+
+        if market_stage is None:
+            return jsonify({"error": "market_stage required"}), 400
+
+        # 시장 단계 유효성 검증
+        if market_stage not in [0, 1, 2, 3]:
+            return jsonify({"error": "Invalid market_stage (must be 0-3)"}), 400
+
+        # 총 예산 유효성 검증 (있는 경우)
+        if total_budget is not None:
+            if not isinstance(total_budget, (int, float)) or total_budget <= 0:
+                return jsonify({"error": "Invalid total_budget (must be positive number)"}), 400
+
+        # 봇 리뉴얼 적용
+        result = bot_management_usecase.apply_bot_renewal(market_stage, custom_total_budget=total_budget)
+
+        # 시장 단계 저장
+        key_store.write(key_store.MARKET_STATE_LEVEL, market_stage)
+
+        # 총 예산 저장 (사용자가 지정한 경우)
+        if total_budget is not None:
+            key_store.write(key_store.TOTAL_BUDGET, total_budget)
+
+        return jsonify({
+            "message": "Bot renewal applied successfully",
+            "updated_count": result["updated_count"],
+            "market_stage": market_stage
+        }), 200
     except Exception as e:
         print(f"Error: {e}")
         import traceback

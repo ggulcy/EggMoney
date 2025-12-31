@@ -25,6 +25,9 @@ TWAP_COUNT = "TWAP_COUNT"
 
 IS_DYNAMIC_SEED_APPLY_TODAY = "IS_DYNAMIC_SEED_APPLY_TODAY"
 
+MARKET_STATE_LEVEL = "MARKET_STATE_LEVEL"  # 시장 단계 (0=수비, 1=중립, 2=공격, 3=매우공격)
+TOTAL_BUDGET = "TOTAL_BUDGET"  # 사용자 지정 총 예산
+
 
 def _get_default_values():
     """기본값 딕셔너리 반환"""
@@ -34,7 +37,8 @@ def _get_default_values():
     return {
         TRADE_TIME: "00:05",
         TWAP_TIME: get_twap_times(),
-        TWAP_COUNT: 5
+        TWAP_COUNT: 5,
+        MARKET_STATE_LEVEL: 0  # 기본값: 수비적
     }
 
 
@@ -109,6 +113,12 @@ def read(key):
         elif key == "IS_DYNAMIC_SEED_APPLY_TODAY":
             is_apply = db.get(key)
             return is_apply if is_apply else False
+        elif key == "MARKET_STATE_LEVEL":
+            market_level = db.get(key)
+            return market_level if market_level is not None else 0
+        elif key == "TOTAL_BUDGET":
+            total_budget = db.get(key)
+            return total_budget if total_budget is not None else None
         return db.get(key, None)
 
 
