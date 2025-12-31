@@ -125,13 +125,10 @@ def _create_twap_job(trading_jobs: TradingJobs):
     """TWAP 거래 작업 팩토리 (클로저)"""
 
     def twap_job_impl():
-        from datetime import datetime
         deps = get_dependencies()
-        print(f"\n⏱️ twap_job() called at {datetime.now()}")
 
         try:
-            if is_trade_date():
-                trading_jobs.twap_job()
+            trading_jobs.twap_job()
         except Exception as e:
             error_message = f"❌ [twap_job] 거래중 문제가 발생하였습니다. 문제를 확인하세요.\n{e}\n{traceback.format_exc()}"
             deps.message_repo.send_message(error_message)

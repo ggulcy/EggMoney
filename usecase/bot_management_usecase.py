@@ -9,6 +9,8 @@ from domain.repositories import (
     ExchangeRepository,
     MessageRepository,
 )
+from domain.services import bot_factory
+from domain.value_objects.point_loc import PointLoc
 
 if TYPE_CHECKING:
     from usecase.market_usecase import MarketUsecase
@@ -297,5 +299,138 @@ class BotManagementUsecase:
             f"📊 [{bot_info.name}] 전일대비 {abs(drop_rate * 100):.1f}% {'하락' if drop_rate >= 0 else '상승'}\n"
             f"현재 시드: ${old_seed:,.2f} (적용 기준 미달)"
         )
+
+    # ===== 봇 팩토리 - 리뉴얼 =====
+
+    def preview_bot_renewal(self, market_stage: int) -> Dict[str, Any]:
+        """
+        봇 리뉴얼 미리보기 - 변경될 필드만 반환 (DB 저장 안 함)
+
+        Args:
+            market_stage: 시장 단계 (0=수비, 1=중립, 2=공격, 3=매우공격)
+
+        Returns:
+            {
+                "market_stage": int,
+                "total_budget": float,
+                "cash_reserve": float,
+                "investable": float,
+                "bots": [
+                    {
+                        "name": str,              # 봇 이름 (TQ_1, TQ_2 등)
+                        "symbol": str,
+                        "seed": float,            # 변경될 시드
+                        "max_tier": int,          # 변경될 MaxTier
+                        "profit_rate": float,     # 변경될 수익률
+                        "point_loc": str,         # 변경될 포인트 위치
+                        "level": int,             # 레벨
+                        "level_name": str         # 레벨명
+                    }
+                ]
+            }
+        """
+        # 1. 현재 봇 정보 조회
+        current_bots = self.bot_info_repo.find_all()
+
+        if not current_bots:
+            return None
+
+        # 2. 현재 상태 분석
+        total_budget = 0
+        ticker_bot_counts = {}  # {ticker: count}
+
+        for bot in current_bots:
+            # 예산 = seed × max_tier
+            bot_budget = bot.seed * bot.max_tier
+            total_budget += bot_budget
+
+            # 티커별 봇 개수
+            ticker_bot_counts[bot.symbol] = ticker_bot_counts.get(bot.symbol, 0) + 1
+
+        # 3. 공통 t_div 추출 (첫 번째 봇의 값 사용)
+        common_t_div = current_bots[0].t_div
+
+        # 4. 리뉴얼 봇 설정 생성 (티커별 봇 개수 고정)
+        renewal_result = bot_factory.create_bot_configs_for_renewal(
+            market_stage=market_stage,
+            total_budget=total_budget,
+            ticker_bot_counts=ticker_bot_counts,
+            t_div=common_t_div
+        )
+
+        # 5. 봇 이름을 현재 봇 이름으로 매핑
+        renewal_bots = []
+        for i, (current_bot, new_config) in enumerate(zip(current_bots, renewal_result["bots"])):
+            renewal_bots.append({
+                "name": current_bot.name,  # 기존 이름 유지
+                "symbol": new_config["symbol"],
+                "seed": new_config["seed"],
+                "max_tier": new_config["max_tier"],
+                "profit_rate": new_config["profit_rate"],
+                "point_loc": new_config["point_loc"],
+                "level": new_config["level"],
+                "level_name": new_config["level_name"]
+            })
+
+        return {
+            "market_stage": market_stage,
+            "total_budget": renewal_result["total_budget"],
+            "cash_reserve": renewal_result["cash_reserve"],
+            "investable": renewal_result["investable"],
+            "bots": renewal_bots
+        }
+
+    def apply_bot_renewal(self, market_stage: int) -> Dict[str, Any]:
+        """
+        봇 리뉴얼 적용 - 실제로 DB에 저장
+
+        Args:
+            market_stage: 시장 단계 (0=수비, 1=중립, 2=공격, 3=매우공격)
+
+        Returns:
+            {
+                "updated_count": int,     # 업데이트된 봇 개수
+                "bots": List[BotInfo]     # 업데이트된 봇 정보
+            }
+        """
+        # 1. 미리보기로 변경될 설정 조회
+        preview = self.preview_bot_renewal(market_stage)
+
+        if preview is None:
+            return {
+                "updated_count": 0,
+                "bots": []
+            }
+
+        # 2. 각 봇의 설정을 업데이트
+        updated_bots = []
+        for bot_config in preview["bots"]:
+            # 봇 정보 조회
+            bot_info = self.bot_info_repo.find_by_name(bot_config["name"])
+
+            if bot_info is None:
+                continue
+
+            # 필드 업데이트
+            bot_info.seed = bot_config["seed"]
+            bot_info.max_tier = bot_config["max_tier"]
+            bot_info.profit_rate = bot_config["profit_rate"]
+            bot_info.point_loc = PointLoc(bot_config["point_loc"])  # str -> Enum 변환
+
+            # 리뉴얼 시 초기화
+            bot_info.active = True  # 모두 활성화
+            bot_info.dynamic_seed_enabled = False  # 동적 시드 비활성화
+            bot_info.dynamic_seed_max = 0.0  # 동적 시드 최대값 초기화
+            # added_seed는 유지 (초기화 안 함)
+
+            # DB 저장
+            self.bot_info_repo.save(bot_info)
+            updated_bots.append(bot_info)
+
+        return {
+            "updated_count": len(updated_bots),
+            "bots": updated_bots
+        }
+
 
 
