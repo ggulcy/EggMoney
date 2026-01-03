@@ -612,12 +612,12 @@ class TradingUsecase:
 
         # 결과 출력
         if trade_result:
-            self.message_repo.send_message(f"✅ [{order.name}] 개별 거래 결과 ({current_trade_num}/{order.total_count})\n"
+            print(f"✅ [{order.name}] 개별 거래 결과 ({current_trade_num}/{order.total_count})\n"
                             f"  - 거래유형: {trade_result.trade_type.value}\n"
                             f"  - 체결개수: {trade_result.amount}\n"
                             f"  - 체결가: ${trade_result.unit_price:,.2f}")
         else:
-            self.message_repo.send_message(f"✅ 거래 결과: 거래 실패 or 거래가 없습니다 ({current_trade_num}/{order.total_count})")
+            print(f"✅ [{order.name}] 거래 결과: 거래 실패 or 거래가 없습니다 ({current_trade_num}/{order.total_count})")
 
         return order
 

@@ -62,10 +62,12 @@ class SQLAlchemyHistoryRepositoryImpl(HistoryRepository):
         return [self._to_entity(model) for model in models]
 
     def find_by_name_and_date(self, name: str, date: datetime) -> List[History]:
-        """name과 date_added로 히스토리 조회"""
-        models = self.session.query(HistoryModel).filter_by(
-            name=name,
-            date_added=date
+        """name과 date_added로 히스토리 조회 (날짜 부분만 비교)"""
+        models = self.session.query(HistoryModel).filter(
+            and_(
+                HistoryModel.name == name,
+                func.date(HistoryModel.date_added) == date.date()
+            )
         ).order_by(HistoryModel.trade_date).all()
         return [self._to_entity(model) for model in models]
 
@@ -132,11 +134,11 @@ class SQLAlchemyHistoryRepositoryImpl(HistoryRepository):
         return total if total is not None else 0.0
 
     def get_total_sell_profit_by_name_and_date(self, name: str, date: datetime) -> float:
-        """name과 date_added별 매도 총 수익 (매도 거래만)"""
+        """name과 date_added별 매도 총 수익 (매도 거래만, 날짜 부분만 비교)"""
         total = self.session.query(func.sum(HistoryModel.profit)).filter(
             and_(
                 HistoryModel.name == name,
-                HistoryModel.date_added == date,
+                func.date(HistoryModel.date_added) == date.date(),
                 self._get_sell_type_filter()
             )
         ).scalar()

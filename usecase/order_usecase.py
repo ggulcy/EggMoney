@@ -207,11 +207,6 @@ class OrderUsecase:
         else:
             trade_type, amount = self._calculate_sell_amount(condition_3_4, condition_1_4, bot_info)
 
-            # 적은 수익 매도 스킵 (100$ 이하)
-            if trade_type and self._is_sell_skip(cur_price, avr_price, bot_info, profit_std=100):
-                self.message_repo.send_message(msg + "‼️ 수익금이 100$ 이하라 매도를 스킵합니다")
-                return None
-
         # 매도 주문 정보 반환
         if trade_type:
             self.message_repo.send_message(msg + f"\n[{bot_info.name}] 매도 주문서 생성: {amount}주 ({trade_type.value})")
