@@ -22,32 +22,26 @@ def get_ticker_risk_weight(ticker: str) -> float:
 
 
 # ============================================
-# 봇 레벨 정의 (1~4)
+# 봇 레벨 정의 (1~3)
 # ============================================
 BOT_LEVEL_CONFIG = {
     1: {  # 수비적
         "name": "수비적",
         "max_tier": 40,
         "profit_rate": 0.10,  # 10%
-        "point_loc": "P1_2",  # P1/2
+        "point_loc": "P2_3",  # P1/2
     },
     2: {  # 중립
         "name": "중립",
-        "max_tier": 35,
+        "max_tier": 30,
         "profit_rate": 0.12,  # 12%
-        "point_loc": "P1_2",  # P1/2
+        "point_loc": "P2_3",  # P2/3
     },
     3: {  # 공격적
         "name": "공격적",
-        "max_tier": 30,
-        "profit_rate": 0.13,  # 13%
-        "point_loc": "P2_3",  # P2/3
-    },
-    4: {  # 매우 공격적
-        "name": "매우 공격적",
         "max_tier": 20,
         "profit_rate": 0.15,  # 15%
-        "point_loc": "P2_3",  # P2/3
+        "point_loc": "P2_3",  # P2_#
     },
 }
 
@@ -55,11 +49,11 @@ BOT_LEVEL_CONFIG = {
 # 시장 단계별 봇 레벨 분배 비율
 # ============================================
 MARKET_LEVEL_DISTRIBUTION = {
-    # [레벨1, 레벨2, 레벨3, 레벨4]
-    0: [0.60, 0.30, 0.10, 0.00],  # 수비: 레벨1 더 집중
-    1: [0.30, 0.40, 0.25, 0.05],  # 중립: 레벨1,2 중심
-    2: [0.15, 0.35, 0.35, 0.15],  # 공격: 균형잡힘
-    3: [0.00, 0.20, 0.40, 0.40],  # 매우공격: 레벨4 비중 줄임
+    # [레벨1, 레벨2, 레벨3]
+    0: [0.70, 0.30, 0.00],  # 수비: 레벨1 집중
+    1: [0.30, 0.50, 0.20],  # 중립: 레벨1,2 균형
+    2: [0.20, 0.40, 0.40],  # 공격: 레벨2,3 중심
+    3: [0.10, 0.30, 0.60],  # 매우공격: 레벨3 집중
 }
 
 # ============================================
@@ -80,12 +74,12 @@ def distribute_bot_levels(market_stage: int, total_bots: int) -> Dict[int, int]:
     level_counts = {}
     assigned = 0
 
-    # 레벨 1~4 순서대로 계산 (반올림)
-    for level in range(1, 5):
+    # 레벨 1~3 순서대로 계산 (반올림)
+    for level in range(1, 4):
         ratio = distribution[level - 1]
 
         # 마지막 레벨은 남은 개수 모두
-        if level == 4:
+        if level == 3:
             count = total_bots - assigned
         else:
             # 반올림 사용
@@ -187,6 +181,25 @@ def calculate_max_tier(base_tier: int, risk_weight: float) -> int:
     return max(20, min(40, tier))
 
 
+def calculate_profit_rate(base_rate: float, risk_weight: float) -> float:
+    """리스크 가중치에 따른 수익률 미세 조정
+
+    Args:
+        base_rate: 기본 수익률 (0.10~0.15)
+        risk_weight: 리스크 가중치 (1.0~3.0)
+
+    Returns:
+        조정된 수익률 (10~20% 범위)
+    """
+    # 리스크가 높을수록 수익률 증가 (최대 +33%)
+    # risk_weight 1.0 -> 조정 없음
+    # risk_weight 3.0 -> +33% 증가
+    adjustment = 1.0 + (risk_weight - 1.0) * 0.165
+    rate = base_rate * adjustment
+    # 10~20% 범위로 제한
+    return max(0.10, min(0.20, rate))
+
+
 def create_bot_config(ticker: str, risk_weight: float, level: int,
                      budget: float, bot_index: int, t_div: int) -> Dict[str, Any]:
     """단일 봇 설정 생성
@@ -202,6 +215,9 @@ def create_bot_config(ticker: str, risk_weight: float, level: int,
     # MaxTier 계산 (리스크 보정)
     max_tier = calculate_max_tier(level_config["max_tier"], risk_weight)
 
+    # Profit Rate 계산 (리스크 보정)
+    profit_rate = calculate_profit_rate(level_config["profit_rate"], risk_weight)
+
     # Seed 계산
     # budget = seed × MaxTier
     seed = budget / max_tier
@@ -214,7 +230,7 @@ def create_bot_config(ticker: str, risk_weight: float, level: int,
         "budget": budget,
         "seed": round(seed, 2),
         "max_tier": max_tier,
-        "profit_rate": level_config["profit_rate"],
+        "profit_rate": round(profit_rate, 4),
         "t_div": t_div,
         "point_loc": level_config["point_loc"],
         "risk_weight": risk_weight,
