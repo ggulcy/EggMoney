@@ -8,7 +8,7 @@ from typing import Dict, List, Any
 # 리스크 가중치: MaxTier 조정에 사용 (높을수록 MaxTier 증가 = 더 보수적)
 TICKER_RISK_WEIGHTS = {
     "TQQQ": 1.0,  # 기본
-    "SOXL": 2.0,  # 2배 리스크 (MaxTier 증가)
+    "SOXL": 1.5,  # 2배 리스크 (MaxTier 증가)
     "BITU": 2.0,  # 2배 리스크
     # 나머지 티커는 기본값 3.0 사용
 }
@@ -33,7 +33,7 @@ BOT_LEVEL_CONFIG = {
     },
     2: {  # 중립
         "name": "중립",
-        "max_tier": 40,
+        "max_tier": 35,
         "profit_rate": 0.12,  # 12%
         "point_loc": "P1_2",  # P1/2
     },
@@ -45,7 +45,7 @@ BOT_LEVEL_CONFIG = {
     },
     4: {  # 매우 공격적
         "name": "매우 공격적",
-        "max_tier": 30,
+        "max_tier": 20,
         "profit_rate": 0.15,  # 15%
         "point_loc": "P2_3",  # P2/3
     },
