@@ -68,22 +68,26 @@ CASH_RATIO = {
 
 
 def distribute_bot_levels(market_stage: int, total_bots: int) -> Dict[int, int]:
-    """시장 상황에 따라 봇 레벨별 개수 분배"""
+    """시장 상황에 따라 봇 레벨별 개수 분배
+
+    비중이 높은 레벨부터 우선 배정하여 봇 개수가 적어도 정확하게 분배
+    """
     distribution = MARKET_LEVEL_DISTRIBUTION[market_stage]
+
+    # 레벨별 비중과 함께 정렬 (비중 높은 순)
+    level_ratios = [(level + 1, distribution[level]) for level in range(3)]
+    level_ratios.sort(key=lambda x: x[1], reverse=True)
 
     level_counts = {}
     assigned = 0
 
-    # 레벨 1~3 순서대로 계산 (반올림)
-    for level in range(1, 4):
-        ratio = distribution[level - 1]
-
+    for i, (level, ratio) in enumerate(level_ratios):
         # 마지막 레벨은 남은 개수 모두
-        if level == 3:
+        if i == len(level_ratios) - 1:
             count = total_bots - assigned
         else:
-            # 반올림 사용
-            count = round(total_bots * ratio)
+            # 반올림 사용 (0.5 이상이면 올림)
+            count = int(total_bots * ratio + 0.5)
             # 남은 개수를 초과하지 않도록
             count = min(count, total_bots - assigned)
 
