@@ -60,16 +60,7 @@ class TradingJobs:
         """
 
         # 오래된 주문서 삭제 (전날 미완료 주문 등)
-
-        # 혹시 남아있는 완료 주문 체크 (비정상 상황)
-        remaining_orders = self.order_repo.find_all()
-        if remaining_orders:
-            self.message_repo.send_message(
-                f"⚠️ 메인 거래 시작 전 미처리 주문서 발견!\n"
-                f"주문서 개수: {len(remaining_orders)}\n"
-                f"주문서 목록: {[o.name for o in remaining_orders]}"
-            )
-        self.order_repo.delete_old_orders(before_date=date.today())
+        self._check_and_cleanup_remaining_orders()
 
         # 모든 활성 봇에 대해 주문서 생성 실행
         bot_infos = self.bot_info_repo.find_all()
@@ -79,6 +70,23 @@ class TradingJobs:
 
         # 장부거래 상쇄 처리
         self._execute_netting_if_needed()
+
+    def _check_and_cleanup_remaining_orders(self) -> None:
+        """
+        남아있는 미처리 주문서 체크 및 오래된 주문 삭제
+
+        비정상 상황으로 남아있는 주문서가 있는지 확인하고,
+        오늘 이전의 오래된 주문서를 삭제합니다.
+        """
+        # 혹시 남아있는 완료 주문 체크 (비정상 상황)
+        remaining_orders = self.order_repo.find_all()
+        if remaining_orders:
+            self.message_repo.send_message(
+                f"⚠️ 미처리 주문서 발견!\n"
+                f"주문서 개수: {len(remaining_orders)}\n"
+                f"주문서 목록: {[o.name for o in remaining_orders]}"
+            )
+        self.order_repo.delete_old_orders(before_date=date.today())
 
     def _execute_netting_if_needed(self) -> None:
         """
@@ -168,6 +176,9 @@ class TradingJobs:
 
         참고: egg/main.py의 twap_job() (145-162번 줄)
         """
+
+        # 오래된 주문서 삭제 (전날 미완료 주문 등)
+        self._check_and_cleanup_remaining_orders()
 
         # 활성화된 봇 중 주문서가 있는 봇만 처리
         for bot_info in self.bot_info_repo.find_all():
