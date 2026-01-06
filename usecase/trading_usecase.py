@@ -135,15 +135,24 @@ class TradingUsecase:
         print(f"{order.name}의 {current_num}/{order.total_count} 주문검사를 시작합니다")
 
         if self._is_order_available(order):
-            if self._is_buy(order):
-                order = self._execute_single_buy(order)
-            else:
-                order = self._execute_single_sell(order)
+            try:
+                if self._is_buy(order):
+                    order = self._execute_single_buy(order)
+                else:
+                    order = self._execute_single_sell(order)
+                self.order_repo.save(order)
+            except Exception as e:
+                self.message_repo.send_message(
+                    f"⚠️ [{order.name}] TWAP {current_num}/{order.total_count} 실행 중 오류 발생: {e}\n"
+                    f"  → 다음 TWAP 시간에 계속 진행합니다"
+                )
+                # 예외 발생 시에도 order는 이미 업데이트된 상태 (None이 추가되고 trade_count 감소)
 
-            self.order_repo.save(order)
 
             # 주문 완료 시 DB 저장
-            if order.trade_count == 0:
+            # 조건 1: trade_count가 0
+            # 조건 2: 마지막 TWAP 시간이 지났고 유효한 거래가 있는 경우
+            if order.trade_count == 0 or self._is_last_twap_passed(order):
                 self._complete_trade(order)
 
     def execute_netting(self, netting_pair: NettingPair) -> None:
@@ -425,6 +434,56 @@ class TradingUsecase:
         }
 
     # ===== Private Methods (내부 헬퍼) =====
+
+    def _is_last_twap_passed(self, order: Order) -> bool:
+        """
+        마지막 TWAP 시간이 지났는지 확인
+
+        Args:
+            order: 주문 정보
+
+        Returns:
+            True: 마지막 TWAP 시간이 지났고 유효한 거래가 있음
+            False: 아직 마지막 TWAP 시간 전이거나 유효한 거래가 없음
+        """
+        from config.util import get_schedule_times
+
+        try:
+            # 유효한 거래 결과 확인
+            valid_results = [tr for tr in order.trade_result_list if tr is not None]
+            if not valid_results:
+                return False
+
+            # 스케줄 시간 조회
+            _, _, twap_times = get_schedule_times()
+            if not twap_times:
+                return False
+
+            # 마지막 TWAP 시간 (예: "04:50")
+            last_time_str = twap_times[-1]
+
+            # 현재 시간
+            now = datetime.now()
+
+            # 오늘 날짜 + 마지막 TWAP 시간
+            today = now.date()
+            last_twap_time = datetime.strptime(f"{today} {last_time_str}", "%Y-%m-%d %H:%M")
+
+            # 현재 시간이 마지막 TWAP 시간 이후인지 확인
+            if now >= last_twap_time:
+                self.message_repo.send_message(
+                    f"⏰ [{order.name}] 마지막 TWAP 시간({last_time_str}) 경과\n"
+                    f"  → 완료된 거래: {len(valid_results)}/{order.total_count}\n"
+                    f"  → 거래 종료 처리를 시작합니다"
+                )
+                return True
+
+            return False
+
+        except Exception as e:
+            # 예외 발생 시 기존 로직대로 trade_count == 0만 체크
+            print(f"⚠️ 마지막 TWAP 시간 체크 실패: {e}")
+            return False
 
     def _is_order_available(self, order: Order) -> bool:
         """
