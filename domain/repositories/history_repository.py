@@ -35,6 +35,11 @@ class HistoryRepository(ABC):
         pass
 
     @abstractmethod
+    def find_sell_by_name_and_date(self, name: str, date: datetime) -> List[History]:
+        """name과 date_added로 매도 히스토리만 조회"""
+        pass
+
+    @abstractmethod
     def find_today_sell_by_name(self, name: str) -> Optional[History]:
         """오늘의 첫 번째 매도 히스토리 조회 (매도 거래만)"""
         pass

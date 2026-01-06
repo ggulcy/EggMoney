@@ -71,6 +71,17 @@ class SQLAlchemyHistoryRepositoryImpl(HistoryRepository):
         ).order_by(HistoryModel.trade_date).all()
         return [self._to_entity(model) for model in models]
 
+    def find_sell_by_name_and_date(self, name: str, date: datetime) -> List[History]:
+        """name과 date_added로 매도 히스토리만 조회 (날짜 부분만 비교)"""
+        models = self.session.query(HistoryModel).filter(
+            and_(
+                HistoryModel.name == name,
+                func.date(HistoryModel.date_added) == date.date(),
+                self._get_sell_type_filter()
+            )
+        ).order_by(HistoryModel.trade_date).all()
+        return [self._to_entity(model) for model in models]
+
     def find_today_sell_by_name(self, name: str) -> Optional[History]:
         """오늘의 첫 번째 매도 히스토리 조회 (매도 거래만)"""
         today = datetime.now().date()

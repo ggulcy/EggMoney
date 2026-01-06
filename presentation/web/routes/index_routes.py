@@ -11,6 +11,7 @@ from flask import Blueprint, render_template, jsonify, request
 
 from config import item
 from config.dependencies import get_dependencies
+from config.util import get_naver_exchange_rate
 from usecase.portfolio_status_usecase import PortfolioStatusUsecase
 from usecase.market_usecase import MarketUsecase
 
@@ -128,6 +129,25 @@ def get_trades_by_date():
             if 'date' in trade:
                 del trade['date']
 
+        # 금일 수익 계산 (조회 날짜가 오늘인 경우에만)
+        today = datetime.now().date()
+        today_profit_usd = 0.0
+        if start_date == today and end_date == today:
+            # 오늘 매도된 거래들의 수익 합산
+            for trade in trades_data.get('trades', []):
+                if trade.get('type') == 'sell' and trade.get('profit'):
+                    today_profit_usd += trade['profit']
+
+            # 환율 적용
+            exchange_rate = get_naver_exchange_rate()
+            today_profit_krw = today_profit_usd * exchange_rate
+
+            trades_data['today_profit_usd'] = today_profit_usd
+            trades_data['today_profit_krw'] = today_profit_krw
+        else:
+            trades_data['today_profit_usd'] = 0.0
+            trades_data['today_profit_krw'] = 0.0
+
         return jsonify(trades_data)
 
     except ValueError as e:
@@ -153,3 +173,32 @@ def refresh_market_indicator():
 
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
+
+
+@index_bp.route('/api/check_today_profit', methods=['GET'])
+def check_today_profit():
+    """오늘 수익 체크 API"""
+    try:
+        portfolio_usecase = _get_portfolio_usecase()
+
+        # 오늘 매도된 거래들 조회 (trade_date 기준)
+        today_sells = portfolio_usecase.history_repo.find_today_sells()
+
+        # 총 수익 합산 (달러)
+        total_profit_usd = sum(history.profit for history in today_sells)
+
+        # 환율 조회
+        exchange_rate = get_naver_exchange_rate()
+
+        # 원화 환산
+        total_profit_krw = total_profit_usd * exchange_rate
+
+        return jsonify({
+            "has_profit": total_profit_usd > 0,
+            "total_profit_usd": total_profit_usd,
+            "total_profit_krw": total_profit_krw,
+            "exchange_rate": exchange_rate
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
