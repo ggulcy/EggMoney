@@ -428,6 +428,7 @@ class BotManagementUsecase:
             bot_info.active = True  # 모두 활성화
             bot_info.dynamic_seed_enabled = False  # 동적 시드 비활성화
             bot_info.dynamic_seed_max = 0.0  # 동적 시드 최대값 초기화
+            bot_info.is_check_buy_t_div_price = True
             # added_seed는 유지 (초기화 안 함)
 
             # DB 저장
