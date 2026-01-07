@@ -30,6 +30,16 @@ class OrderRepository(ABC):
         pass
 
     @abstractmethod
+    def delete_orders(self, orders: List[Order]) -> int:
+        """주문 목록 삭제 (삭제된 개수 반환)"""
+        pass
+
+    @abstractmethod
+    def find_old_orders(self, before_date: date) -> List[Order]:
+        """특정 날짜 이전의 모든 주문 조회"""
+        pass
+
+    @abstractmethod
     def delete_old_orders(self, before_date: date) -> int:
         """특정 날짜 이전의 모든 주문 삭제 (삭제된 개수 반환)"""
         pass

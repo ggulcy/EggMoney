@@ -78,15 +78,16 @@ class TradingJobs:
         비정상 상황으로 남아있는 주문서가 있는지 확인하고,
         오늘 이전의 오래된 주문서를 삭제합니다.
         """
-        # 혹시 남아있는 완료 주문 체크 (비정상 상황)
-        remaining_orders = self.order_repo.find_all()
-        if remaining_orders:
+        # 오늘 이전의 오래된 주문서 조회 (비정상 상황)
+        old_orders = self.order_repo.find_old_orders(before_date=date.today())
+        if old_orders:
             self.message_repo.send_message(
-                f"⚠️ 미처리 주문서 발견!\n"
-                f"주문서 개수: {len(remaining_orders)}\n"
-                f"주문서 목록: {[o.name for o in remaining_orders]}"
+                f"⚠️ 오래된 미처리 주문서 발견!\n"
+                f"주문서 개수: {len(old_orders)}\n"
+                f"주문서 목록: {[o.name for o in old_orders]}"
             )
-        self.order_repo.delete_old_orders(before_date=date.today())
+            # 발견된 오래된 주문서 삭제
+            self.order_repo.delete_orders(old_orders)
 
     def _execute_netting_if_needed(self) -> None:
         """

@@ -69,14 +69,38 @@ class SQLAlchemyOrderRepositoryImpl(OrderRepository):
             self.session.rollback()
             raise e
 
-    def delete_old_orders(self, before_date: date) -> int:
-        """특정 날짜 이전의 모든 주문 삭제 (삭제된 개수 반환)"""
-        try:
-            # date를 datetime으로 변환 (00:00:00)
-            before_datetime = datetime.combine(before_date, datetime.min.time())
+    def delete_orders(self, orders: List[Order]) -> int:
+        """주문 목록 삭제 (삭제된 개수 반환)"""
+        if not orders:
+            return 0
 
+        try:
+            count = 0
+            for order in orders:
+                order_model = self.session.query(OrderModel).filter_by(name=order.name).first()
+                if order_model:
+                    self.session.delete(order_model)
+                    count += 1
+
+            self.session.commit()
+            return count
+        except IntegrityError as e:
+            self.session.rollback()
+            raise e
+
+    def find_old_orders(self, before_date: date) -> List[Order]:
+        """특정 날짜 이전의 모든 주문 조회 (날짜만 비교, 시간 무시)"""
+        models = self.session.query(OrderModel).filter(
+            func.date(OrderModel.date_added) < before_date
+        ).order_by(OrderModel.name.asc()).all()
+
+        return [self._to_entity(model) for model in models]
+
+    def delete_old_orders(self, before_date: date) -> int:
+        """특정 날짜 이전의 모든 주문 삭제 (삭제된 개수 반환, 날짜만 비교)"""
+        try:
             old_orders = self.session.query(OrderModel).filter(
-                OrderModel.date_added < before_datetime
+                func.date(OrderModel.date_added) < before_date
             ).all()
 
             count = len(old_orders)
