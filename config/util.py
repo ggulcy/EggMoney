@@ -486,3 +486,57 @@ def get_seed_ratio_by_drawdown(
     # 시드 비율 반환
     return drop_count / max_count
 
+
+# === 파일시스템 관리 ===
+def remove_empty_directories(root_path: str, dry_run: bool = True) -> List[str]:
+    """
+    프로젝트 루트부터 시작해서 빈 디렉토리를 재귀적으로 삭제합니다.
+
+    Args:
+        root_path: 검색을 시작할 루트 경로
+        dry_run: True이면 삭제 예정 목록만 반환, False이면 실제 삭제 수행
+
+    Returns:
+        List[str]: 삭제된(또는 삭제 예정인) 디렉토리 경로 목록
+
+    Example:
+        >>> # 삭제 예정 목록만 확인
+        >>> removed = remove_empty_directories('/path/to/project', dry_run=True)
+        >>> # 실제 삭제 수행
+        >>> removed = remove_empty_directories('/path/to/project', dry_run=False)
+    """
+    import os
+    import shutil
+
+    removed_dirs = []
+
+    # 특정 디렉토리는 제외 (venv, .git, __pycache__ 등)
+    exclude_dirs = {'.git', '.idea', '__pycache__', 'venv', '.venv', 'node_modules', '.DS_Store'}
+
+    def is_empty_dir(dir_path: str) -> bool:
+        """디렉토리가 비어있는지 확인 (숨김파일 제외)"""
+        try:
+            entries = os.listdir(dir_path)
+            # .DS_Store 같은 숨김파일만 있으면 빈 것으로 간주
+            visible_entries = [e for e in entries if not e.startswith('.')]
+            return len(visible_entries) == 0
+        except PermissionError:
+            return False
+
+    # 하위 디렉토리부터 상위로 올라가며 처리 (bottom-up)
+    for dirpath, dirnames, filenames in os.walk(root_path, topdown=False):
+        # 제외 디렉토리 필터링
+        dirnames[:] = [d for d in dirnames if d not in exclude_dirs]
+
+        # 현재 디렉토리가 비어있는지 확인
+        if is_empty_dir(dirpath) and dirpath != root_path:
+            removed_dirs.append(dirpath)
+            if not dry_run:
+                try:
+                    shutil.rmtree(dirpath)
+                    print(f"🗑️  삭제됨: {dirpath}")
+                except Exception as e:
+                    print(f"⚠️  삭제 실패: {dirpath} → {e}")
+
+    return removed_dirs
+
