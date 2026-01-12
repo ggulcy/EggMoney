@@ -135,3 +135,59 @@ class MarketDataService:
             bool: 삭제 성공 여부
         """
         return self.client.clear_cache(ticker)
+
+    def get_moving_average_status(
+        self,
+        ticker: str,
+        cache_hours: int = 6
+    ) -> Optional[Dict[str, Any]]:
+        """
+        특정 티커의 이평선 상태 조회 (현재가, 20일선, 60일선)
+
+        Args:
+            ticker: 종목 심볼
+            cache_hours: 캐시 유효 시간 (시간 단위, 기본 6시간)
+
+        Returns:
+            Dict: {
+                "current_price": 현재가,
+                "ma20": 20일 이동평균,
+                "ma60": 60일 이동평균,
+                "values": [현재가, 20일선, 60일선]
+            } 또는 None
+        """
+        try:
+            # 60일 이평선 계산을 위해 최소 60일치 데이터 필요
+            ticker_data = self.client.fetch_ticker_history(
+                ticker,
+                interval=self.CACHE_INTERVAL,
+                cache_hours=cache_hours
+            )
+            if ticker_data is None:
+                return None
+
+            df = ticker_data.df
+            close_series = df['Close'].astype(float)
+
+            if close_series.isnull().all():
+                logger.error(f"{ticker} Close 데이터가 비어 있습니다")
+                return None
+
+            # 이동평균 계산
+            ma20 = close_series.rolling(window=20).mean()
+            ma60 = close_series.rolling(window=60).mean()
+
+            # 최신 값 추출
+            current_price = round(float(close_series.iloc[-1]), 2)
+            ma20_value = round(float(ma20.iloc[-1]), 2)
+            ma60_value = round(float(ma60.iloc[-1]), 2)
+
+            return {
+                "current_price": current_price,
+                "ma20": ma20_value,
+                "ma60": ma60_value,
+                "values": [current_price, ma20_value, ma60_value]
+            }
+        except Exception as e:
+            logger.error(f"{ticker} 이평선 상태 조회 실패: {e}")
+            return None

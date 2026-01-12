@@ -48,7 +48,7 @@ class MarketIndicatorRepositoryImpl(MarketIndicatorRepository):
     def get_price_history(
         self,
         ticker: str,
-        days: int = 30,
+        days: int = 90,
         cache_hours: int = 6
     ) -> Optional[List[Dict[str, Any]]]:
         """
@@ -87,3 +87,32 @@ class MarketIndicatorRepositoryImpl(MarketIndicatorRepository):
             if self.service.clear_cache(ticker):
                 cleared.append(ticker)
         return cleared
+
+    def get_moving_average_status(
+        self,
+        ticker: str,
+        cache_hours: int = 6
+    ) -> Optional[Dict[str, Any]]:
+        """
+        특정 티커의 이평선 상태 조회 (현재가, 20일선, 60일선)
+
+        Args:
+            ticker: 종목 심볼
+            cache_hours: 캐시 유효 시간 (시간 단위, 기본 6시간)
+
+        Returns:
+            Dict: {
+                "current_price": 현재가,
+                "ma20": 20일 이동평균,
+                "ma60": 60일 이동평균,
+                "values": [현재가, 20일선, 60일선]
+            } 또는 None
+        """
+        try:
+            return self.service.get_moving_average_status(
+                ticker=ticker,
+                cache_hours=cache_hours
+            )
+        except Exception as e:
+            logger.error(f"{ticker} 이평선 상태 조회 실패: {e}")
+            return None

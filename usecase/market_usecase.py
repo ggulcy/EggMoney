@@ -118,7 +118,7 @@ class MarketUsecase:
             또는 None (조회 실패 시)
         """
         try:
-            days = 30
+            days = 90
             result = {}
 
             # VIX 히스토리 조회
@@ -205,3 +205,54 @@ class MarketUsecase:
                 "cleared_tickers": [],
                 "message": str(e)
             }
+
+    def get_moving_average_trend(self, ticker: str) -> Optional[Dict[str, Any]]:
+        """
+        티커의 이평선 추세 조회
+
+        Args:
+            ticker: 종목 심볼 (예: QQQ, TQQQ, SOXL)
+
+        Returns:
+            Dict: {
+                "ticker": "QQQ",
+                "current_price": 610.54,
+                "ma20": 605.23,
+                "ma60": 598.77,
+                "values": [610.54, 605.23, 598.77],
+                "trend": {
+                    "value": 610.54,
+                    "level": "강한 상승 (매수 위주)",
+                    "emoji": "🚀",
+                    "css_class": "strong-uptrend"
+                }
+            }
+            또는 None (조회 실패 시)
+        """
+        try:
+            ma_status = self.market_indicator_repo.get_moving_average_status(
+                ticker=ticker.upper()
+            )
+
+            if ma_status is None:
+                return None
+
+            # IndicatorLevel로 추세 판단
+            trend_level = IndicatorLevel.from_moving_average(
+                current_price=ma_status["current_price"],
+                ma20=ma_status["ma20"],
+                ma60=ma_status["ma60"]
+            )
+
+            return {
+                "ticker": ticker.upper(),
+                "current_price": ma_status["current_price"],
+                "ma20": ma_status["ma20"],
+                "ma60": ma_status["ma60"],
+                "values": ma_status["values"],
+                "trend": trend_level.to_dict()
+            }
+
+        except Exception as e:
+            print(f"❌ 이평선 추세 조회 실패 ({ticker}): {str(e)}")
+            return None

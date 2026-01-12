@@ -23,7 +23,7 @@ class MarketIndicatorRepository(ABC):
         pass
 
     @abstractmethod
-    def get_price_history(self, ticker: str, days: int = 30, cache_hours: int = 6) -> Optional[List[Dict[str, Any]]]:
+    def get_price_history(self, ticker: str, days: int = 90, cache_hours: int = 6) -> Optional[List[Dict[str, Any]]]:
         """
         특정 티커의 가격 히스토리 조회
 
@@ -47,5 +47,24 @@ class MarketIndicatorRepository(ABC):
 
         Returns:
             List[str]: 삭제된 캐시 키 목록
+        """
+        pass
+
+    @abstractmethod
+    def get_moving_average_status(self, ticker: str, cache_hours: int = 6) -> Optional[Dict[str, Any]]:
+        """
+        특정 티커의 이평선 상태 조회 (현재가, 20일선, 60일선)
+
+        Args:
+            ticker: 종목 심볼
+            cache_hours: 캐시 유효 시간 (시간 단위, 기본 6시간)
+
+        Returns:
+            Dict: {
+                "current_price": 현재가,
+                "ma20": 20일 이동평균,
+                "ma60": 60일 이동평균,
+                "values": [현재가, 20일선, 60일선]
+            } 또는 None
         """
         pass
