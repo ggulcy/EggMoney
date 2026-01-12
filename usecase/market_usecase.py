@@ -158,6 +158,16 @@ class MarketUsecase:
             if price_history:
                 result["price_history"] = price_history
 
+            # 각 ticker별 이평선 추세 조회
+            ma_trend = {}
+            for ticker in sorted(unique_tickers):
+                trend_data = self.get_moving_average_trend(ticker)
+                if trend_data:
+                    ma_trend[ticker] = trend_data
+
+            if ma_trend:
+                result["ma_trend"] = ma_trend
+
             # 마지막 데이터 날짜 추가 (VIX 기준)
             if vix_history:
                 result["last_data_date"] = vix_history[-1]["date"]

@@ -16,7 +16,7 @@ class MarketDataService:
         self.client = client or MarketDataClient()
 
     # 캐시 통일을 위한 고정 interval (3개월치 데이터)
-    CACHE_INTERVAL = 90
+    CACHE_INTERVAL = 360
 
     def get_rsi_history(
         self,

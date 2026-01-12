@@ -1708,11 +1708,12 @@
                         <div class="ticker-accordion-left">
                             <span class="ticker-accordion-toggle">▶</span>
                             <span class="ticker-accordion-name">VIX</span>
-                            <span class="ticker-accordion-badge" id="vixBadge">-</span>
                             <span class="ticker-accordion-emoji" id="vixEmoji"></span>
+                            <span class="ticker-accordion-badge" id="vixBadge">-</span>
+                            <span class="ticker-value-highlight" id="vixCurrentDisplay">로딩중...</span>
                         </div>
                         <div class="ticker-accordion-right">
-                            <span id="vixCurrentDisplay" class="ticker-value-highlight">로딩중...</span>
+                            <span class="ticker-price-value" style="visibility: hidden;">-</span>
                         </div>
                     </div>
                     <div class="ticker-accordion-content" id="vixAccordionContent">
@@ -1809,6 +1810,27 @@
                     color: #fff;
                 }
 
+                /* MA 레벨별 색상 */
+                .ticker-accordion-badge.ma-badge.strong-uptrend {
+                    background: #1565c0;
+                    color: #fff;
+                }
+
+                .ticker-accordion-badge.ma-badge.weak-uptrend {
+                    background: #42a5f5;
+                    color: #fff;
+                }
+
+                .ticker-accordion-badge.ma-badge.weak-downtrend {
+                    background: #ff9800;
+                    color: #fff;
+                }
+
+                .ticker-accordion-badge.ma-badge.strong-downtrend {
+                    background: #d32f2f;
+                    color: #fff;
+                }
+
                 .ticker-accordion-right {
                     display: flex;
                     align-items: center;
@@ -1879,6 +1901,83 @@
                     color: #666;
                     margin-bottom: 8px;
                     font-weight: 500;
+                }
+
+                /* 이평선 막대 그래프 */
+                .ma-trend-container {
+                    margin-bottom: 20px;
+                    background: #f8f9fa;
+                    padding: 20px;
+                    border-radius: 8px;
+                }
+
+                .ma-bars-container {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 12px;
+                }
+
+                .ma-bar-row {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                }
+
+                .ma-bar-label {
+                    min-width: 60px;
+                    font-size: 0.85em;
+                    color: #555;
+                    font-weight: 600;
+                    text-align: right;
+                }
+
+                .ma-bar-wrapper {
+                    flex: 1;
+                    background: #e9ecef;
+                    border-radius: 6px;
+                    overflow: hidden;
+                    height: 32px;
+                    position: relative;
+                }
+
+                .ma-bar {
+                    height: 100%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: flex-end;
+                    padding-right: 10px;
+                    transition: width 0.4s ease;
+                    border-radius: 6px;
+                    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+                }
+
+                .ma-bar-value {
+                    font-size: 0.85em;
+                    color: white;
+                    font-weight: 700;
+                    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+                }
+
+                .ma-trend-summary {
+                    margin-top: 15px;
+                    padding: 12px 16px;
+                    background: white;
+                    border-radius: 8px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 10px;
+                    border: 2px solid #dee2e6;
+                }
+
+                .ma-trend-emoji {
+                    font-size: 1.4em;
+                }
+
+                .ma-trend-text {
+                    font-size: 0.95em;
+                    color: #333;
+                    font-weight: 700;
                 }
 
                 /* 티커 아코디언 모바일 반응형 - 기본 스타일 뒤에 위치해야 함 */
@@ -2098,7 +2197,7 @@
 
                 const data = await response.json();
                 renderVixChart(data.vix_history, data.vix_current);
-                renderTickerCharts(data.rsi_history, data.price_history, data.rsi_current);
+                renderTickerCharts(data.rsi_history, data.price_history, data.rsi_current, data.ma_trend);
 
                 // 마지막 데이터 날짜 확인 후 리프레시 버튼 표시
                 checkAndShowRefreshButton(data.last_data_date);
@@ -2203,13 +2302,14 @@
                         // 차트 렌더링
                         const rsiData = content.dataset.rsi ? JSON.parse(content.dataset.rsi) : null;
                         const priceData = content.dataset.price ? JSON.parse(content.dataset.price) : null;
-                        renderSingleTickerChart(ticker, rsiData, priceData);
+                        const maData = content.dataset.ma ? JSON.parse(content.dataset.ma) : null;
+                        renderSingleTickerChart(ticker, rsiData, priceData, maData);
                     }
                 }
             }
         }
 
-        function renderTickerCharts(rsiHistory, priceHistory, rsiCurrent) {
+        function renderTickerCharts(rsiHistory, priceHistory, rsiCurrent, maTrend) {
             const container = document.getElementById('tickerChartsContainer');
             container.innerHTML = '';
 
@@ -2231,6 +2331,7 @@
             tickers.forEach(ticker => {
                 const rsiData = rsiHistory ? rsiHistory[ticker] : null;
                 const priceData = priceHistory ? priceHistory[ticker] : null;
+                const maData = maTrend && maTrend[ticker] ? maTrend[ticker] : null;
 
                 const currentPrice = priceData ? priceData[priceData.length - 1].value : '-';
 
@@ -2241,24 +2342,33 @@
                 const rsiEmoji = tickerLevel ? tickerLevel.emoji : '';
                 const rsiClass = tickerLevel ? tickerLevel.css_class : '';
 
+                // 이평선 추세 정보
+                const maTrendInfo = maData && maData.trend ? maData.trend : null;
+                const maTrendLevel = maTrendInfo ? maTrendInfo.level : '';
+                const maTrendEmoji = maTrendInfo ? maTrendInfo.emoji : '';
+                const maTrendClass = maTrendInfo ? maTrendInfo.css_class : '';
+
                 // 아코디언 HTML 생성
                 const accordionHtml = `
                     <div class="ticker-accordion-header" data-ticker-header="${ticker}" onclick="toggleTickerAccordion('${ticker}')">
                         <div class="ticker-accordion-left">
                             <span class="ticker-accordion-toggle">▶</span>
                             <span class="ticker-accordion-name">${ticker}</span>
-                            <span class="ticker-accordion-badge ${rsiClass}">${rsiLevel}</span>
                             <span class="ticker-accordion-emoji">${rsiEmoji}</span>
+                            <span class="ticker-accordion-badge ${rsiClass}">${rsiLevel}</span>
+                            <span class="ticker-value-highlight ${rsiClass}">RSI ${currentRsi}</span>
+                            <span class="ticker-accordion-emoji" style="margin-left: 12px;">${maTrendEmoji}</span>
+                            <span class="ticker-accordion-badge ma-badge ${maTrendClass}">${maTrendLevel}</span>
                         </div>
                         <div class="ticker-accordion-right">
-                            <span class="ticker-value-highlight ${rsiClass}">RSI ${currentRsi}</span>
                             <span class="ticker-price-value">$${currentPrice}</span>
                         </div>
                     </div>
                     <div class="ticker-accordion-content"
                          data-ticker-content="${ticker}"
                          data-rsi='${JSON.stringify(rsiData)}'
-                         data-price='${JSON.stringify(priceData)}'>
+                         data-price='${JSON.stringify(priceData)}'
+                         data-ma='${JSON.stringify(maData)}'>
                         <div class="ticker-chart-label">📈 RSI (14일)</div>
                         <div class="ticker-chart-container">
                             <canvas id="rsiChart_${ticker}"></canvas>
@@ -2266,6 +2376,10 @@
                         <div class="ticker-chart-label">💰 가격 ($)</div>
                         <div class="ticker-chart-container">
                             <canvas id="priceChart_${ticker}"></canvas>
+                        </div>
+                        <div class="ticker-chart-label">📊 이동평균선 배열 (30일)</div>
+                        <div class="ticker-chart-container">
+                            <canvas id="maChart_${ticker}"></canvas>
                         </div>
                     </div>
                 `;
@@ -2277,7 +2391,94 @@
             restoreTickerExpandedStates();
         }
 
-        function renderSingleTickerChart(ticker, rsiData, priceData) {
+        function renderSingleTickerChart(ticker, rsiData, priceData, maData) {
+            // 이동평균선 차트 (30일)
+            if (priceData && priceData.length > 0) {
+                const maCtx = document.getElementById(`maChart_${ticker}`).getContext('2d');
+
+                // 최근 30일 데이터만 추출
+                const recentDays = 30;
+                const startIndex = Math.max(0, priceData.length - recentDays);
+                const recentPriceData = priceData.slice(startIndex);
+
+                const maLabels = recentPriceData.map(d => d.date.slice(5));
+                const priceValues = priceData.map(d => d.value);
+                const recentPriceValues = recentPriceData.map(d => d.value);
+
+                // 전체 데이터로 이동평균 계산 후 최근 30일만 추출
+                const ma20Full = calculateMA(priceValues, 20);
+                const ma60Full = calculateMA(priceValues, 60);
+                const ma20Values = ma20Full.slice(startIndex);
+                const ma60Values = ma60Full.slice(startIndex);
+
+                const datasets = [
+                    {
+                        label: '현재가',
+                        data: recentPriceValues,
+                        borderColor: '#28a745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.05)',
+                        fill: false,
+                        tension: 0.3,
+                        pointRadius: 0,
+                        borderWidth: 2.5,
+                    },
+                    {
+                        label: '20일선',
+                        data: ma20Values,
+                        borderColor: '#667eea',
+                        backgroundColor: 'transparent',
+                        fill: false,
+                        tension: 0.3,
+                        pointRadius: 0,
+                        borderWidth: 2,
+                    },
+                    {
+                        label: '60일선',
+                        data: ma60Values,
+                        borderColor: '#ff9800',
+                        backgroundColor: 'transparent',
+                        fill: false,
+                        tension: 0.3,
+                        pointRadius: 0,
+                        borderWidth: 2,
+                    }
+                ];
+
+                tickerCharts[`${ticker}_ma`] = new Chart(maCtx, {
+                    type: 'line',
+                    data: {
+                        labels: maLabels,
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: {
+                                    font: { size: 11 },
+                                    usePointStyle: true,
+                                    boxWidth: 8,
+                                    padding: 12
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                ticks: { maxTicksLimit: 8, font: { size: 10 } }
+                            },
+                            y: {
+                                grid: { color: 'rgba(0,0,0,0.08)' },
+                                ticks: { font: { size: 10 } }
+                            }
+                        }
+                    }
+                });
+            }
+
             // RSI 차트
             if (rsiData && rsiData.length > 0) {
                 const rsiCtx = document.getElementById(`rsiChart_${ticker}`).getContext('2d');
@@ -2345,6 +2546,23 @@
             tickerCharts[ticker] = true;  // 렌더링 완료 표시
         }
 
+        // 이동평균 계산 함수
+        function calculateMA(data, period) {
+            const result = [];
+            for (let i = 0; i < data.length; i++) {
+                if (i < period - 1) {
+                    result.push(null);
+                } else {
+                    let sum = 0;
+                    for (let j = 0; j < period; j++) {
+                        sum += data[i - j];
+                    }
+                    result.push(sum / period);
+                }
+            }
+            return result;
+        }
+
         function renderVixChart(vixHistory, vixCurrent) {
             if (!vixHistory || vixHistory.length === 0) {
                 document.getElementById('vixCurrentDisplay').textContent = '데이터 없음';
@@ -2365,7 +2583,7 @@
             document.getElementById('vixEmoji').textContent = vixEmoji;
 
             const vixDisplay = document.getElementById('vixCurrentDisplay');
-            vixDisplay.textContent = currentValue;
+            vixDisplay.textContent = `VIX ${currentValue}`;
             vixDisplay.className = `ticker-value-highlight ${vixClass}`;
 
             // VIX 확장 상태 복원
