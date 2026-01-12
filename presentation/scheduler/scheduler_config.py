@@ -5,6 +5,7 @@ egg/schedule_module.py를 기반으로 작성한 APScheduler 통합 모듈입니
 모든 초기화 로직을 내부에서 처리하여 main에서는 단순 호출만 합니다.
 """
 import traceback
+from datetime import datetime
 from typing import Optional
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger

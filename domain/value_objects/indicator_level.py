@@ -38,11 +38,11 @@ class IndicatorLevel:
     @staticmethod
     def from_vix(vix: float) -> "IndicatorLevel":
         """VIX 값으로부터 레벨 생성"""
-        if vix <= 15:  #Lv0 ~ 15
+        if vix <= 15:  # Lv0 ~ 15
             return IndicatorLevel(vix, "탐욕", "😄", "greed")
-        elif vix <= 20: #Lv2 15~20
+        elif vix <= 20:  # Lv2 15~20
             return IndicatorLevel(vix, "중립", "😐", "neutral")
-        elif vix <= 30: #Lv3 20~30
+        elif vix <= 30:  # Lv3 20~30
             return IndicatorLevel(vix, "공포", "😟", "fear")
         else:
             return IndicatorLevel(vix, "극단적 공포", "😱", "fear")

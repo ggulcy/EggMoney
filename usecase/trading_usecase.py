@@ -628,7 +628,7 @@ class TradingUsecase:
         request_amount = int(order.remain_value * (1 / order.trade_count))
 
         # 요청 정보 출력
-        self.message_repo.send_message(f"[{order.name}] 판매 주문을 요청합니다\n"
+        print(f"[{order.name}] 판매 주문을 요청합니다\n"
                         f"  📊 요청 정보:\n"
                         f"    - 이름: {order.name}\n"
                         f"    - 심볼: {order.symbol}\n"
@@ -761,7 +761,7 @@ class TradingUsecase:
         self.trade_repo.save(re_balancing_trade)
 
         # 매수 History 저장
-        self._save_buy_history(bot_info, trade_result)
+        self._save_buy_history(bot_info, trade_result, prev_trade)
 
     def _save_sell_to_db(self, bot_info: BotInfo, trade_result: TradeResult) -> None:
         """
@@ -810,7 +810,8 @@ class TradingUsecase:
     def _save_buy_history(
         self,
         bot_info: BotInfo,
-        trade_result: TradeResult
+        trade_result: TradeResult,
+        prev_trade: Optional[Trade]
     ) -> None:
         """
         매수 History 저장
@@ -818,12 +819,16 @@ class TradingUsecase:
         Args:
             bot_info: 봇 정보
             trade_result: 거래 결과
+            prev_trade: 이전 거래 정보 (Optional)
         """
         from domain.entities.history import History
 
+        # date_added: prev_trade가 있으면 그 거래의 date_added, 없으면 현재 시간
+        date_added = prev_trade.date_added if prev_trade else datetime.now()
+
         # 매수 History: sell_price=0, profit=0, profit_rate=0
         history = History(
-            date_added=datetime.now(),
+            date_added=date_added,
             trade_date=datetime.now(),
             trade_type=trade_result.trade_type,
             name=bot_info.name,
@@ -910,7 +915,7 @@ class TradingUsecase:
                                           f'%Y년 %m월 %d일 시작\n{bot_info.name} 사이클이 종료\n'
                                           f'최종수익금 💰{total:,.2f}$\n\n')
 
-            history_list = self.history_repo.find_by_name_and_date(bot_info.name, date_added)
+            history_list = self.history_repo.find_sell_by_name_and_date(bot_info.name, date_added)
             msg = ""
             for history in history_list:
                 date = history.trade_date.strftime('%Y년 %m월 %d일')

@@ -316,18 +316,24 @@ class PortfolioStatusUsecase:
                 }
         """
         try:
-            bot_info_list = self.bot_info_repo.find_all()
-            details = []
-            total_profit = 0.0
+            # 오늘의 모든 매도 History 조회
+            today_sells = self.history_repo.find_today_sells()
 
-            for bot_info in bot_info_list:
-                daily_sell_history = self.history_repo.find_today_sell_by_name(bot_info.name)
-                if daily_sell_history:
-                    details.append({
-                        "name": bot_info.name,
-                        "profit": daily_sell_history.profit
-                    })
-                    total_profit += daily_sell_history.profit
+            # 봇별로 profit 합산
+            profit_by_bot = {}
+            for history in today_sells:
+                if history.name not in profit_by_bot:
+                    profit_by_bot[history.name] = 0.0
+                profit_by_bot[history.name] += history.profit
+
+            # details 리스트 생성
+            details = [
+                {"name": name, "profit": profit}
+                for name, profit in profit_by_bot.items()
+            ]
+
+            # 총 수익 계산
+            total_profit = sum(profit_by_bot.values())
 
             usd_krw = util.get_naver_exchange_rate()
             today_date = datetime.now().date().strftime("%m월%d일")

@@ -142,14 +142,13 @@
         }
 
         .profit-modal-content {
-            background: white;
+            background: transparent;
             border-radius: 24px;
             text-align: center;
             position: relative;
             width: 420px;
             max-width: 90%;
-            overflow: hidden;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            overflow: visible;
             animation: modalBounceIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
         }
 
@@ -223,25 +222,27 @@
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
         }
 
-        .profit-pepe-image {
-            width: 100%;
-            height: auto;
-            display: block;
-            animation: pepeBounce 1s ease-in-out infinite;
+        .profit-emoji {
+            font-size: 120px;
+            text-align: center;
+            animation: emojiAnimation 1s ease-in-out infinite;
+            user-select: none;
         }
 
-        @keyframes pepeBounce {
+        @keyframes emojiAnimation {
             0%, 100% {
-                transform: translateY(0);
+                transform: translateY(0) scale(1);
             }
             50% {
-                transform: translateY(-8px);
+                transform: translateY(-8px) scale(1.05);
             }
         }
 
         .profit-modal-text {
             background: white;
             padding: 25px;
+            border-radius: 24px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
         }
 
         .profit-title {
@@ -1311,9 +1312,9 @@
     <!-- 수익 축하 모달 -->
     <div id="profitModal" class="profit-modal hidden">
         <div class="profit-modal-content">
-            <img src="{{ url_for('static', filename='happy_pepe.png') }}" alt="Happy Pepe" class="profit-pepe-image">
+            <div id="profitEmoji" class="profit-emoji">🎉</div>
             <div class="profit-modal-text">
-                <h2 class="profit-title">🎉 축하합니다! 🎉</h2>
+                <h2 class="profit-title" id="profitTitle">🎉 축하합니다! 🎉</h2>
                 <p class="profit-message">오늘 수익</p>
                 <p class="profit-amount" id="profitAmountKRW">₩0</p>
                 <p class="profit-amount-sub" id="profitAmountUSD">$0.00</p>
@@ -3074,6 +3075,22 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.has_profit) {
+                        const totalProfit = data.total_profit_usd;
+
+                        // 수익/손실에 따라 이모티콘 변경
+                        const emojiElement = document.getElementById('profitEmoji');
+                        const titleElement = document.getElementById('profitTitle');
+
+                        if (totalProfit > 0) {
+                            // 수익: 축하 이모티콘
+                            emojiElement.textContent = '🎉';
+                            titleElement.textContent = '🎉 축하합니다! 🎉';
+                        } else {
+                            // 손실: 비 오는 이모티콘
+                            emojiElement.textContent = '🌧️';
+                            titleElement.textContent = '손실이 발생했습니다';
+                        }
+
                         // 원화 수익 표시 (메인)
                         document.getElementById('profitAmountKRW').textContent =
                             '₩' + Math.round(data.total_profit_krw).toLocaleString('ko-KR');
@@ -3085,8 +3102,10 @@
                         // 모달 표시
                         document.getElementById('profitModal').classList.remove('hidden');
 
-                        // 폭죽 시작
-                        startFireworks();
+                        // 수익일 때만 폭죽 시작
+                        if (totalProfit > 0) {
+                            startFireworks();
+                        }
                     }
                 })
                 .catch(error => console.error('Error checking profit:', error));
