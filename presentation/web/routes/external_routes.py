@@ -3,11 +3,13 @@ External Routes - 외부 조회 전용 API (인증 불필요)
 
 Overview 서버에서 데이터 Pull용
 - GET /api/external/portfolio - 포트폴리오 정보 조회
+- GET /api/external/history_summary - 년도별/월별 수익 요약 조회
 """
 from flask import Blueprint, jsonify, request
 
 from config.dependencies import get_dependencies
 from usecase.market_usecase import MarketUsecase
+from usecase.portfolio_status_usecase import PortfolioStatusUsecase
 
 external_bp = Blueprint('external', __name__, url_prefix='/api/external')
 
@@ -19,7 +21,13 @@ def _get_deps():
         market_indicator_repo=deps.market_indicator_repo,
         exchange_repo=deps.exchange_repo
     )
-    return deps.bot_info_repo, deps.trade_repo, deps.exchange_repo, market_usecase
+    portfolio_status_usecase = PortfolioStatusUsecase(
+        bot_info_repo=deps.bot_info_repo,
+        trade_repo=deps.trade_repo,
+        history_repo=deps.history_repo,
+        exchange_repo=deps.exchange_repo
+    )
+    return deps.bot_info_repo, deps.trade_repo, deps.exchange_repo, market_usecase, portfolio_status_usecase
 
 
 def _get_balance_data(bot_info_repo, trade_repo, exchange_repo) -> dict:
@@ -89,12 +97,53 @@ def _get_balance_data(bot_info_repo, trade_repo, exchange_repo) -> dict:
 def get_portfolio():
     """포트폴리오 정보 조회"""
     try:
-        bot_info_repo, trade_repo, exchange_repo, _ = _get_deps()
+        bot_info_repo, trade_repo, exchange_repo, _, _ = _get_deps()
         balance_data = _get_balance_data(bot_info_repo, trade_repo, exchange_repo)
 
         return jsonify({
             "status": "ok",
             "data": balance_data
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+
+@external_bp.route('/history_summary', methods=['GET'])
+def get_history_summary():
+    """
+    년도별/월별 수익 요약 조회 (Overview 연동용)
+
+    Returns:
+        JSON: {
+            "status": "ok",
+            "data": {
+                'years': [
+                    {
+                        'year': 2025,
+                        'total_profit': 1234.56,
+                        'total_profit_krw': 1820000.0,
+                        'is_current_year': True,
+                        'monthly_profits': [
+                            {'month': 1, 'profit': 100.0, 'profit_krw': 147000.0, 'exchange_rate': 1470.0},
+                            ...
+                        ]
+                    },
+                    ...
+                ],
+                'has_data': bool
+            }
+        }
+    """
+    try:
+        _, _, _, _, portfolio_status_usecase = _get_deps()
+        summary_data = portfolio_status_usecase.get_profit_summary_for_web()
+
+        return jsonify({
+            "status": "ok",
+            "data": summary_data
         })
     except Exception as e:
         return jsonify({
