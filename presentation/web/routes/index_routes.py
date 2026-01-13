@@ -61,6 +61,7 @@ def index():
     trade_list = portfolio_usecase.get_all_trades()
     trade_status_map = {}
     dynamic_trade_status_map = {}
+    sell_profit_map = {}
     bot_info_list = portfolio_usecase.get_all_bot_info()
     for bot_info in bot_info_list:
         status = portfolio_usecase.get_trade_status(bot_info)
@@ -71,6 +72,15 @@ def index():
         if dynamic_status:
             dynamic_trade_status_map[bot_info.name] = dynamic_status
 
+    # 각 trade별 누적 판매 수익 계산 (date_added 기준)
+    for trade in trade_list:
+        if trade.name != 'RP' and trade.date_added:
+            profit = portfolio_usecase.history_repo.get_total_sell_profit_by_name_and_date(
+                name=trade.name,
+                date=trade.date_added
+            )
+            sell_profit_map[trade.name] = profit
+
     return render_template(
         'index.html',
         title='EggMoney Trading Bot',
@@ -80,7 +90,8 @@ def index():
         current_year_profit=current_year_data,
         trade_list=trade_list,
         trade_status_map=trade_status_map,
-        dynamic_trade_status_map=dynamic_trade_status_map
+        dynamic_trade_status_map=dynamic_trade_status_map,
+        sell_profit_map=sell_profit_map
     )
 
 

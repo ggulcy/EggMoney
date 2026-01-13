@@ -1551,7 +1551,12 @@
                                 <div class="portfolio-detail-label">%지점</div>
                                 <div class="portfolio-detail-value" style="color: #e67e22;">{{ '{:.1f}'.format(status.point * 100) }}% <span style="font-size: 0.8em; color: #888;">(${{ '{:,.2f}'.format(status.point_price) }})</span></div>
                             </div>
-                            <div class="portfolio-detail-item"></div>
+                            <div class="portfolio-detail-item">
+                                <div class="portfolio-detail-label">사이클 누적 손익</div>
+                                <div class="portfolio-detail-value {{ 'profit-positive' if sell_profit_map.get(trade.name, 0) >= 0 else 'profit-negative' }}">
+                                    {% if sell_profit_map.get(trade.name, 0) >= 0 %}+{% endif %}${{ '{:,.2f}'.format(sell_profit_map.get(trade.name, 0)) }}
+                                </div>
+                            </div>
                             <div class="portfolio-detail-item">
                                 <div class="portfolio-detail-label">시드 소진율</div>
                                 <div class="portfolio-detail-value" style="display: flex; align-items: center; gap: 8px; justify-content: center;">

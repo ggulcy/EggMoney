@@ -77,10 +77,7 @@ def save_bot_info():
         dynamic_seed_multiplier = float(data.get('dynamic_seed_multiplier', 1.3))
         dynamic_seed_t_threshold = float(data.get('dynamic_seed_t_threshold', 0.3))
         dynamic_seed_drop_rate = float(data.get('dynamic_seed_drop_rate', 0.03))
-
-        # 기존 봇 정보에서 added_seed 유지
-        existing = bot_management_usecase.get_bot_info_by_name(name)
-        added_seed = existing.added_seed if existing else 0
+        added_seed = float(data.get('added_seed', 0))
 
         bot_info = BotInfo(
             name=name,

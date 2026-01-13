@@ -679,10 +679,14 @@
                 }
             }
 
+            const addedSeedInput = card.querySelector('input[name="added_seed"]');
+            const addedSeed = addedSeedInput ? parseCurrency(addedSeedInput.value) : 0;
+
             const data = {
                 name: card.querySelector('input[name="name"]').value,
                 symbol: card.querySelector('input[name="symbol"]').value,
                 seed: seed,
+                added_seed: addedSeed,
                 max_tier: parseInt(card.querySelector('input[name="max_tier"]').value) || 0,
                 profit_rate: parsePercent(card.querySelector('input[name="profit_rate"]').value),
                 t_div: parseInt(card.querySelector('input[name="t_div"]').value) || 0,
@@ -1580,7 +1584,9 @@
                     </div>
                     <div class="bot-field">
                         <label>반복리 시드</label>
-                        <input type="text" value="{{ bot_info.added_seed }}" disabled>
+                        <input type="text" name="added_seed"
+                               value="$ {{ '{:,.2f}'.format(bot_info.added_seed) if bot_info.added_seed else '0' }}"
+                               oninput="formatCurrency(this, '$ ')">
                     </div>
                     <div class="bot-field">
                         <label>총 시드</label>
