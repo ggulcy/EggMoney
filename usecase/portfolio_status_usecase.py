@@ -192,9 +192,9 @@ class PortfolioStatusUsecase:
 
             # 얼럿 조건 계산
             # 예수금 부족: seed_per_tier * 2 > hantoo_balance
-            # 예수금 과다 (RP 매수 필요): hantoo_balance > 10000
+            # 예수금 과다 (RP 매수 필요): hantoo_balance > 15000
             alert_low_balance = seed_per_tier * 2 > hantoo_balance if seed_per_tier > 0 else False
-            alert_high_balance = hantoo_balance > 10000
+            alert_high_balance = hantoo_balance > 15000
 
             return {
                 "total_balance": total_balance,

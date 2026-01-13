@@ -890,7 +890,7 @@ class TradingUsecase:
         # added_seed 업데이트
         if is_update_added_seed:
             # 부분 매도 → added_seed에 수익금 추가
-            bot_info.added_seed += profit * (1/40)
+            bot_info.added_seed += profit * (1/10)
             self.bot_info_repo.save(bot_info)
         else:
             # 전체 매도 → added_seed 초기화 + 사이클 종료
