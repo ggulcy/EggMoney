@@ -747,6 +747,7 @@
             const tradeStart = document.querySelector('input[name="trade_start"]').value.trim();
             const tradeEnd = document.querySelector('input[name="trade_end"]').value.trim();
             const twapCount = parseInt(document.querySelector('input[name="twap_count"]').value);
+            const autoStart = document.querySelector('input[name="auto_start"]').checked;
 
             if (!tradeStart || !tradeEnd || !twapCount) {
                 alert('모든 시간 설정값을 입력해주세요.');
@@ -779,7 +780,8 @@
                 body: JSON.stringify({
                     trade_start: tradeStart,
                     trade_end: tradeEnd,
-                    twap_count: twapCount
+                    twap_count: twapCount,
+                    auto_start: autoStart
                 })
             })
             .then(response => response.json())
@@ -1473,20 +1475,29 @@
         </div>
         <div class="schedule-accordion-content">
             <div class="schedule-card" style="border-radius: 0 0 10px 10px; margin-top: 0;">
-                <div class="schedule-field-group">
-                    <div class="schedule-field">
+                <!-- 시간 설정 -->
+                <div class="bot-field-group">
+                    <div class="bot-field">
                         <label>TRADE START</label>
                         <input type="text" name="trade_start" value="{{ trade_time }}" placeholder="HH:MM">
                     </div>
-                    <div class="schedule-field">
+                    <div class="bot-field">
                         <label>TRADE END</label>
                         <input type="text" name="trade_end" value="{{ twap_time[1] }}" placeholder="HH:MM">
                     </div>
-                    <div class="schedule-field">
+                    <div class="bot-field">
                         <label>TWAP Count</label>
                         <input type="number" name="twap_count" value="{{ twap_count }}" placeholder="분할 횟수" min="1">
                     </div>
+                    <div class="bot-field bot-field-checkbox">
+                        <label>다음 봇 자동 출발</label>
+                        <label class="switch">
+                            <input type="checkbox" name="auto_start" {% if auto_start %}checked{% endif %}>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
                 </div>
+
                 <div class="schedule-actions">
                     <button type="button" onclick="saveAllSettings()" class="btn-success">💾 Save All</button>
                 </div>

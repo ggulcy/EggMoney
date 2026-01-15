@@ -99,12 +99,6 @@ class TradingUsecase:
 
         # 4. 거래 결과 확인 및 DB 저장
         if trade_result:
-            self.message_repo.send_message(f"✅ 강제 매도 체결\n"
-                            f"  - 거래유형: {trade_result.trade_type.value}\n"
-                            f"  - 체결개수: {trade_result.amount}\n"
-                            f"  - 체결가: ${trade_result.unit_price:,.2f}\n"
-                            f"  - 총액: ${trade_result.total_price:,.2f}")
-
             # trade_type을 강제로 설정 (HantooService가 항상 SELL을 반환하므로)
             trade_result = TradeResult(
                 trade_type=trade_type,
@@ -112,6 +106,11 @@ class TradingUsecase:
                 unit_price=trade_result.unit_price,
                 total_price=trade_result.total_price
             )
+            self.message_repo.send_message(f"✅ 강제 매도 체결\n"
+                            f"  - 거래유형: {trade_result.trade_type.value}\n"
+                            f"  - 체결개수: {trade_result.amount}\n"
+                            f"  - 체결가: ${trade_result.unit_price:,.2f}\n"
+                            f"  - 총액: ${trade_result.total_price:,.2f}")
 
             # DB 저장
             self._save_sell_to_db(bot_info, trade_result)

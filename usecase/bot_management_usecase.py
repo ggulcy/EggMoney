@@ -142,6 +142,92 @@ class BotManagementUsecase:
         """
         self.bot_info_repo.delete(name)
 
+    def get_next_bot(self, symbol: str) -> Optional[BotInfo]:
+        """
+        특정 심볼에 대해 다음 출발할 봇 조회
+
+        Args:
+            symbol: 심볼 (예: TQQQ, SOXL)
+
+        Returns:
+            다음 출발할 봇 정보 또는 None
+            - 거래 내역이 없으면 첫 번째 봇
+            - 거래 내역이 있으면 비활성(active=False) 봇 중 첫 번째
+
+        egg/seed_module.py의 get_next_bot() 이관 (272-282번 줄)
+        """
+        # 해당 심볼의 거래 내역 확인
+        exist_trade = self.trade_repo.find_by_symbol(symbol)
+
+        # 해당 심볼의 모든 봇 리스트 조회
+        next_bot_list = self.bot_info_repo.find_by_symbol(symbol)
+
+        if not next_bot_list:
+            return None
+
+        # 거래 내역이 없으면 첫 번째 봇 반환
+        if not exist_trade:
+            return next_bot_list[0]
+
+        # 비활성 봇 중 첫 번째 반환
+        return next((bot for bot in next_bot_list if not bot.active), None)
+
+    def auto_start_next_bots(self) -> None:
+        """
+        활성화된 봇들의 심볼을 수집하여 다음 봇 자동 출발
+
+        조건: 현재 활성화된 봇의 T값이 max_tier * 1/3 지점을 통과해야 함
+
+        변화가 있을 때만 텔레그램 메시지 발송
+
+        egg/seed_module.py의 check_is_bot_start() 참고 (475-486번 줄)
+        """
+        from config import util
+
+        # 1. 활성화된 봇들의 심볼 수집 (중복 제거)
+        active_bots = self.bot_info_repo.find_active_bots()
+        active_symbols = set(bot.symbol for bot in active_bots)
+
+        # 2. 각 심볼에 대해 다음 봇 찾기 및 활성화
+        for symbol in active_symbols:
+            next_bot = self.get_next_bot(symbol)
+
+            # 다음 출발할 봇이 없거나 이미 활성화된 경우 스킵 (메시지 없음)
+            if next_bot is None or next_bot.active:
+                continue
+
+            # 3. T값 조건 체크: 현재 활성화된 첫 번째 봇의 T값이 max_tier * 1/3 통과 여부
+            # 같은 심볼의 활성화된 봇 중 첫 번째 봇 찾기
+            active_bots_for_symbol = [bot for bot in active_bots if bot.symbol == symbol]
+            if not active_bots_for_symbol:
+                continue
+
+            # 첫 번째 활성 봇으로 T값 계산
+            first_active_bot = active_bots_for_symbol[0]
+            total_investment = self.trade_repo.get_total_investment(first_active_bot.name)
+            current_t = util.get_T(total_investment, first_active_bot.seed)
+            threshold = first_active_bot.max_tier * (1 / 3)
+
+            # T값이 임계값을 통과하지 않았으면 스킵 (메시지 없음)
+            if current_t < threshold:
+                continue
+
+            # 4. 봇 활성화 (변화 발생)
+            next_bot.active = True
+            next_bot.is_check_buy_t_div_price = True
+            self.bot_info_repo.save(next_bot)
+
+            # 5. 메시지 발송 (변화가 있을 때만)
+            if self.message_repo:
+                self.message_repo.send_message(
+                    f"🚀 자동 봇 출발\n"
+                    f"심볼: {symbol}\n"
+                    f"봇: {next_bot.name}\n"
+                    f"시드: ${next_bot.seed:,.2f}\n"
+                    f"Max티어: {next_bot.max_tier}\n"
+                    f"현재 T값: {current_t:.2f} (기준: {threshold:.2f})"
+                )
+
     # ===== 내부 헬퍼 메서드 =====
 
     def _get_point_price(self, bot_info: BotInfo) -> Tuple[Optional[float], float, float]:

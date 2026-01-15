@@ -27,6 +27,7 @@ IS_DYNAMIC_SEED_APPLY_TODAY = "IS_DYNAMIC_SEED_APPLY_TODAY"
 
 MARKET_STATE_LEVEL = "MARKET_STATE_LEVEL"  # 시장 단계 (0=수비, 1=중립, 2=공격, 3=매우공격)
 TOTAL_BUDGET = "TOTAL_BUDGET"  # 사용자 지정 총 예산
+AUTO_START = "AUTO_START"  # 다음 봇 자동 출발 여부
 
 
 def _get_default_values():
@@ -38,7 +39,8 @@ def _get_default_values():
         TRADE_TIME: "00:05",
         TWAP_TIME: get_twap_times(),
         TWAP_COUNT: 5,
-        MARKET_STATE_LEVEL: 0  # 기본값: 수비적
+        MARKET_STATE_LEVEL: 0,  # 기본값: 수비적
+        AUTO_START: False  # 기본값: 자동 출발 비활성화
     }
 
 
@@ -119,6 +121,9 @@ def read(key):
         elif key == "TOTAL_BUDGET":
             total_budget = db.get(key)
             return total_budget if total_budget is not None else None
+        elif key == "AUTO_START":
+            auto_start = db.get(key)
+            return auto_start if auto_start is not None else False
         return db.get(key, None)
 
 

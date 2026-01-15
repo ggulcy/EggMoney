@@ -36,6 +36,7 @@ def bot_info_template():
         twap_count = key_store.read(key_store.TWAP_COUNT) or 5
         market_state_level = key_store.read(key_store.MARKET_STATE_LEVEL)
         total_budget = key_store.read(key_store.TOTAL_BUDGET)
+        auto_start = key_store.read(key_store.AUTO_START)
 
         return render_template('bot_info.html',
                                bot_info_with_tiers=bot_info_with_tiers,
@@ -45,7 +46,8 @@ def bot_info_template():
                                twap_time=twap_time,
                                twap_count=twap_count,
                                market_state_level=market_state_level,
-                               saved_total_budget=total_budget)
+                               saved_total_budget=total_budget,
+                               auto_start=auto_start)
     except Exception as e:
         print(f"Error: {e}")
         import traceback
@@ -178,14 +180,15 @@ def add_bot_info():
 @bot_info_bp.route('/save_all_settings', methods=['POST'])
 @require_web_auth
 def save_all_settings():
-    """모든 설정을 한 번에 저장 (Trade Start, Trade End, TWAP Count)"""
+    """모든 설정을 한 번에 저장 (Trade Start, Trade End, TWAP Count, Auto Start)"""
     try:
         data = request.get_json()
 
-        # Trade Start, Trade End, TWAP Count 설정
+        # Trade Start, Trade End, TWAP Count, Auto Start 설정
         trade_start = data.get('trade_start')
         trade_end = data.get('trade_end')
         twap_count = data.get('twap_count')
+        auto_start = data.get('auto_start', False)
 
         # 필수 필드 검증
         if not trade_start or not trade_end or not twap_count:
@@ -201,6 +204,7 @@ def save_all_settings():
         key_store.write(key_store.TRADE_TIME, trade_start)  # TRADE_TIME에 trade_start 저장
         key_store.write(key_store.TWAP_TIME, [twap_start, trade_end])  # TWAP_TIME에 [자동계산된 start, 사용자입력 end]
         key_store.write(key_store.TWAP_COUNT, int(twap_count))
+        key_store.write(key_store.AUTO_START, auto_start)  # AUTO_START 저장
 
         # 스케줄러 재시작
         start_scheduler()
