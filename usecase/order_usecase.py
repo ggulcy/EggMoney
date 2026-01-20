@@ -205,6 +205,9 @@ class OrderUsecase:
             msg += "\nT가 Max를 초과하여 손절합니다"
             trade_type, amount = self._calculate_sell_amount(False, True, bot_info)
         else:
+            if bot_info.is_short_mode:
+                # short mode = True이면 profit_price 만 100% 바라봄
+                condition_1_4 = condition_3_4
             trade_type, amount = self._calculate_sell_amount(condition_3_4, condition_1_4, bot_info)
 
         # 매도 주문 정보 반환
@@ -238,9 +241,9 @@ class OrderUsecase:
             self.message_repo.send_message(f"[{bot_info.name}] 최대투자금을 초과하여 주문서를 생성하지 않습니다")
             return None
 
-        # 첫 구매 (평단가가 없으면)
-        if not avr_price or bot_info.skip_sell:
-            self.message_repo.send_message(f"[첫 구매 or 판매스킵] 모든시드 {bot_info.seed:,.0f}$ 매수 시도합니다")
+        # 첫 구매 / 판매스킵 / 숏모드 일때 조건 상관없이 모든 시드만큼구매
+        if not avr_price or bot_info.skip_sell or bot_info.is_short_mode:
+            self.message_repo.send_message(f"모든시드 {bot_info.seed:,.0f}$ 매수 시도합니다")
             return TradeType.BUY, bot_info.seed
 
         point_price, t, point = self._get_point_price(bot_info)

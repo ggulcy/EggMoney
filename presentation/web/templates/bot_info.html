@@ -699,7 +699,8 @@
                 dynamic_seed_max: dynamicSeedMax,
                 dynamic_seed_multiplier: parsePercent(card.querySelector('input[name="dynamic_seed_multiplier"]').value),
                 dynamic_seed_t_threshold: parsePercent(card.querySelector('input[name="dynamic_seed_t_threshold"]').value),
-                dynamic_seed_drop_rate: parsePercent(card.querySelector('input[name="dynamic_seed_drop_rate"]').value)
+                dynamic_seed_drop_rate: parsePercent(card.querySelector('input[name="dynamic_seed_drop_rate"]').value),
+                is_short_mode: card.querySelector('input[name^="is_short_mode"]').checked
             };
 
             showLoading();
@@ -1323,6 +1324,19 @@
             }
         }
 
+        // 숏 모드 토글 시 평단가/TDiv OFF 처리
+        function toggleShortMode(checkbox) {
+            const card = checkbox.closest('.bot-accordion-content');
+            const avrPriceCheckbox = card.querySelector('input[name^="is_check_buy_avr_price"]');
+            const tDivCheckbox = card.querySelector('input[name^="is_check_buy_t_div_price"]');
+
+            if (checkbox.checked) {
+                // 숏 모드 ON → 평단가, TDiv OFF
+                if (avrPriceCheckbox) avrPriceCheckbox.checked = false;
+                if (tDivCheckbox) tDivCheckbox.checked = false;
+            }
+        }
+
         // 페이지 로드 시 초기화
         document.addEventListener('DOMContentLoaded', function () {
             const shortModeCheckboxes = document.querySelectorAll('input[type="checkbox"][name^="skip_sell"]');
@@ -1694,6 +1708,15 @@
                         <label>판매 스킵</label>
                         <label class="switch">
                             <input type="checkbox" name="skip_sell[{{ loop.index0 }}]" value="true" {% if bot_info.skip_sell %}checked{% endif %}>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="bot-field bot-field-checkbox">
+                        <label>숏 모드</label>
+                        <label class="switch">
+                            <input type="checkbox" name="is_short_mode[{{ loop.index0 }}]" value="true"
+                                   {% if bot_info.is_short_mode %}checked{% endif %}
+                                   onchange="toggleShortMode(this)">
                             <span class="slider round"></span>
                         </label>
                     </div>

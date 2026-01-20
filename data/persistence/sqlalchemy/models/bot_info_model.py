@@ -37,5 +37,8 @@ class BotInfoModel(Base):
     dynamic_seed_t_threshold = Column(Float, nullable=False, default=1.0)  # T값 임계점 (max_tier 대비, 100%=비활성화)
     dynamic_seed_drop_rate = Column(Float, nullable=False, default=0.03)  # 하락률 기준
 
+    # 숏 모드
+    is_short_mode = Column(Boolean, nullable=False, default=False)  # 숏 모드 여부
+
     def __repr__(self):
         return f"<BotInfoModel(name={self.name}, symbol={self.symbol}, active={self.active})>"
