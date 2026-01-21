@@ -205,7 +205,7 @@ class OrderUsecase:
             msg += "\nT가 Max를 초과하여 손절합니다"
             trade_type, amount = self._calculate_sell_amount(False, True, bot_info)
         else:
-            if bot_info.is_short_mode:
+            if bot_info.is_short_mode and point > 0:
                 # short mode = True이면 profit_price 만 100% 바라봄
                 condition_1_4 = condition_3_4
             trade_type, amount = self._calculate_sell_amount(condition_3_4, condition_1_4, bot_info)
