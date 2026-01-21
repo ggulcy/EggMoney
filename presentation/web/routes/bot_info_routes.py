@@ -80,6 +80,7 @@ def save_bot_info():
         dynamic_seed_t_threshold = float(data.get('dynamic_seed_t_threshold', 0.3))
         dynamic_seed_drop_rate = float(data.get('dynamic_seed_drop_rate', 0.03))
         added_seed = float(data.get('added_seed', 0))
+        is_short_mode = data.get('is_short_mode', False)
 
         bot_info = BotInfo(
             name=name,
@@ -99,6 +100,7 @@ def save_bot_info():
             dynamic_seed_multiplier=dynamic_seed_multiplier,
             dynamic_seed_t_threshold=dynamic_seed_t_threshold,
             dynamic_seed_drop_rate=dynamic_seed_drop_rate,
+            is_short_mode=is_short_mode,
         )
         bot_management_usecase.update_bot_info(bot_info)
 

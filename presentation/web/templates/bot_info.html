@@ -1324,16 +1324,18 @@
             }
         }
 
-        // 숏 모드 토글 시 평단가/TDiv OFF 처리
+        // 숏 모드 토글 시 평단가/TDiv OFF, 손절설정 1/2지점 처리
         function toggleShortMode(checkbox) {
             const card = checkbox.closest('.bot-accordion-content');
             const avrPriceCheckbox = card.querySelector('input[name^="is_check_buy_avr_price"]');
             const tDivCheckbox = card.querySelector('input[name^="is_check_buy_t_div_price"]');
+            const pointLocP1_2 = card.querySelector('input[name^="point_loc"][value="P1_2"]');
 
             if (checkbox.checked) {
-                // 숏 모드 ON → 평단가, TDiv OFF
+                // 숏 모드 ON → 평단가, TDiv OFF, 손절설정 1/2지점
                 if (avrPriceCheckbox) avrPriceCheckbox.checked = false;
                 if (tDivCheckbox) tDivCheckbox.checked = false;
+                if (pointLocP1_2) pointLocP1_2.checked = true;
             }
         }
 

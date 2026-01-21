@@ -206,7 +206,7 @@ class OrderUsecase:
             trade_type, amount = self._calculate_sell_amount(False, True, bot_info)
         else:
             if bot_info.is_short_mode and point > 0:
-                # short mode = True이면 profit_price 만 100% 바라봄
+                # short mode = True이면서 익절시에만 profit_price 만 100% 바라봄
                 condition_1_4 = condition_3_4
             trade_type, amount = self._calculate_sell_amount(condition_3_4, condition_1_4, bot_info)
 
