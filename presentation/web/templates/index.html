@@ -1434,6 +1434,17 @@
                                 <span style="font-size: 0.9em; font-weight: 500; color: #667eea;">$ {{ '{:,.2f}'.format(overview.hantoo_balance) }}</span>
                             </div>
                         </div>
+                        {% if saved_total_budget %}
+                        {% set withdrawal_margin = overview.total_balance - saved_total_budget %}
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid #e0e0e0;">
+                            <span style="font-size: 0.8em; color: #666;">여유 출금 금액</span>
+                            <div style="text-align: right;">
+                                <span style="font-size: 0.9em; font-weight: 500; color: {% if withdrawal_margin >= 0 %}#d32f2f{% else %}#1976d2{% endif %};">
+                                    {% if withdrawal_margin >= 0 %}+{% endif %}$ {{ '{:,.2f}'.format(withdrawal_margin) }}
+                                </span>
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
 
                     <!-- 시드 소진률 -->

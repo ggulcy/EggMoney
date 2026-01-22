@@ -293,3 +293,30 @@ def apply_bot_renewal():
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+
+
+@bot_info_bp.route('/save_total_budget', methods=['POST'])
+@require_web_auth
+def save_total_budget():
+    """총 자산만 저장"""
+    try:
+        data = request.get_json()
+        total_budget = data.get('total_budget')
+
+        if total_budget is None:
+            return jsonify({"error": "total_budget required"}), 400
+
+        if not isinstance(total_budget, (int, float)) or total_budget <= 0:
+            return jsonify({"error": "Invalid total_budget (must be positive number)"}), 400
+
+        key_store.write(key_store.TOTAL_BUDGET, total_budget)
+
+        return jsonify({
+            "message": "Total budget saved successfully",
+            "total_budget": total_budget
+        }), 200
+    except Exception as e:
+        print(f"Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500

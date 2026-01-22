@@ -9,7 +9,7 @@ Clean Architecture Pattern:
 from datetime import datetime
 from flask import Blueprint, render_template, jsonify, request
 
-from config import item
+from config import item, key_store
 from config.dependencies import get_dependencies
 from config.util import get_naver_exchange_rate
 from usecase.portfolio_status_usecase import PortfolioStatusUsecase
@@ -81,6 +81,9 @@ def index():
             )
             sell_profit_map[trade.name] = profit
 
+    # 저장된 총 예산 (여유 출금 금액 계산용)
+    saved_total_budget = key_store.read(key_store.TOTAL_BUDGET)
+
     return render_template(
         'index.html',
         title='EggMoney Trading Bot',
@@ -91,7 +94,8 @@ def index():
         trade_list=trade_list,
         trade_status_map=trade_status_map,
         dynamic_trade_status_map=dynamic_trade_status_map,
-        sell_profit_map=sell_profit_map
+        sell_profit_map=sell_profit_map,
+        saved_total_budget=saved_total_budget
     )
 
 

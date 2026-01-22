@@ -945,12 +945,15 @@
                 const numValue = parseInt(value, 10);
                 input.value = '$' + numValue.toLocaleString();
 
-                // debounce: 1초 후 미리보기 갱신
+                // debounce: 1초 후 미리보기 갱신 (시장 레벨 선택된 경우만)
                 clearTimeout(budgetInputTimeout);
                 budgetInputTimeout = setTimeout(() => {
                     if (numValue > 0) {
                         customTotalBudget = numValue;
-                        loadRenewalPreview(selectedMarketLevel);
+                        // 시장 레벨이 선택된 경우에만 미리보기 로드, 아니면 변수만 업데이트
+                        if (selectedMarketLevel !== null && selectedMarketLevel >= 0) {
+                            loadRenewalPreview(selectedMarketLevel);
+                        }
                     }
                 }, 1000);
             } else {
@@ -1045,6 +1048,9 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- 총자산만 저장 버튼 -->
+                        <button onclick="saveTotalBudgetOnly()" style="width: 100%; padding: 12px; background: #10b981; color: white; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-bottom: 16px;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">💰 총자산만 저장</button>
 
                         <!-- 봇별 변경사항 -->
                         <div style="background: white; border-radius: 8px; padding: 12px; max-height: 300px; overflow-y: auto;">
@@ -1253,10 +1259,44 @@
             {% if market_state_level != -1 %}
             loadRenewalPreview({{ market_state_level }});
             {% else %}
-            // 수동설정일 때는 안내 메시지 표시
-            const previewContainer = document.getElementById('renewalPreview');
-            previewContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">시장 레벨을 선택하세요</div>';
+            // 수동설정일 때는 총 자산 카드만 표시
+            showTotalBudgetCardOnly();
             {% endif %}
+        }
+
+        function showTotalBudgetCardOnly() {
+            const previewContainer = document.getElementById('renewalPreview');
+            const budgetValue = customTotalBudget !== null ? customTotalBudget : 0;
+
+            previewContainer.innerHTML = `
+                <div style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(245, 158, 11, 0.02) 100%); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 12px; padding: 20px; margin-top: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                    <!-- 예산 정보 -->
+                    <div style="background: white; border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.08);">
+                        <div style="text-align: center;">
+                            <div style="font-size: 0.8rem; color: #999; margin-bottom: 4px;">💰 총 예산</div>
+                            <input
+                                type="text"
+                                id="totalBudgetInput"
+                                value="${budgetValue > 0 ? '$' + budgetValue.toLocaleString() : ''}"
+                                oninput="onTotalBudgetInput(this)"
+                                placeholder="예산 입력"
+                                style="font-weight: 700; font-size: 1.3rem; color: #333; border: 2px dashed #e0e0e0; border-radius: 6px; padding: 4px 8px; text-align: center; width: 100%; max-width: 300px; transition: all 0.2s; background: #fafafa; cursor: text;"
+                                onfocus="this.style.borderColor='#f59e0b'; this.style.borderStyle='solid'; this.style.background='#fffbeb';"
+                                onblur="this.style.borderColor='#e0e0e0'; this.style.borderStyle='dashed'; this.style.background='#fafafa';"
+                            >
+                            <div style="font-size: 0.7rem; color: #999; margin-top: 4px;">💡 클릭하여 예산 변경</div>
+                        </div>
+                    </div>
+
+                    <!-- 총자산만 저장 버튼 -->
+                    <button onclick="saveTotalBudgetOnly()" style="width: 100%; padding: 12px; background: #10b981; color: white; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-bottom: 16px;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">💰 총자산만 저장</button>
+
+                    <!-- 안내 메시지 -->
+                    <div style="text-align: center; padding: 20px; color: #999; font-size: 0.9rem; background: white; border-radius: 8px;">
+                        ⬆️ 시장 레벨을 선택하면 봇별 변경사항을 미리볼 수 있습니다
+                    </div>
+                </div>
+            `;
         }
 
         function submitBotRenewal() {
@@ -1291,6 +1331,46 @@
                     alert('Error: ' + data.error);
                 } else {
                     alert(`✅ ${data.updated_count}개 봇이 리뉴얼되었습니다.`);
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                alert('Error: ' + error);
+            });
+        }
+
+        function saveTotalBudgetOnly() {
+            // 입력된 총 예산 가져오기
+            const budgetInput = document.getElementById('totalBudgetInput');
+            let budgetValue = customTotalBudget;
+
+            // 입력 필드에서 값 파싱
+            if (budgetInput && budgetInput.value) {
+                const parsed = parseInt(budgetInput.value.replace(/[^0-9]/g, ''), 10);
+                if (parsed > 0) {
+                    budgetValue = parsed;
+                }
+            }
+
+            if (!budgetValue || budgetValue <= 0) {
+                alert('총 자산을 입력해주세요.');
+                return;
+            }
+
+            showLoading();
+            fetch('/save_total_budget', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ total_budget: budgetValue })
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    alert(`✅ 총 자산 $${budgetValue.toLocaleString()} 저장되었습니다.`);
                     location.reload();
                 }
             })
@@ -1456,7 +1536,7 @@
 
             <div class="modal-actions">
                 <button class="modal-btn-cancel" onclick="closeModal('renewalBotModal')">취소</button>
-                <button class="modal-btn-submit" style="background: #f59e0b;" onclick="submitBotRenewal()">리뉴얼 적용</button>
+                <button class="modal-btn-submit" style="background: #f59e0b;" onclick="submitBotRenewal()">🔄 전체 적용</button>
             </div>
         </div>
     </div>
