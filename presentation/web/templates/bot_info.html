@@ -1618,13 +1618,16 @@
         {% endfor %}
 
         <div style="margin-bottom: 16px;">
-            <div class="bot-summary-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; padding: 10px 16px; color: white; box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3); display: flex; align-items: center; justify-content: space-between; font-size: 0.95rem; font-weight: 500;">
+            <div class="bot-summary-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; padding: 10px 16px; color: white; box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 0; font-size: 0.95rem; font-weight: 500;">
                 {% if market_state_level == -1 %}
                 <span>⚙️ 수동설정</span>
                 {% else %}
                 <span>🛡️ Lv.{{ market_state_level }} {{ ['수비', '중립', '공격', '매우공격'][market_state_level] }}</span>
                 {% endif %}
                 <span>총액 ${{ '{:,.0f}'.format(total_budget.value) }}</span>
+                {% if saved_total_budget is not none and saved_total_budget > 0 %}
+                <span>현금비중 {{ '{:.0f}'.format(((saved_total_budget - total_budget.value) / saved_total_budget) * 100) }}%</span>
+                {% endif %}
                 <span>1회 ${{ '{:,.0f}'.format(total_seed.value) }}</span>
             </div>
         </div>

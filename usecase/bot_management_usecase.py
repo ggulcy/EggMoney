@@ -196,17 +196,23 @@ class BotManagementUsecase:
             if next_bot is None or next_bot.active:
                 continue
 
-            # 3. T값 조건 체크: 현재 활성화된 첫 번째 봇의 T값이 max_tier * 1/3 통과 여부
-            # 같은 심볼의 활성화된 봇 중 첫 번째 봇 찾기
+            # 3. T값 조건 체크: 같은 심볼의 활성 봇 중 T값이 가장 낮은 봇이 max_tier * 1/3 통과 여부
             active_bots_for_symbol = [bot for bot in active_bots if bot.symbol == symbol]
             if not active_bots_for_symbol:
                 continue
 
-            # 첫 번째 활성 봇으로 T값 계산
-            first_active_bot = active_bots_for_symbol[0]
-            total_investment = self.trade_repo.get_total_investment(first_active_bot.name)
-            current_t = util.get_T(total_investment, first_active_bot.seed)
-            threshold = first_active_bot.max_tier * (1 / 3)
+            # 활성 봇 중 T값이 가장 낮은(진행도가 적은) 봇 찾기
+            min_t = None
+            min_t_bot = None
+            for bot in active_bots_for_symbol:
+                total_investment = self.trade_repo.get_total_investment(bot.name)
+                t = util.get_T(total_investment, bot.seed)
+                if min_t is None or t < min_t:
+                    min_t = t
+                    min_t_bot = bot
+
+            current_t = min_t
+            threshold = min_t_bot.max_tier * (1 / 3)
 
             # T값이 임계값을 통과하지 않았으면 스킵 (메시지 없음)
             if current_t < threshold:

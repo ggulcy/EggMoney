@@ -88,13 +88,13 @@ class OrderUsecase:
             self.order_repo.save(order)
 
             self.message_repo.send_message(f"{order.name} 구매 요청에 대한 주문 리스트를 생성하였습니다\n"
-                              f"분할 회수 : {order.trade_count}\n"
-                              f"총 구매 금액 : {order.remain_value:,.2f}$")
+                                           f"분할 회수 : {order.trade_count}\n"
+                                           f"총 구매 금액 : {order.remain_value:,.2f}$")
 
         except ValueError as e:
             self.message_repo.send_message(f"❌ [{bot_info.name}] 구매 주문서를 생성할 수 없습니다.\n"
-                              f"이유: 기존 주문서에 미체결 주문(odno_list)이 남아있습니다.\n"
-                              f"상세: {str(e)}")
+                                           f"이유: 기존 주문서에 미체결 주문(odno_list)이 남아있습니다.\n"
+                                           f"상세: {str(e)}")
 
     def save_sell_order(self, bot_info: BotInfo, amount: int, trade_type: TradeType) -> None:
         """
@@ -127,13 +127,13 @@ class OrderUsecase:
             self.order_repo.save(order)
 
             self.message_repo.send_message(f"{order.name} 판매 요청에 대한 주문 리스트를 생성하였습니다\n"
-                              f"분할 회수 : {order.trade_count}\n"
-                              f"총 판매 개수 : {order.remain_value}")
+                                           f"분할 회수 : {order.trade_count}\n"
+                                           f"총 판매 개수 : {order.remain_value}")
 
         except ValueError as e:
             self.message_repo.send_message(f"❌ [{bot_info.name}] 판매 주문서를 생성할 수 없습니다.\n"
-                              f"이유: 기존 주문서에 미체결 주문(odno_list)이 남아있습니다.\n"
-                              f"상세: {str(e)}")
+                                           f"이유: 기존 주문서에 미체결 주문(odno_list)이 남아있습니다.\n"
+                                           f"상세: {str(e)}")
 
     def create_order(self, bot_info: BotInfo) -> Optional[tuple]:
         """
@@ -196,7 +196,8 @@ class OrderUsecase:
         condition_3_4 = cur_price > profit_price  # 익절가 돌파
         condition_1_4 = cur_price > point_price  # %지점가 돌파
 
-        msg = (f"[🎯판매검사({bot_info.name})] 현재가({cur_price:.2f})\n"
+        cur_profit_rate = util.get_profit_rate(cur_price, avr_price)
+        msg = (f"[🎯판매검사({bot_info.name})] 현재가({cur_price:.2f}) 평단대비 {cur_profit_rate:,.2f}%\n"
                f"익절가({profit_price:.2f})[{util.get_ox_emoji(condition_3_4)}]\n"
                f"%지점가({point_price:.2f})[{util.get_ox_emoji(condition_1_4)}] ({point * 100:.2f}%)\n")
 
@@ -215,7 +216,9 @@ class OrderUsecase:
             self.message_repo.send_message(msg + f"\n[{bot_info.name}] 매도 주문서 생성: {amount}주 ({trade_type.value})")
             return trade_type, amount
         else:
-            self.message_repo.send_message(f"[{bot_info.name}] 판매 조건이 없습니다")
+            self.message_repo.send_message(f"[{bot_info.name}]\n"
+                                           f"{msg}\n"
+                                           f"판매 조건이 없습니다")
             return None
 
     def _create_buy_order(self, bot_info: BotInfo) -> Optional[tuple[TradeType, float]]:
@@ -272,8 +275,10 @@ class OrderUsecase:
 
         avr_msg = f"- 평단가({avr_price:.2f})[{util.get_ox_emoji(condition_avr)}]\n" if bot_info.is_check_buy_avr_price else ""
         point_msg = f"- %지점가({point_price:.2f})[{util.get_ox_emoji(condition_point)}] ({point * 100:.2f}%)\n" if bot_info.is_check_buy_t_div_price else ""
+        cur_msg = f"- 현재가({cur_price:.2f}) 평단대비{util.get_profit_rate(cur_price, avr_price)}%\n"
 
         msg = (f"[구매검사({bot_info.name})]\n"
+               f"{cur_msg}"
                f"현재 활성화된 조건 검사 개수는 {enabled_count}개 입니다\n\n"
                f"{avr_msg}{point_msg}"
                f"{result_msg}"
@@ -575,10 +580,10 @@ class OrderUsecase:
         return int(seed / current_price)
 
     def update_order_after_netting(
-        self,
-        order: Order,
-        netted_amount: int,
-        current_price: float
+            self,
+            order: Order,
+            netted_amount: int,
+            current_price: float
     ) -> None:
         """
         장부거래 후 Order 업데이트
@@ -596,6 +601,7 @@ class OrderUsecase:
             # 매수: 금액 차감 (수량 × 단가)
             deducted_value = netted_amount * current_price
             order.remain_value -= deducted_value
+            order.total_value -= deducted_value
 
             self.message_repo.send_message(
                 f"📝 [{order.name}] 매수 주문서 장부거래 반영\n"
@@ -606,6 +612,7 @@ class OrderUsecase:
         else:
             # 매도: 수량 차감
             order.remain_value -= netted_amount
+            order.total_value -= netted_amount
 
             self.message_repo.send_message(
                 f"📝 [{order.name}] 매도 주문서 장부거래 반영\n"

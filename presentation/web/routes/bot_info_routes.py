@@ -102,10 +102,12 @@ def save_bot_info():
             dynamic_seed_drop_rate=dynamic_seed_drop_rate,
             is_short_mode=is_short_mode,
         )
-        bot_management_usecase.update_bot_info(bot_info)
+        # seed 또는 max_tier 변경 시에만 시장 레벨을 -1(수동설정)으로 변경
+        prev_bot_info = bot_management_usecase.get_bot_info_by_name(name)
+        if prev_bot_info and (prev_bot_info.seed != seed or prev_bot_info.max_tier != max_tier):
+            key_store.write(key_store.MARKET_STATE_LEVEL, -1)
 
-        # 수동 설정 변경 시 시장 레벨을 -1(수동설정)으로 변경
-        key_store.write(key_store.MARKET_STATE_LEVEL, -1)
+        bot_management_usecase.update_bot_info(bot_info)
 
         return jsonify({"message": f"{name} saved"}), 200
     except Exception as e:

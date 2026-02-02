@@ -135,7 +135,6 @@ def get_profit_rate(cur_price, purchase_price):
     else:
         return round(((cur_price - purchase_price) / purchase_price) * 100, 2)
 
-
 def get_buy_amount(seed: float, price: float):
     """매수 가능 수량 계산"""
     return int(seed / price)
