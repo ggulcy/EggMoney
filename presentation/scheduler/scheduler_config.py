@@ -140,6 +140,24 @@ def _create_twap_job(trading_jobs: TradingJobs):
     return twap_job_impl
 
 
+def _create_closing_buy_job(trading_jobs: TradingJobs):
+    """장마감 급락 매수 작업 팩토리 (클로저)"""
+
+    def closing_buy_job_impl():
+        deps = get_dependencies()
+
+        try:
+            if is_trade_date():
+                trading_jobs.closing_buy_job()
+        except Exception as e:
+            error_message = f"❌ [closing_buy_job] 장마감 급락 매수 중 문제가 발생하였습니다.\n{e}\n{traceback.format_exc()}"
+            deps.message_repo.send_message(error_message)
+
+        print(f"✅ closing_buy_job() completed at {datetime.now()}\n")
+
+    return closing_buy_job_impl
+
+
 def _create_msg_job(message_jobs: MessageJobs):
     """메시지 전송 작업 팩토리 (클로저)"""
 
@@ -209,7 +227,7 @@ def start_scheduler():
         message_repo.send_message("설정이 변경되어 스케줄을 재등록합니다")
 
     # 스케줄 시간 설정 (매번 새로 읽음)
-    job_times, msg_times, twap_times = get_schedule_times()
+    job_times, msg_times, twap_times, closing_buy_times = get_schedule_times()
 
     # APScheduler 생성 (첫 호출에만)
     if _scheduler is None:
@@ -220,6 +238,7 @@ def start_scheduler():
     _register_jobs(_create_msg_job(_message_jobs), msg_times, 'msg_job')
     _register_jobs(_create_make_order_job(_trading_jobs), job_times, 'trade_job')
     _register_jobs(_create_twap_job(_trading_jobs), twap_times, 'twap_job')
+    _register_jobs(_create_closing_buy_job(_trading_jobs), closing_buy_times, 'closing_buy_job')
 
     # 스케줄러 시작 (첫 호출에만)
     if not _scheduler.running:

@@ -28,19 +28,19 @@ BOT_LEVEL_CONFIG = {
     1: {  # 수비적
         "name": "수비적",
         "max_tier": 40,
-        "profit_rate": 0.10,  # 10%
+        "profit_rate": 0.15,
         "point_loc": "P2_3",  # P1/2
     },
     2: {  # 중립
         "name": "중립",
         "max_tier": 30,
-        "profit_rate": 0.12,  # 12%
+        "profit_rate": 0.12,
         "point_loc": "P2_3",  # P2/3
     },
     3: {  # 공격적
         "name": "공격적",
         "max_tier": 20,
-        "profit_rate": 0.15,  # 15%
+        "profit_rate": 0.10,
         "point_loc": "P2_3",  # P2_#
     },
 }

@@ -29,7 +29,8 @@ class BotInfo:
         dynamic_seed_multiplier: float = 0.3,
         dynamic_seed_t_threshold: float = 1.0,
         dynamic_seed_drop_rate: float = 0.03,
-        is_short_mode: bool = False
+        closing_buy_drop_rate: float = 0.05,
+        closing_buy_seed_rate: float = 1.0,
     ):
         self.name = name
         self.symbol = symbol
@@ -48,7 +49,8 @@ class BotInfo:
         self.dynamic_seed_multiplier = dynamic_seed_multiplier
         self.dynamic_seed_t_threshold = dynamic_seed_t_threshold
         self.dynamic_seed_drop_rate = dynamic_seed_drop_rate
-        self.is_short_mode = is_short_mode
+        self.closing_buy_drop_rate = closing_buy_drop_rate
+        self.closing_buy_seed_rate = closing_buy_seed_rate
 
         self._validate()
 

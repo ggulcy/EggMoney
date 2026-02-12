@@ -22,6 +22,7 @@ AT_EX_DATE = "AT_EX_DATE"
 TRADE_TIME = "TRADE_TIME"
 TWAP_TIME = "TWAP_TIME"
 TWAP_COUNT = "TWAP_COUNT"
+CLOSING_BUY_TIME = "CLOSING_BUY_TIME"
 
 IS_DYNAMIC_SEED_APPLY_TODAY = "IS_DYNAMIC_SEED_APPLY_TODAY"
 
@@ -33,12 +34,13 @@ AUTO_START = "AUTO_START"  # 다음 봇 자동 출발 여부
 def _get_default_values():
     """기본값 딕셔너리 반환"""
     # 서머타임을 고려한 TWAP_TIME 기본값 가져오기
-    from config.util import get_twap_times
+    from config.util import get_twap_times, get_closing_buy_times
 
     return {
         TRADE_TIME: "00:05",
         TWAP_TIME: get_twap_times(),
         TWAP_COUNT: 5,
+        CLOSING_BUY_TIME: get_closing_buy_times(),
         MARKET_STATE_LEVEL: 0,  # 기본값: 수비적
         AUTO_START: False  # 기본값: 자동 출발 비활성화
     }
@@ -124,6 +126,12 @@ def read(key):
         elif key == "AUTO_START":
             auto_start = db.get(key)
             return auto_start if auto_start is not None else False
+        elif key == "CLOSING_BUY_TIME":
+            closing_buy_time = db.get(key)
+            if closing_buy_time:
+                return closing_buy_time
+            from config.util import get_closing_buy_times
+            return get_closing_buy_times()
         return db.get(key, None)
 
 

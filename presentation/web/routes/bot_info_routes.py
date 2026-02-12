@@ -37,6 +37,7 @@ def bot_info_template():
         market_state_level = key_store.read(key_store.MARKET_STATE_LEVEL)
         total_budget = key_store.read(key_store.TOTAL_BUDGET)
         auto_start = key_store.read(key_store.AUTO_START)
+        closing_buy_time = key_store.read(key_store.CLOSING_BUY_TIME)
 
         return render_template('bot_info.html',
                                bot_info_with_tiers=bot_info_with_tiers,
@@ -47,7 +48,8 @@ def bot_info_template():
                                twap_count=twap_count,
                                market_state_level=market_state_level,
                                saved_total_budget=total_budget,
-                               auto_start=auto_start)
+                               auto_start=auto_start,
+                               closing_buy_time=closing_buy_time)
     except Exception as e:
         print(f"Error: {e}")
         import traceback
@@ -80,7 +82,8 @@ def save_bot_info():
         dynamic_seed_t_threshold = float(data.get('dynamic_seed_t_threshold', 0.3))
         dynamic_seed_drop_rate = float(data.get('dynamic_seed_drop_rate', 0.03))
         added_seed = float(data.get('added_seed', 0))
-        is_short_mode = data.get('is_short_mode', False)
+        closing_buy_drop_rate = float(data.get('closing_buy_drop_rate', 0.05))
+        closing_buy_seed_rate = float(data.get('closing_buy_seed_rate', 1.0))
 
         bot_info = BotInfo(
             name=name,
@@ -100,7 +103,8 @@ def save_bot_info():
             dynamic_seed_multiplier=dynamic_seed_multiplier,
             dynamic_seed_t_threshold=dynamic_seed_t_threshold,
             dynamic_seed_drop_rate=dynamic_seed_drop_rate,
-            is_short_mode=is_short_mode,
+            closing_buy_drop_rate=closing_buy_drop_rate,
+            closing_buy_seed_rate=closing_buy_seed_rate,
         )
         # seed 또는 max_tier 변경 시에만 시장 레벨을 -1(수동설정)으로 변경
         prev_bot_info = bot_management_usecase.get_bot_info_by_name(name)
@@ -209,6 +213,11 @@ def save_all_settings():
         key_store.write(key_store.TWAP_TIME, [twap_start, trade_end])  # TWAP_TIME에 [자동계산된 start, 사용자입력 end]
         key_store.write(key_store.TWAP_COUNT, int(twap_count))
         key_store.write(key_store.AUTO_START, auto_start)  # AUTO_START 저장
+
+        # CLOSING_BUY_TIME 저장
+        closing_buy_time = data.get('closing_buy_time')
+        if closing_buy_time:
+            key_store.write(key_store.CLOSING_BUY_TIME, closing_buy_time)
 
         # 스케줄러 재시작
         start_scheduler()

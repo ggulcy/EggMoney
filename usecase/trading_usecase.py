@@ -117,6 +117,45 @@ class TradingUsecase:
         else:
             self.message_repo.send_message(f"❌ [{bot_info.name}] 강제 매도 실패")
 
+    def execute_closing_buy(self, bot_info: BotInfo, seed: float) -> None:
+        """
+        장마감 급락 매수 실행 (TWAP 완료 후 별도 실행)
+
+        Order 없이 직접 매수 API 호출 후 Trade/History DB에 저장합니다.
+
+        Args:
+            bot_info: 봇 정보
+            seed: 매수 시드 금액 (달러)
+        """
+        request_price = self.exchange_repo.get_available_buy(bot_info.symbol)
+        if not request_price:
+            self.message_repo.send_message(f"❌ [{bot_info.name}] 장마감 급락 매수: 현재가 조회 실패")
+            return
+
+        request_amount = util.get_buy_amount(seed, request_price)
+        if request_amount <= 0:
+            self.message_repo.send_message(f"❌ [{bot_info.name}] 장마감 급락 매수: 매수 가능 수량 0")
+            return
+
+        trade_result = self.exchange_repo.buy(
+            symbol=bot_info.symbol,
+            amount=request_amount,
+            request_price=request_price
+        )
+
+        if not trade_result:
+            self.message_repo.send_message(f"❌ [{bot_info.name}] 장마감 급락 매수: 주문 실패")
+            return
+
+        trade_result.trade_type = TradeType.BUY
+        self.message_repo.send_message(
+            f"✅ [{bot_info.name}] 장마감 급락 매수 완료\n"
+            f"  - 체결 수량: {trade_result.amount}\n"
+            f"  - 체결 단가: ${trade_result.unit_price:,.2f}\n"
+            f"  - 총 거래금액: ${trade_result.total_price:,.2f}"
+        )
+        self._save_buy_to_db(bot_info, trade_result)
+
     def execute_twap(self, bot_info: BotInfo) -> None:
         """
         TWAP 주문 실행 (1회)

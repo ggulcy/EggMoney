@@ -58,6 +58,19 @@ def get_twap_times():
         return ["00:10", "05:30"]
 
 
+def get_closing_buy_times():
+    """서머타임을 고려한 장마감 급락 매수 시간 반환 (미국 장 종료 10분 전, 15:50 ET)"""
+    ny_tz = pytz.timezone("America/New_York")
+    now_ny = datetime.now(ny_tz)
+
+    if now_ny.dst().total_seconds() != 0:
+        # 서머타임 적용 중: 15:50 ET → 한국 시간 04:50
+        return "04:50"
+    else:
+        # 서머타임 비적용: 15:50 ET → 한국 시간 05:50
+        return "05:50"
+
+
 def get_previous_date(n):
     """n일 전 날짜를 YYYYMMDD 형식으로 반환"""
     today = datetime.now()
@@ -273,7 +286,7 @@ def get_schedule_times() -> tuple:
     config_store 또는 기본값 사용.
 
     Returns:
-        (job_times, msg_times, twap_times)
+        (job_times, msg_times, twap_times, closing_buy_times)
     """
     from config import key_store
 
@@ -302,12 +315,19 @@ def get_schedule_times() -> tuple:
             count=5
         )
 
+    # closing_buy_times: 장마감 급락 매수 시간
+    try:
+        closing_buy_times = [key_store.read(key_store.CLOSING_BUY_TIME)]
+    except Exception:
+        closing_buy_times = [get_closing_buy_times()]
+
     print(f"📅 Schedule times:")
     print(f"  - msg_times: {msg_times}")
     print(f"  - job_times: {job_times}")
     print(f"  - twap_times: {twap_times}")
+    print(f"  - closing_buy_times: {closing_buy_times}")
 
-    return job_times, msg_times, twap_times
+    return job_times, msg_times, twap_times, closing_buy_times
 
 
 # === 월별 환율 조회 ===

@@ -168,6 +168,26 @@ class TradingJobs:
             # 매도 주문서 DB 저장 (value = amount)
             self.order_usecase.save_sell_order(bot_info, int(value), trade_type)
 
+    def closing_buy_job(self) -> None:
+        """
+        장마감 급락 매수 작업 (TWAP 완료 후 별도 실행)
+
+        모든 활성 봇에 대해 전일 종가 대비 큰 하락 여부를 체크하고,
+        조건 충족 시 단일 매수를 실행합니다.
+        """
+        for bot_info in self.bot_info_repo.find_all():
+            if not bot_info.active:
+                continue
+
+            try:
+                seed = self.order_usecase.check_closing_drop(bot_info)
+                if seed:
+                    self.trading_usecase.execute_closing_buy(bot_info, seed)
+            except Exception as e:
+                self.message_repo.send_message(
+                    f"❌ [{bot_info.name}] 장마감 급락 매수 중 오류: {e}"
+                )
+
     def twap_job(self) -> None:
         """
         TWAP 거래 작업 (egg/main.py의 twap_job() 이관)

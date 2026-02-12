@@ -135,6 +135,56 @@ class OrderUsecase:
                                            f"이유: 기존 주문서에 미체결 주문(odno_list)이 남아있습니다.\n"
                                            f"상세: {str(e)}")
 
+    def check_closing_drop(self, bot_info: BotInfo) -> Optional[float]:
+        """
+        장마감 급락 체크 - 전일 종가 대비 큰 하락 시 매수 시드 반환
+
+        Args:
+            bot_info: 봇 정보
+
+        Returns:
+            매수 시드 (하락 조건 미충족 시 None)
+        """
+        drop_threshold = bot_info.closing_buy_drop_rate
+
+        # 매도가 일어난 날(또는 매도 예정인 날)은 구매하지 않음
+        if self.history_repo.find_today_sell_by_name(bot_info.name) or \
+                self.order_repo.has_sell_order_today(bot_info.name):
+            return None
+
+        prev_price = self.exchange_repo.get_prev_price(bot_info.symbol)
+        if not prev_price:
+            self.message_repo.send_message(f"[{bot_info.name}] 장마감 급락 체크: 전일 종가 조회 실패")
+            return None
+
+        cur_price = self.exchange_repo.get_price(bot_info.symbol)
+        if not cur_price:
+            self.message_repo.send_message(f"[{bot_info.name}] 장마감 급락 체크: 현재가 조회 실패")
+            return None
+
+        drop_ratio = (prev_price - cur_price) / prev_price
+
+        seed = bot_info.seed * bot_info.closing_buy_seed_rate
+
+        if drop_ratio >= drop_threshold:
+            self.message_repo.send_message(
+                f"📉 [{bot_info.name}] 장마감 급락 감지!\n"
+                f"  - 전일 종가: ${prev_price:,.2f}\n"
+                f"  - 현재가: ${cur_price:,.2f}\n"
+                f"  - 하락률: {drop_ratio * 100:,.2f}%\n"
+                f"  → 매수 시드: ${seed:,.0f} (seed × {bot_info.closing_buy_seed_rate * 100:.0f}%)"
+            )
+            return seed
+
+        direction = "하락" if drop_ratio > 0 else "상승"
+        self.message_repo.send_message(
+            f"[{bot_info.name}] 장마감 급락 체크\n"
+            f"  - 전일 종가: ${prev_price:,.2f}\n"
+            f"  - 현재가: ${cur_price:,.2f}\n"
+            f"  - {direction}: {abs(drop_ratio) * 100:,.2f}% (기준: {drop_threshold * 100:.0f}%)"
+        )
+        return None
+
     def create_order(self, bot_info: BotInfo) -> Optional[tuple]:
         """
         주문서 생성 (매도 → 매수 순차 검사)
@@ -206,9 +256,6 @@ class OrderUsecase:
             msg += "\nT가 Max를 초과하여 손절합니다"
             trade_type, amount = self._calculate_sell_amount(False, True, bot_info)
         else:
-            if bot_info.is_short_mode and point > 0:
-                # short mode = True이면서 익절시에만 profit_price 만 100% 바라봄
-                condition_1_4 = condition_3_4
             trade_type, amount = self._calculate_sell_amount(condition_3_4, condition_1_4, bot_info)
 
         # 매도 주문 정보 반환
@@ -245,7 +292,7 @@ class OrderUsecase:
             return None
 
         # 첫 구매 / 판매스킵 / 숏모드 일때 조건 상관없이 모든 시드만큼구매
-        if not avr_price or bot_info.skip_sell or bot_info.is_short_mode:
+        if not avr_price or bot_info.skip_sell:
             self.message_repo.send_message(f"모든시드 {bot_info.seed:,.0f}$ 매수 시도합니다")
             return TradeType.BUY, bot_info.seed
 
@@ -284,11 +331,7 @@ class OrderUsecase:
                f"{result_msg}"
                f"현재 반복리 추가금은 {bot_info.added_seed:,.0f}$ 입니다\n\n")
 
-        # T가 2/3 미만이면 큰 하락 체크
-        if t < bot_info.max_tier * 2 / 3:
-            adjust_seed = self._check_big_drop(bot_info, cur_price)
-        else:
-            adjust_seed = bot_info.seed + bot_info.added_seed
+        adjust_seed = bot_info.seed + bot_info.added_seed
 
         seed = adjust_seed * buy_ratio if adjust_seed is not None else 0
 
@@ -352,76 +395,6 @@ class OrderUsecase:
 
         profit = (cur_price - avr_price) * cur_trade.amount
         return 0 < profit < profit_std
-
-    def _check_big_drop(self, bot_info: BotInfo, cur_price: float) -> Optional[float]:
-        """
-        큰 하락 시 시드 조정
-
-        Args:
-            bot_info: 봇 정보
-            cur_price: 현재가
-
-        Returns:
-            조정된 시드 (잔고 부족 시 None)
-
-        egg/trade_module.py의 check_big_drop() 이관 (175-222번 줄)
-        """
-
-        # 다이나믹 시드가 동작 가능한 경우 빅드랍 체크는 패스
-        if bot_info.seed != bot_info.dynamic_seed_max:
-            return bot_info.seed + bot_info.added_seed
-
-        prev_price = self.exchange_repo.get_prev_price(bot_info.symbol)  # 전일 종가
-        if not prev_price:
-            self.message_repo.send_message(f"[{bot_info.name}] 전일 종가 조회 실패")
-            return bot_info.seed + bot_info.added_seed
-
-        origin_seed = bot_info.seed
-
-        # 하락률 계산 (% 단위)
-        drop_ratio = (prev_price - cur_price) / prev_price * 100
-
-        # 상승 / 하락 알림
-        if drop_ratio > 0:
-            self.message_repo.send_message(f"[{bot_info.symbol}] 현재가 전일 대비 하락률: {drop_ratio:,.2f}%")
-        else:
-            self.message_repo.send_message(f"[{bot_info.symbol}] 현재가 전일 대비 상승률: {abs(drop_ratio):,.2f}%")
-
-        # 종목별 민감도 설정
-        ratio_step = get_drop_interval_rate(bot_info.symbol) * 100
-
-        # 하락률 구간별 증액 비율 (큰 값부터 체크)
-        if drop_ratio >= ratio_step * 3:
-            seed = origin_seed * 1.50  # 큰 하락 → 50% 증액
-        elif drop_ratio >= ratio_step * 2:
-            seed = origin_seed * 1.40
-        elif drop_ratio >= ratio_step * 1:
-            seed = origin_seed * 1.30
-        else:
-            seed = origin_seed
-
-        seed += bot_info.added_seed
-
-        # 잔고 확인
-        balance = self.exchange_repo.get_balance()
-        if balance < seed:
-            self.message_repo.send_message(
-                f"⚠️ [{bot_info.symbol}] 시드 조정 실패 — 잔고 부족 (필요: {seed:,.2f}, 보유: {balance:,.2f})"
-            )
-            return None
-
-        # seed 조정 알림
-        if origin_seed + bot_info.added_seed != seed:
-            # 증가율 계산 (원래 시드 대비 몇 % 증가했는지)
-            increase_ratio = ((seed - origin_seed) / origin_seed) * 100
-
-            self.message_repo.send_message(
-                f"✅ [{bot_info.symbol}] 전일 대비 {drop_ratio:.2f}% 하락 → "
-                f"seed 조정: {origin_seed:,.2f} → {seed:,.2f} "
-                f"(+{increase_ratio:.1f}%)"
-            )
-
-        return seed
 
     def _is_buy_available_for_max_balance(self, bot_info: BotInfo) -> bool:
         """

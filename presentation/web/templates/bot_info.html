@@ -700,7 +700,8 @@
                 dynamic_seed_multiplier: parsePercent(card.querySelector('input[name="dynamic_seed_multiplier"]').value),
                 dynamic_seed_t_threshold: parsePercent(card.querySelector('input[name="dynamic_seed_t_threshold"]').value),
                 dynamic_seed_drop_rate: parsePercent(card.querySelector('input[name="dynamic_seed_drop_rate"]').value),
-                is_short_mode: card.querySelector('input[name^="is_short_mode"]').checked
+                closing_buy_drop_rate: parsePercent(card.querySelector('input[name="closing_buy_drop_rate"]').value),
+                closing_buy_seed_rate: parsePercent(card.querySelector('input[name="closing_buy_seed_rate"]').value)
             };
 
             showLoading();
@@ -749,14 +750,15 @@
             const tradeEnd = document.querySelector('input[name="trade_end"]').value.trim();
             const twapCount = parseInt(document.querySelector('input[name="twap_count"]').value);
             const autoStart = document.querySelector('input[name="auto_start"]').checked;
+            const closingBuyTime = document.querySelector('input[name="closing_buy_time"]').value.trim();
 
-            if (!tradeStart || !tradeEnd || !twapCount) {
+            if (!tradeStart || !tradeEnd || !twapCount || !closingBuyTime) {
                 alert('모든 시간 설정값을 입력해주세요.');
                 return;
             }
 
             const timeFormat = /^([01]\d|2[0-3]):([0-5]\d)$/;
-            if (!timeFormat.test(tradeStart) || !timeFormat.test(tradeEnd)) {
+            if (!timeFormat.test(tradeStart) || !timeFormat.test(tradeEnd) || !timeFormat.test(closingBuyTime)) {
                 alert('시간은 HH:MM 형식으로 입력해야 합니다.\n예: 04:30');
                 return;
             }
@@ -768,9 +770,15 @@
 
             const tradeStartMinutes = parseTimeToMinutes(tradeStart);
             const tradeEndMinutes = parseTimeToMinutes(tradeEnd);
+            const closingBuyMinutes = parseTimeToMinutes(closingBuyTime);
 
             if (tradeStartMinutes >= tradeEndMinutes) {
                 alert('⚠️ TRADE START는 TRADE END 시간보다 빨라야 합니다!');
+                return;
+            }
+
+            if (closingBuyMinutes <= tradeEndMinutes) {
+                alert('⚠️ CLOSING BUY 시간은 TRADE END 시간보다 이후여야 합니다!');
                 return;
             }
 
@@ -782,7 +790,8 @@
                     trade_start: tradeStart,
                     trade_end: tradeEnd,
                     twap_count: twapCount,
-                    auto_start: autoStart
+                    auto_start: autoStart,
+                    closing_buy_time: closingBuyTime
                 })
             })
             .then(response => response.json())
@@ -1404,21 +1413,6 @@
             }
         }
 
-        // 숏 모드 토글 시 평단가/TDiv OFF, 손절설정 1/2지점 처리
-        function toggleShortMode(checkbox) {
-            const card = checkbox.closest('.bot-accordion-content');
-            const avrPriceCheckbox = card.querySelector('input[name^="is_check_buy_avr_price"]');
-            const tDivCheckbox = card.querySelector('input[name^="is_check_buy_t_div_price"]');
-            const pointLocP1_2 = card.querySelector('input[name^="point_loc"][value="P1_2"]');
-
-            if (checkbox.checked) {
-                // 숏 모드 ON → 평단가, TDiv OFF, 손절설정 1/2지점
-                if (avrPriceCheckbox) avrPriceCheckbox.checked = false;
-                if (tDivCheckbox) tDivCheckbox.checked = false;
-                if (pointLocP1_2) pointLocP1_2.checked = true;
-            }
-        }
-
         // 페이지 로드 시 초기화
         document.addEventListener('DOMContentLoaded', function () {
             const shortModeCheckboxes = document.querySelectorAll('input[type="checkbox"][name^="skip_sell"]');
@@ -1566,7 +1560,7 @@
                 <span class="bot-accordion-name">⏰ 스케줄 설정</span>
             </div>
             <div class="bot-accordion-right">
-                <span class="schedule-summary">{{ trade_time }} ~ {{ twap_time[1] }} ({{ twap_count }}회)</span>
+                <span class="schedule-summary">{{ trade_time }} ~ {{ twap_time[1] }} ({{ twap_count }}회) | 급락 {{ closing_buy_time }}</span>
             </div>
         </div>
         <div class="schedule-accordion-content">
@@ -1584,6 +1578,10 @@
                     <div class="bot-field">
                         <label>TWAP Count</label>
                         <input type="number" name="twap_count" value="{{ twap_count }}" placeholder="분할 횟수" min="1">
+                    </div>
+                    <div class="bot-field">
+                        <label>CLOSING BUY</label>
+                        <input type="text" name="closing_buy_time" value="{{ closing_buy_time }}" placeholder="HH:MM">
                     </div>
                     <div class="bot-field bot-field-checkbox">
                         <label>다음 봇 자동 출발</label>
@@ -1796,14 +1794,21 @@
                             <span class="slider round"></span>
                         </label>
                     </div>
-                    <div class="bot-field bot-field-checkbox">
-                        <label>숏 모드</label>
-                        <label class="switch">
-                            <input type="checkbox" name="is_short_mode[{{ loop.index0 }}]" value="true"
-                                   {% if bot_info.is_short_mode %}checked{% endif %}
-                                   onchange="toggleShortMode(this)">
-                            <span class="slider round"></span>
-                        </label>
+                </div>
+
+                <!-- 장마감 급락 매수 설정 -->
+                <div class="bot-field-group">
+                    <div class="bot-field">
+                        <label>급락 하락률</label>
+                        <input type="text" name="closing_buy_drop_rate"
+                               value="{{ (bot_info.closing_buy_drop_rate * 100)|round(0)|int }}%"
+                               oninput="formatPercent(this)">
+                    </div>
+                    <div class="bot-field">
+                        <label>급락 시드비율</label>
+                        <input type="text" name="closing_buy_seed_rate"
+                               value="{{ (bot_info.closing_buy_seed_rate * 100)|round(0)|int }}%"
+                               oninput="formatPercent(this)">
                     </div>
                 </div>
 

@@ -212,7 +212,7 @@ class BotManagementUsecase:
                     min_t_bot = bot
 
             current_t = min_t
-            threshold = min_t_bot.max_tier * (1 / 3)
+            threshold = min_t_bot.max_tier * (1 / 2)
 
             # T값이 임계값을 통과하지 않았으면 스킵 (메시지 없음)
             if current_t < threshold:
