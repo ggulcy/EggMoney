@@ -139,13 +139,17 @@ class OrderUsecase:
         """
         장마감 급락 체크 - 전일 종가 대비 큰 하락 시 매수 시드 반환
 
+        다중 조건 지원: 조건 중 하락률에 가장 가까운(가장 큰 threshold) 1개만 적용.
+        조건이 비어있으면 기능 비활성화 (None 반환).
+
         Args:
             bot_info: 봇 정보
 
         Returns:
-            매수 시드 (하락 조건 미충족 시 None)
+            매수 시드 (조건 미설정 또는 미충족 시 None)
         """
-        drop_threshold = bot_info.closing_buy_drop_rate
+        if not bot_info.closing_buy_conditions:
+            return None
 
         # 매도가 일어난 날(또는 매도 예정인 날)은 구매하지 않음
         if self.history_repo.find_today_sell_by_name(bot_info.name) or \
@@ -164,24 +168,27 @@ class OrderUsecase:
 
         drop_ratio = (prev_price - cur_price) / prev_price
 
-        seed = bot_info.seed * bot_info.closing_buy_seed_rate
+        matched = bot_info.get_matching_closing_condition(drop_ratio)
 
-        if drop_ratio >= drop_threshold:
+        if matched:
+            seed = bot_info.seed * matched["seed_rate"]
             self.message_repo.send_message(
                 f"📉 [{bot_info.name}] 장마감 급락 감지!\n"
                 f"  - 전일 종가: ${prev_price:,.2f}\n"
                 f"  - 현재가: ${cur_price:,.2f}\n"
                 f"  - 하락률: {drop_ratio * 100:,.2f}%\n"
-                f"  → 매수 시드: ${seed:,.0f} (seed × {bot_info.closing_buy_seed_rate * 100:.0f}%)"
+                f"  - 적용 조건: {matched['drop_rate'] * 100:.0f}% 이상 → 시드 {matched['seed_rate'] * 100:.0f}%\n"
+                f"  → 매수 시드: ${seed:,.0f}"
             )
             return seed
 
+        conditions_str = ", ".join(f"{c['drop_rate']*100:.0f}%" for c in bot_info.closing_buy_conditions)
         direction = "하락" if drop_ratio > 0 else "상승"
         self.message_repo.send_message(
             f"[{bot_info.name}] 장마감 급락 체크\n"
             f"  - 전일 종가: ${prev_price:,.2f}\n"
             f"  - 현재가: ${cur_price:,.2f}\n"
-            f"  - {direction}: {abs(drop_ratio) * 100:,.2f}% (기준: {drop_threshold * 100:.0f}%)"
+            f"  - {direction}: {abs(drop_ratio) * 100:,.2f}% (기준: {conditions_str})"
         )
         return None
 

@@ -264,11 +264,17 @@ body {
     .bot-field-group {
         grid-template-columns: repeat(2, 1fr);
     }
+    .closing-buy-row.bot-field-group {
+        grid-template-columns: 1fr 1fr auto;
+    }
 }
 
 @media (max-width: 480px) {
     .bot-field-group {
         grid-template-columns: repeat(2, 1fr);
+    }
+    .closing-buy-row.bot-field-group {
+        grid-template-columns: 1fr 1fr auto;
     }
 }
 

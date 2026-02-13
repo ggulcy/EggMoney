@@ -700,9 +700,16 @@
                 dynamic_seed_multiplier: parsePercent(card.querySelector('input[name="dynamic_seed_multiplier"]').value),
                 dynamic_seed_t_threshold: parsePercent(card.querySelector('input[name="dynamic_seed_t_threshold"]').value),
                 dynamic_seed_drop_rate: parsePercent(card.querySelector('input[name="dynamic_seed_drop_rate"]').value),
-                closing_buy_drop_rate: parsePercent(card.querySelector('input[name="closing_buy_drop_rate"]').value),
-                closing_buy_seed_rate: parsePercent(card.querySelector('input[name="closing_buy_seed_rate"]').value)
+                closing_buy_conditions: getClosingBuyConditions(card)
             };
+
+            // 급락 조건 하락률 중복 검사
+            const dropRates = data.closing_buy_conditions.map(c => c.drop_rate);
+            const duplicates = dropRates.filter((v, i) => dropRates.indexOf(v) !== i);
+            if (duplicates.length > 0) {
+                alert(`급락 조건에 동일한 하락률(${duplicates.map(d => (d * 100).toFixed(0) + '%').join(', ')})이 있습니다.`);
+                return;
+            }
 
             showLoading();
             fetch('/save_bot_info', {
@@ -1413,6 +1420,48 @@
             }
         }
 
+        // === 장마감 급락 매수 조건 동적 행 관리 ===
+        function addClosingBuyRow(btn) {
+            const container = btn.closest('.closing-buy-conditions');
+            const currentRows = container.querySelectorAll('.closing-buy-row').length;
+            if (currentRows >= 3) {
+                alert('급락 조건은 최대 3개까지 설정 가능합니다.');
+                return;
+            }
+            const rowHtml = `
+                <div class="closing-buy-row bot-field-group" style="margin-bottom: 10px;">
+                    <div class="bot-field">
+                        <label>하락률</label>
+                        <input type="text" name="cb_drop_rate" value="5%" oninput="formatPercent(this)">
+                    </div>
+                    <div class="bot-field">
+                        <label>시드비율</label>
+                        <input type="text" name="cb_seed_rate" value="30%" oninput="formatPercent(this)">
+                    </div>
+                    <div class="bot-card-actions" style="justify-content: flex-start; align-items: flex-end; margin-top: 0;">
+                        <button type="button" class="btn-danger" onclick="removeClosingBuyRow(this)">삭제</button>
+                    </div>
+                </div>`;
+            container.insertAdjacentHTML('beforeend', rowHtml);
+        }
+
+        function removeClosingBuyRow(btn) {
+            btn.closest('.closing-buy-row').remove();
+        }
+
+        function getClosingBuyConditions(card) {
+            const rows = card.querySelectorAll('.closing-buy-row');
+            const conditions = [];
+            rows.forEach(row => {
+                const dropRate = parsePercent(row.querySelector('input[name="cb_drop_rate"]').value);
+                const seedRate = parsePercent(row.querySelector('input[name="cb_seed_rate"]').value);
+                if (dropRate > 0) {
+                    conditions.push({drop_rate: dropRate, seed_rate: seedRate});
+                }
+            });
+            return conditions;
+        }
+
         // 페이지 로드 시 초기화
         document.addEventListener('DOMContentLoaded', function () {
             const shortModeCheckboxes = document.querySelectorAll('input[type="checkbox"][name^="skip_sell"]');
@@ -1796,20 +1845,31 @@
                     </div>
                 </div>
 
-                <!-- 장마감 급락 매수 설정 -->
-                <div class="bot-field-group">
-                    <div class="bot-field">
-                        <label>급락 하락률</label>
-                        <input type="text" name="closing_buy_drop_rate"
-                               value="{{ (bot_info.closing_buy_drop_rate * 100)|round(0)|int }}%"
-                               oninput="formatPercent(this)">
+                <!-- 장마감 급락 매수 설정 (다중 조건, 최대 3개) -->
+                <div class="closing-buy-conditions">
+                    <div class="bot-card-actions" style="justify-content: flex-start;">
+                        <span style="font-size: 0.85rem; font-weight: 600; color: #666; line-height: 38px;">급락 조건</span>
+                        <button type="button" class="btn-success" onclick="addClosingBuyRow(this)">추가</button>
                     </div>
-                    <div class="bot-field">
-                        <label>급락 시드비율</label>
-                        <input type="text" name="closing_buy_seed_rate"
-                               value="{{ (bot_info.closing_buy_seed_rate * 100)|round(0)|int }}%"
-                               oninput="formatPercent(this)">
+                    {% for cond in bot_info.closing_buy_conditions %}
+                    <div class="closing-buy-row bot-field-group" style="margin-bottom: 10px;">
+                        <div class="bot-field">
+                            <label>하락률</label>
+                            <input type="text" name="cb_drop_rate"
+                                   value="{{ (cond.drop_rate * 100)|round(0)|int }}%"
+                                   oninput="formatPercent(this)">
+                        </div>
+                        <div class="bot-field">
+                            <label>시드비율</label>
+                            <input type="text" name="cb_seed_rate"
+                                   value="{{ (cond.seed_rate * 100)|round(0)|int }}%"
+                                   oninput="formatPercent(this)">
+                        </div>
+                        <div class="bot-card-actions" style="justify-content: flex-start; align-items: flex-end; margin-top: 0;">
+                            <button type="button" class="btn-danger" onclick="removeClosingBuyRow(this)">삭제</button>
+                        </div>
                     </div>
+                    {% endfor %}
                 </div>
 
                 <!-- PointLoc 라디오 -->

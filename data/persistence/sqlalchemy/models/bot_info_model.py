@@ -1,5 +1,5 @@
 """BotInfo ORM Model - 봇 정보 SQLAlchemy 모델"""
-from sqlalchemy import Column, String, Float, Integer, Boolean
+from sqlalchemy import Column, String, Float, Integer, Boolean, Text
 from data.persistence.sqlalchemy.core.base import Base
 
 
@@ -37,9 +37,8 @@ class BotInfoModel(Base):
     dynamic_seed_t_threshold = Column(Float, nullable=False, default=1.0)  # T값 임계점 (max_tier 대비, 100%=비활성화)
     dynamic_seed_drop_rate = Column(Float, nullable=False, default=0.03)  # 하락률 기준
 
-    # 장마감 급락 매수 설정
-    closing_buy_drop_rate = Column(Float, nullable=False, default=0.05)  # 하락률 기준 (0.05 = 5%)
-    closing_buy_seed_rate = Column(Float, nullable=False, default=1.0)   # 시드 대비 매수 비율 (1.0 = 100%)
+    # 장마감 급락 매수 설정 (JSON 배열: [{"drop_rate": 0.05, "seed_rate": 0.3}, ...])
+    closing_buy_conditions = Column(Text, nullable=False, default='[]')
 
     def __repr__(self):
         return f"<BotInfoModel(name={self.name}, symbol={self.symbol}, active={self.active})>"

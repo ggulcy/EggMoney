@@ -1,4 +1,5 @@
 """BotInfo Repository Implementation - 봇 정보 저장소 구현체"""
+import json
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -49,8 +50,7 @@ class SQLAlchemyBotInfoRepositoryImpl(BotInfoRepository):
             existing.dynamic_seed_multiplier = bot_info.dynamic_seed_multiplier
             existing.dynamic_seed_t_threshold = bot_info.dynamic_seed_t_threshold
             existing.dynamic_seed_drop_rate = bot_info.dynamic_seed_drop_rate
-            existing.closing_buy_drop_rate = bot_info.closing_buy_drop_rate
-            existing.closing_buy_seed_rate = bot_info.closing_buy_seed_rate
+            existing.closing_buy_conditions = json.dumps(bot_info.closing_buy_conditions)
         else:
             # 신규 생성
             model = self._to_model(bot_info)
@@ -111,8 +111,7 @@ class SQLAlchemyBotInfoRepositoryImpl(BotInfoRepository):
             dynamic_seed_multiplier=model.dynamic_seed_multiplier,
             dynamic_seed_t_threshold=model.dynamic_seed_t_threshold,
             dynamic_seed_drop_rate=model.dynamic_seed_drop_rate,
-            closing_buy_drop_rate=model.closing_buy_drop_rate,
-            closing_buy_seed_rate=model.closing_buy_seed_rate,
+            closing_buy_conditions=json.loads(model.closing_buy_conditions) if model.closing_buy_conditions else [],
         )
 
     def _to_model(self, entity: BotInfo) -> BotInfoModel:
@@ -135,6 +134,5 @@ class SQLAlchemyBotInfoRepositoryImpl(BotInfoRepository):
             dynamic_seed_multiplier=entity.dynamic_seed_multiplier,
             dynamic_seed_t_threshold=entity.dynamic_seed_t_threshold,
             dynamic_seed_drop_rate=entity.dynamic_seed_drop_rate,
-            closing_buy_drop_rate=entity.closing_buy_drop_rate,
-            closing_buy_seed_rate=entity.closing_buy_seed_rate,
+            closing_buy_conditions=json.dumps(entity.closing_buy_conditions),
         )

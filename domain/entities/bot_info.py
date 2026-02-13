@@ -1,5 +1,5 @@
 """BotInfo Entity - 봇 정보 엔티티"""
-from typing import Optional
+from typing import Optional, List, Dict
 from domain.value_objects.point_loc import PointLoc
 
 
@@ -29,8 +29,7 @@ class BotInfo:
         dynamic_seed_multiplier: float = 0.3,
         dynamic_seed_t_threshold: float = 1.0,
         dynamic_seed_drop_rate: float = 0.03,
-        closing_buy_drop_rate: float = 0.05,
-        closing_buy_seed_rate: float = 1.0,
+        closing_buy_conditions: Optional[List[Dict]] = None,
     ):
         self.name = name
         self.symbol = symbol
@@ -49,10 +48,28 @@ class BotInfo:
         self.dynamic_seed_multiplier = dynamic_seed_multiplier
         self.dynamic_seed_t_threshold = dynamic_seed_t_threshold
         self.dynamic_seed_drop_rate = dynamic_seed_drop_rate
-        self.closing_buy_drop_rate = closing_buy_drop_rate
-        self.closing_buy_seed_rate = closing_buy_seed_rate
+        self.closing_buy_conditions = closing_buy_conditions or []
 
         self._validate()
+
+    def get_matching_closing_condition(self, drop_ratio: float) -> Optional[Dict]:
+        """
+        하락률에 매칭되는 장마감 급락 조건 반환
+
+        조건을 drop_rate 내림차순 정렬 후, drop_ratio >= condition.drop_rate인 첫 번째 조건 반환.
+        예: 조건 [5%, 7%, 10%]이고 하락률 8%이면 → 7% 조건 반환
+
+        Returns:
+            매칭 조건 dict {"drop_rate": 0.07, "seed_rate": 0.35} 또는 None
+        """
+        if not self.closing_buy_conditions:
+            return None
+
+        sorted_conditions = sorted(self.closing_buy_conditions, key=lambda c: c["drop_rate"], reverse=True)
+        for condition in sorted_conditions:
+            if drop_ratio >= condition["drop_rate"]:
+                return condition
+        return None
 
     def _validate(self):
         """비즈니스 규칙 검증"""
