@@ -96,14 +96,16 @@ def save_trade():
     try:
         data = request.get_json()
         name = data.get('name')
+        symbol = data.get('symbol')
+        date_added = data.get('date_added')
         purchase_price = float(data.get('purchase_price', 0))
         amount = float(data.get('amount', 0))
 
-        if not name:
-            return jsonify({"error": "Name required"}), 400
+        if not name or not symbol or not date_added:
+            return jsonify({"error": "Name, Symbol, and Date Added required"}), 400
 
-        # Usecase를 통한 업데이트
-        success = portfolio_usecase.update_trade(name, purchase_price, amount)
+        # Usecase를 통한 업데이트 (Primary Key 전체 전달)
+        success = portfolio_usecase.update_trade(name, symbol, date_added, purchase_price, amount)
 
         if success:
             return jsonify({"message": f"{name} trade updated"}), 200

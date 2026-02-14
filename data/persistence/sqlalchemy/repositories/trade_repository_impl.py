@@ -69,6 +69,15 @@ class SQLAlchemyTradeRepositoryImpl(TradeRepository):
         )
         return self._to_entity(model) if model else None
 
+    def find_by_primary_key(self, date_added, name: str, symbol: str) -> Optional[Trade]:
+        """Primary Key로 Trade 조회 (date_added, name, symbol)"""
+        model = (
+            self.session.query(TradeModel)
+            .filter_by(date_added=date_added, name=name, symbol=symbol)
+            .first()
+        )
+        return self._to_entity(model) if model else None
+
     def find_by_symbol(self, symbol: str) -> Optional[Trade]:
         """심볼로 Trade 조회 (purchase_price 오름차순 첫 번째)"""
         model = (

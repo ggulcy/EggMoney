@@ -512,12 +512,14 @@ class PortfolioStatusUsecase:
         """
         return self.trade_repo.find_all()
 
-    def update_trade(self, name: str, purchase_price: float, amount: float) -> bool:
+    def update_trade(self, name: str, symbol: str, date_added: str, purchase_price: float, amount: float) -> bool:
         """
         Trade 정보 업데이트
 
         Args:
             name: 봇 이름
+            symbol: 심볼
+            date_added: 추가 날짜 (ISO format string)
             purchase_price: 구매가
             amount: 수량
 
@@ -525,9 +527,15 @@ class PortfolioStatusUsecase:
             bool: 성공 여부
         """
         try:
-            trade = self.trade_repo.find_by_name(name)
+            from datetime import datetime
+
+            # ISO format string을 datetime으로 변환
+            date_added_dt = datetime.fromisoformat(date_added)
+
+            # Primary Key로 Trade 조회
+            trade = self.trade_repo.find_by_primary_key(date_added_dt, name, symbol)
             if not trade:
-                print(f"❌ Trade not found: {name}")
+                print(f"❌ Trade not found: name={name}, symbol={symbol}, date_added={date_added}")
                 return False
 
             # 평단가 및 총액 계산
@@ -546,6 +554,8 @@ class PortfolioStatusUsecase:
 
         except Exception as e:
             print(f"❌ Trade 업데이트 실패 ({name}): {str(e)}")
+            import traceback
+            traceback.print_exc()
             return False
 
     # ===== History 관리 메서드 =====

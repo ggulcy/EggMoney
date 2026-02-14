@@ -570,6 +570,8 @@
         function saveTrade(button) {
             const card = button.closest('.trade-accordion-content');
             const name = card.querySelector('input[name="name"]').value;
+            const symbol = card.querySelector('input[name="symbol"]').value;
+            const dateAdded = card.querySelector('input[name="date_added"]').value;
             const purchasePrice = parseCurrency(card.querySelector('input[name="purchase_price"]').value);
             const amount = parseCurrency(card.querySelector('input[name="amount"]').value);
 
@@ -588,6 +590,8 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
                     name: name,
+                    symbol: symbol,
+                    date_added: dateAdded,
                     purchase_price: purchasePrice,
                     amount: amount
                 })
@@ -1090,6 +1094,8 @@
                     <div class="trade-section-title">💰 거래 정보</div>
                     <div class="trade-field-group">
                         <input type="hidden" name="name" value="{{ trade.name }}">
+                        <input type="hidden" name="symbol" value="{{ trade.symbol }}">
+                        <input type="hidden" name="date_added" value="{{ trade.date_added.isoformat() if trade.date_added else '' }}">
                         <div class="trade-field">
                             <label>구매가</label>
                             <input type="text" name="purchase_price"

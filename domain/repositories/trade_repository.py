@@ -31,6 +31,21 @@ class TradeRepository(ABC):
         pass
 
     @abstractmethod
+    def find_by_primary_key(self, date_added, name: str, symbol: str) -> Optional[Trade]:
+        """
+        Primary Key로 Trade 조회 (date_added, name, symbol)
+
+        Args:
+            date_added: 추가 날짜 (datetime 객체)
+            name: 봇 이름
+            symbol: 종목 심볼
+
+        Returns:
+            Trade 또는 None
+        """
+        pass
+
+    @abstractmethod
     def find_by_symbol(self, symbol: str) -> Optional[Trade]:
         """
         심볼로 Trade 조회 (purchase_price 오름차순 기준 첫 번째)
