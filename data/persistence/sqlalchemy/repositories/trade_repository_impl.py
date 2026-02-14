@@ -27,19 +27,26 @@ class SQLAlchemyTradeRepositoryImpl(TradeRepository):
         Trade 저장 (신규 또는 업데이트)
 
         Late Commit 패턴 적용:
-        - name이 같은 레코드가 있으면 업데이트
+        - Primary Key(date_added, name, symbol)가 같은 레코드가 있으면 업데이트
         - 없으면 신규 생성
+
+        Note:
+            Primary Key는 불변이므로 date_added, name, symbol은 업데이트하지 않음
         """
-        existing = self.session.query(TradeModel).filter_by(name=trade.name).first()
+        # Primary Key 전체를 사용해서 기존 레코드 조회
+        existing = self.session.query(TradeModel).filter_by(
+            date_added=trade.date_added,
+            name=trade.name,
+            symbol=trade.symbol
+        ).first()
 
         if existing:
             # 업데이트: Late Commit 패턴
-            existing.symbol = trade.symbol
+            # Primary Key(date_added, name, symbol)는 변경하지 않음
             existing.purchase_price = trade.purchase_price
             existing.amount = trade.amount
             existing.total_price = trade.total_price
             existing.trade_type = trade.trade_type
-            existing.date_added = trade.date_added
             existing.latest_date_trade = trade.latest_date_trade
         else:
             # 신규 생성
