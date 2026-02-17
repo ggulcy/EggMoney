@@ -32,12 +32,16 @@ class SQLAlchemyTradeRepositoryImpl(TradeRepository):
 
         Note:
             Primary Key는 불변이므로 date_added, name, symbol은 업데이트하지 않음
+            date_added는 SQLite에 마이크로초 포함 여부가 달라질 수 있어 strftime으로 초 단위 비교
         """
         # Primary Key 전체를 사용해서 기존 레코드 조회
-        existing = self.session.query(TradeModel).filter_by(
-            date_added=trade.date_added,
-            name=trade.name,
-            symbol=trade.symbol
+        # date_added는 SQLite 저장 형식이 '2026-02-04 05:30:02' vs '2026-02-04 05:30:02.000000'으로
+        # 다를 수 있어 strftime으로 초 단위까지만 비교
+        date_added_str = trade.date_added.strftime('%Y-%m-%d %H:%M:%S')
+        existing = self.session.query(TradeModel).filter(
+            func.strftime('%Y-%m-%d %H:%M:%S', TradeModel.date_added) == date_added_str,
+            TradeModel.name == trade.name,
+            TradeModel.symbol == trade.symbol
         ).first()
 
         if existing:
@@ -320,6 +324,8 @@ class SQLAlchemyTradeRepositoryImpl(TradeRepository):
 
     def _to_model(self, entity: Trade) -> TradeModel:
         """Domain Entity → ORM Model"""
+        # date_added는 마이크로초를 제거하여 DB 저장 형식 통일
+        date_added = entity.date_added.replace(microsecond=0) if entity.date_added else entity.date_added
         return TradeModel(
             name=entity.name,
             symbol=entity.symbol,
@@ -327,7 +333,7 @@ class SQLAlchemyTradeRepositoryImpl(TradeRepository):
             amount=entity.amount,
             trade_type=entity.trade_type,
             total_price=entity.total_price,
-            date_added=entity.date_added,
+            date_added=date_added,
             latest_date_trade=entity.latest_date_trade
         )
 
