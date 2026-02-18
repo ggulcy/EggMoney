@@ -99,8 +99,23 @@ def set_scheduler():
         traceback.print_exc()
 
 
+def cleanup_other_dbs():
+    """현재 admin의 DB만 남기고 다른 egg_*.db 파일 삭제"""
+    db_dir = project_root / "data" / "persistence" / "sqlalchemy" / "db"
+    if not db_dir.exists() or not admin:
+        return
+
+    my_db = f"egg_{admin.value}.db"
+    for f in db_dir.glob("egg_*.db"):
+        if f.name != my_db:
+            f.unlink()
+            print(f"🗑️ 삭제: {f.name}")
+
+
 def main():
     """애플리케이션 시작"""
+    cleanup_other_dbs()
+
     print("=" * 80)
     print("🚀 EggMoney 애플리케이션 시작")
     print("=" * 80)

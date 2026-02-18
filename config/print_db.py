@@ -91,7 +91,7 @@ def print_all_order():
         print(f"❌ Order 출력 실패: {str(e)}")
 
 
-def print_all_history(limit: int = 20):
+def print_all_history(limit: int = 100):
     """최근 History 정보 출력 (기본 20개)"""
     try:
         from data.persistence.sqlalchemy.core.session_factory import SessionFactory
@@ -133,7 +133,7 @@ def print_all_db():
     print_all_bot_info()
     print_all_trade()
     print_all_order()
-    print_all_history(limit=10)
+    print_all_history(limit=300)
     print("=" * 80)
 
 
