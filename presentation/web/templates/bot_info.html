@@ -22,6 +22,7 @@
 
         .modal-overlay.active {
             display: flex;
+            overflow-y: auto;
         }
 
         .modal-card {
@@ -30,8 +31,7 @@
             padding: 28px;
             width: 90%;
             max-width: 600px;
-            max-height: 90vh;
-            overflow-y: auto;
+            margin: auto;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
             border: 1px solid #e0e0e0;
         }
@@ -40,7 +40,6 @@
             .modal-card {
                 width: 95%;
                 max-width: 95%;
-                max-height: 95vh;
                 padding: 20px;
             }
 
@@ -48,27 +47,6 @@
                 font-size: 0.9rem;
             }
 
-            .budget-value {
-                font-size: 0.75rem !important;
-                word-break: break-all;
-            }
-        }
-
-        /* 봇 현황 요약 카드 반응형 */
-        @media (max-width: 600px) {
-            .bot-summary-card-grid {
-                grid-template-columns: 1fr !important;
-                gap: 12px !important;
-            }
-
-            .bot-summary-card-item {
-                padding: 12px 0 !important;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
-            }
-
-            .bot-summary-card-item:last-child {
-                border-bottom: none !important;
-            }
         }
 
         .modal-header {
@@ -198,120 +176,6 @@
             background: rgba(102, 126, 234, 0.1);
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
-        }
-
-        .renewal-btn {
-            flex: 1;
-            padding: 16px 24px;
-            border: 2px dashed #f59e0b;
-            border-radius: 12px;
-            background: rgba(245, 158, 11, 0.05);
-            color: #f59e0b;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .renewal-btn:hover {
-            border-style: solid;
-            background: rgba(245, 158, 11, 0.1);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
-        }
-
-        /* 시장 레벨 선택 스타일 */
-        .market-level-selector {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-
-        .market-level-current {
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: #666;
-            margin-bottom: 8px;
-        }
-
-        .market-level-current-value {
-            color: #f59e0b;
-            font-size: 1.1rem;
-        }
-
-        .market-level-buttons {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-        }
-
-        @media (max-width: 768px) {
-            .market-level-buttons {
-                grid-template-columns: repeat(4, 1fr);
-                gap: 6px;
-            }
-
-            .market-level-btn {
-                padding: 8px 4px;
-                min-height: auto;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-            }
-
-            .market-level-btn > div:first-child {
-                font-size: 1.1rem !important;
-                margin: 0 !important;
-            }
-
-            .market-level-btn > div:nth-child(2) {
-                font-size: 0.65rem !important;
-                margin-top: 2px !important;
-                font-weight: 600 !important;
-            }
-
-            .market-level-btn > div:nth-child(3) {
-                display: none !important;
-            }
-
-            /* 봇 현황 요약 카드 모바일 최적화 */
-            .bot-summary-card {
-                font-size: 0.85rem !important;
-                padding: 8px 12px !important;
-                flex-wrap: nowrap !important;
-                gap: 8px;
-            }
-
-            .bot-summary-card span {
-                white-space: nowrap;
-                font-size: 0.85rem;
-            }
-        }
-
-        .market-level-btn {
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            background: #fff;
-            color: #666;
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-align: center;
-        }
-
-        .market-level-btn:hover {
-            border-color: #f59e0b;
-            background: rgba(245, 158, 11, 0.05);
-        }
-
-        .market-level-btn.active {
-            border-color: #f59e0b;
-            background: #f59e0b;
-            color: #fff;
         }
 
         /* 봇 아코디언 스타일 */
@@ -582,6 +446,31 @@
             border-radius: 0;
         }
 
+        /* ON 토글 스타일 버튼 */
+        .bot-field-checkbox .switch .renewal-slider:before {
+            content: "리뉴얼" !important;
+        }
+
+        .toggle-action-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 16px;
+            background: #667eea;
+            border: 2px solid #667eea;
+            border-radius: 6px;
+            color: white;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .toggle-action-btn:hover {
+            background: #5568d3;
+            border-color: #5568d3;
+        }
+
     </style>
     <script>
         // 로딩 표시
@@ -751,12 +640,11 @@
             });
         }
 
-        // 모든 설정 저장
+        // 스케줄 설정 저장
         function saveAllSettings() {
             const tradeStart = document.querySelector('input[name="trade_start"]').value.trim();
             const tradeEnd = document.querySelector('input[name="trade_end"]').value.trim();
             const twapCount = parseInt(document.querySelector('input[name="twap_count"]').value);
-            const autoStart = document.querySelector('input[name="auto_start"]').checked;
             const closingBuyTime = document.querySelector('input[name="closing_buy_time"]').value.trim();
 
             if (!tradeStart || !tradeEnd || !twapCount || !closingBuyTime) {
@@ -797,8 +685,33 @@
                     trade_start: tradeStart,
                     trade_end: tradeEnd,
                     twap_count: twapCount,
-                    auto_start: autoStart,
                     closing_buy_time: closingBuyTime
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                alert(data.message || data.error);
+                if (!data.error) location.reload();
+            })
+            .catch(error => {
+                hideLoading();
+                alert('Error: ' + error);
+            });
+        }
+
+        // 기타 설정 저장
+        function saveOtherSettings() {
+            const totalBudget = parseCurrency(document.querySelector('input[name="total_budget"]').value);
+            const autoStart = document.querySelector('input[name="auto_start"]').checked;
+
+            showLoading();
+            fetch('/save_other_settings', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    total_budget: totalBudget > 0 ? totalBudget : null,
+                    auto_start: autoStart
                 })
             })
             .then(response => response.json())
@@ -878,6 +791,17 @@
             }
         }
 
+        // 기타 설정 아코디언 토글
+        function toggleOtherAccordion() {
+            const header = document.querySelector('.other-accordion-header');
+            const content = document.querySelector('.other-accordion-content');
+
+            if (header && content) {
+                header.classList.toggle('active');
+                content.classList.toggle('active');
+            }
+        }
+
         // 모달 열기/닫기
         function openModal(modalId) {
             document.getElementById(modalId).classList.add('active');
@@ -931,464 +855,6 @@
                 hideLoading();
                 alert(data.message || data.error);
                 if (!data.error) location.reload();
-            })
-            .catch(error => {
-                hideLoading();
-                alert('Error: ' + error);
-            });
-        }
-
-        // 봇 리뉴얼 - 시장 레벨 선택
-        let selectedMarketLevel = {{ market_state_level }};
-        let customTotalBudget = null;  // 사용자 지정 총 예산
-        let budgetInputTimeout = null;  // debounce용 타이머
-
-        function selectMarketLevel(level) {
-            selectedMarketLevel = level;
-            document.querySelectorAll('.market-level-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.closest('.market-level-btn').classList.add('active');
-
-            // 미리보기 로드
-            loadRenewalPreview(level);
-        }
-
-        function onTotalBudgetInput(input) {
-            // 숫자 포맷팅
-            let value = input.value.replace(/[^0-9]/g, '');
-            if (value) {
-                const numValue = parseInt(value, 10);
-                input.value = '$' + numValue.toLocaleString();
-
-                // debounce: 1초 후 미리보기 갱신 (시장 레벨 선택된 경우만)
-                clearTimeout(budgetInputTimeout);
-                budgetInputTimeout = setTimeout(() => {
-                    if (numValue > 0) {
-                        customTotalBudget = numValue;
-                        // 시장 레벨이 선택된 경우에만 미리보기 로드, 아니면 변수만 업데이트
-                        if (selectedMarketLevel !== null && selectedMarketLevel >= 0) {
-                            loadRenewalPreview(selectedMarketLevel);
-                        }
-                    }
-                }, 1000);
-            } else {
-                // 빈 값일 때는 계산하지 않음 (포커스 유지)
-                input.value = '';
-                clearTimeout(budgetInputTimeout);
-            }
-        }
-
-        function loadRenewalPreview(level) {
-            const previewContainer = document.getElementById('renewalPreview');
-            previewContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">로딩 중...</div>';
-
-            // 현재 봇 정보 (페이지에서 가져오기)
-            const currentBots = {};
-            {% for bot_info, t in bot_info_with_tiers %}
-            currentBots['{{ bot_info.name }}'] = {
-                seed: {{ bot_info.seed }},
-                profit_rate: {{ bot_info.profit_rate }},
-                max_tier: {{ bot_info.max_tier }},
-                point_loc: '{{ bot_info.point_loc.value }}',
-                active: {{ 'true' if bot_info.active else 'false' }},
-                dynamic_seed_enabled: {{ 'true' if bot_info.dynamic_seed_enabled else 'false' }},
-                dynamic_seed_max: {{ bot_info.dynamic_seed_max }}
-            };
-            {% endfor %}
-
-            const requestBody = { market_stage: level };
-            if (customTotalBudget !== null) {
-                requestBody.total_budget = customTotalBudget;
-            }
-
-            fetch('/preview_bot_renewal', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(requestBody)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    previewContainer.innerHTML = `<div style="color: #ef4444; padding: 10px;">오류: ${data.error}</div>`;
-                    return;
-                }
-
-                // 미리보기 HTML 생성
-                const stageNames = ['🛡️ 수비적', '⚖️ 중립', '⚔️ 공격적', '🔥 매우공격적'];
-                let html = `
-                    <div style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(245, 158, 11, 0.02) 100%); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 12px; padding: 20px; margin-top: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                        <div style="font-size: 1rem; font-weight: 700; color: #f59e0b; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-                            <span>📊</span>
-                            <span>${stageNames[level]} 모드</span>
-                        </div>
-
-                        <!-- 예산 정보 -->
-                        <div style="background: white; border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.08);">
-                            <div style="text-align: center; margin-bottom: 12px;">
-                                <div style="font-size: 0.8rem; color: #999; margin-bottom: 4px;">💰 총 예산</div>
-                                <input
-                                    type="text"
-                                    id="totalBudgetInput"
-                                    value="$${data.total_budget.toLocaleString()}"
-                                    oninput="onTotalBudgetInput(this)"
-                                    placeholder="예산 입력"
-                                    style="font-weight: 700; font-size: 1.3rem; color: #333; border: 2px dashed #e0e0e0; border-radius: 6px; padding: 4px 8px; text-align: center; width: 100%; max-width: 300px; transition: all 0.2s; background: #fafafa; cursor: text;"
-                                    onfocus="this.style.borderColor='#f59e0b'; this.style.borderStyle='solid'; this.style.background='#fffbeb';"
-                                    onblur="this.style.borderColor='#e0e0e0'; this.style.borderStyle='dashed'; this.style.background='#fafafa';"
-                                >
-                                <div style="font-size: 0.7rem; color: #999; margin-top: 4px;">💡 클릭하여 예산 변경 (1초 후 자동 갱신)</div>
-                            </div>
-
-                            <!-- 프로그레스 바 -->
-                            <div style="width: 100%; height: 8px; background: #e0e0e0; border-radius: 4px; overflow: hidden; margin-bottom: 12px; display: flex;">
-                                ${data.cash_reserve > 0 ? `<div style="background: linear-gradient(90deg, #10b981, #059669); width: ${(data.cash_reserve/data.total_budget*100).toFixed(2)}%; height: 100%;"></div>` : ''}
-                                ${data.investable > 0 ? `<div style="background: linear-gradient(90deg, #3b82f6, #2563eb); width: ${(data.investable/data.total_budget*100).toFixed(2)}%; height: 100%;"></div>` : ''}
-                            </div>
-
-                            <!-- 범례 -->
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                                <div style="display: flex; align-items: center; gap: 8px; padding: 8px; background: #f0fdf4; border-radius: 6px;">
-                                    <div style="width: 12px; height: 12px; background: #10b981; border-radius: 2px; flex-shrink: 0;"></div>
-                                    <div style="flex: 1; min-width: 0;">
-                                        <div style="font-size: 0.7rem; color: #666;">💵 현금 비중</div>
-                                        <div class="budget-value" style="font-weight: 700; font-size: 0.9rem; color: #10b981;">$${Math.floor(data.cash_reserve).toLocaleString()} (${(data.cash_reserve/data.total_budget*100).toFixed(0)}%)</div>
-                                    </div>
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 8px; padding: 8px; background: #eff6ff; border-radius: 6px;">
-                                    <div style="width: 12px; height: 12px; background: #3b82f6; border-radius: 2px; flex-shrink: 0;"></div>
-                                    <div style="flex: 1; min-width: 0;">
-                                        <div style="font-size: 0.7rem; color: #666;">📈 투자 비중</div>
-                                        <div class="budget-value" style="font-weight: 700; font-size: 0.9rem; color: #3b82f6;">$${Math.floor(data.investable).toLocaleString()} (${(data.investable/data.total_budget*100).toFixed(0)}%)</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 총자산만 저장 버튼 -->
-                        <button onclick="saveTotalBudgetOnly()" style="width: 100%; padding: 12px; background: #10b981; color: white; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-bottom: 16px;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">💰 총자산만 저장</button>
-
-                        <!-- 봇별 변경사항 -->
-                        <div style="background: white; border-radius: 8px; padding: 12px; max-height: 300px; overflow-y: auto;">
-                            <div style="font-size: 0.85rem; font-weight: 600; color: #666; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 2px solid #f0f0f0;">
-                                봇별 변경사항
-                            </div>
-                `;
-
-                data.bots.forEach(bot => {
-                    const current = currentBots[bot.name];
-                    const seedChanged = current && Math.abs(current.seed - bot.seed) > 0.01;
-                    const prChanged = current && Math.abs(current.profit_rate - bot.profit_rate) > 0.001;
-                    const maxTierChanged = current && current.max_tier !== bot.max_tier;
-                    const pointLocChanged = current && current.point_loc !== bot.point_loc;
-
-                    // 리뉴얼 시 강제 변경되는 필드들
-                    const activeChanged = current && current.active !== true;  // 리뉴얼 후 항상 true
-                    const dynamicSeedChanged = current && current.dynamic_seed_enabled !== false;  // 리뉴얼 후 항상 false
-                    const dynamicSeedMaxChanged = current && current.dynamic_seed_max !== 0;  // 리뉴얼 후 항상 0
-
-                    const hasChanges = seedChanged || prChanged || maxTierChanged || pointLocChanged || activeChanged || dynamicSeedChanged || dynamicSeedMaxChanged;
-
-                    html += `
-                        <div style="padding: 10px; margin-bottom: 8px; border-radius: 6px; background: ${hasChanges ? 'rgba(245, 158, 11, 0.05)' : '#fafafa'}; border-left: 3px solid ${hasChanges ? '#f59e0b' : '#e0e0e0'};">
-                            <div style="font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; color: #333;">${bot.name} (${bot.symbol})</div>
-                            <div style="display: grid; grid-template-columns: 1fr; gap: 8px; font-size: 0.8rem;">
-                    `;
-
-                    // 1회 시드 변경
-                    if (seedChanged) {
-                        const isIncrease = bot.seed > current.seed;
-                        html += `
-                            <div style="display: flex; align-items: center; gap: 4px;">
-                                <span style="color: #999;">1회 시드:</span>
-                                <span style="color: #999; text-decoration: line-through; font-size: 0.75rem;">$${current.seed.toLocaleString()}</span>
-                                <span style="color: ${isIncrease ? '#10b981' : '#ef4444'}; font-weight: 700;">${isIncrease ? '↑' : '↓'}</span>
-                                <span style="font-weight: 600; color: ${isIncrease ? '#10b981' : '#ef4444'};">$${bot.seed.toLocaleString()}</span>
-                            </div>
-                        `;
-                    } else {
-                        html += `
-                            <div style="color: #666;">
-                                <span style="color: #999;">1회 시드:</span> $${bot.seed.toLocaleString()}
-                            </div>
-                        `;
-                    }
-
-                    // 수익률 변경
-                    if (prChanged) {
-                        const isIncrease = bot.profit_rate > current.profit_rate;
-                        html += `
-                            <div style="display: flex; align-items: center; gap: 4px;">
-                                <span style="color: #999;">수익률:</span>
-                                <span style="color: #999; text-decoration: line-through; font-size: 0.75rem;">${(current.profit_rate * 100).toFixed(0)}%</span>
-                                <span style="color: ${isIncrease ? '#10b981' : '#ef4444'}; font-weight: 700;">${isIncrease ? '↑' : '↓'}</span>
-                                <span style="font-weight: 600; color: ${isIncrease ? '#10b981' : '#ef4444'};">${(bot.profit_rate * 100).toFixed(0)}%</span>
-                            </div>
-                        `;
-                    } else {
-                        html += `
-                            <div style="color: #666;">
-                                <span style="color: #999;">수익률:</span> ${(bot.profit_rate * 100).toFixed(0)}%
-                            </div>
-                        `;
-                    }
-
-                    // Max티어 변경
-                    if (maxTierChanged) {
-                        const isIncrease = bot.max_tier > current.max_tier;
-                        html += `
-                            <div style="display: flex; align-items: center; gap: 4px;">
-                                <span style="color: #999;">Max티어:</span>
-                                <span style="color: #999; text-decoration: line-through; font-size: 0.75rem;">${current.max_tier}</span>
-                                <span style="color: ${isIncrease ? '#10b981' : '#ef4444'}; font-weight: 700;">${isIncrease ? '↑' : '↓'}</span>
-                                <span style="font-weight: 600; color: ${isIncrease ? '#10b981' : '#ef4444'};">${bot.max_tier}</span>
-                            </div>
-                        `;
-                    } else {
-                        html += `
-                            <div style="color: #666;">
-                                <span style="color: #999;">Max티어:</span> ${bot.max_tier}
-                            </div>
-                        `;
-                    }
-
-                    // 손절지점 변경
-                    if (pointLocChanged) {
-                        const pointLocNames = {
-                            'P1': '손절없음',
-                            'P1_2': '1/2지점',
-                            'P2_3': '2/3지점'
-                        };
-                        html += `
-                            <div style="display: flex; align-items: center; gap: 4px;">
-                                <span style="color: #999;">손절지점:</span>
-                                <span style="color: #999; text-decoration: line-through; font-size: 0.75rem;">${pointLocNames[current.point_loc] || current.point_loc}</span>
-                                <span style="font-size: 0.9rem;">→</span>
-                                <span style="font-weight: 600; color: #f59e0b;">${pointLocNames[bot.point_loc] || bot.point_loc}</span>
-                            </div>
-                        `;
-                    } else {
-                        const pointLocNames = {
-                            'P1': '손절없음',
-                            'P1_2': '1/2지점',
-                            'P2_3': '2/3지점'
-                        };
-                        html += `
-                            <div style="color: #666;">
-                                <span style="color: #999;">손절지점:</span> ${pointLocNames[bot.point_loc] || bot.point_loc}
-                            </div>
-                        `;
-                    }
-
-                    // 활성화 상태 변경 (리뉴얼 시 항상 활성화)
-                    if (activeChanged) {
-                        html += `
-                            <div style="display: flex; align-items: center; gap: 4px;">
-                                <span style="color: #999;">활성화:</span>
-                                <span style="color: #999; text-decoration: line-through; font-size: 0.75rem;">${current.active ? 'ON' : 'OFF'}</span>
-                                <span style="font-size: 0.9rem;">→</span>
-                                <span style="font-weight: 600; color: #10b981;">ON</span>
-                            </div>
-                        `;
-                    } else {
-                        html += `
-                            <div style="color: #666;">
-                                <span style="color: #999;">활성화:</span> ON
-                            </div>
-                        `;
-                    }
-
-                    // 동적시드 상태 변경 (리뉴얼 시 항상 비활성화)
-                    if (dynamicSeedChanged) {
-                        html += `
-                            <div style="display: flex; align-items: center; gap: 4px;">
-                                <span style="color: #999;">동적시드:</span>
-                                <span style="color: #999; text-decoration: line-through; font-size: 0.75rem;">ON</span>
-                                <span style="font-size: 0.9rem;">→</span>
-                                <span style="font-weight: 600; color: #ef4444;">OFF</span>
-                            </div>
-                        `;
-                    } else {
-                        html += `
-                            <div style="color: #666;">
-                                <span style="color: #999;">동적시드:</span> OFF
-                            </div>
-                        `;
-                    }
-
-                    html += `
-                            </div>
-                        </div>
-                    `;
-                });
-
-                html += `
-                        </div>
-                    </div>
-                `;
-
-                previewContainer.innerHTML = html;
-            })
-            .catch(error => {
-                previewContainer.innerHTML = `<div style="color: #ef4444; padding: 10px;">오류: ${error}</div>`;
-            });
-        }
-
-        function openRenewalModal() {
-            // 현재 레벨로 초기화 (-1이면 아무것도 선택 안 함)
-            {% if market_state_level == -1 %}
-            selectedMarketLevel = null;
-            {% else %}
-            selectedMarketLevel = {{ market_state_level }};
-            {% endif %}
-
-            // 저장된 총 예산이 있으면 사용, 없으면 null
-            {% if saved_total_budget is not none %}
-            customTotalBudget = {{ saved_total_budget }};
-            {% else %}
-            customTotalBudget = null;
-            {% endif %}
-
-            // 총 예산 입력 필드 설정
-            const budgetInput = document.getElementById('totalBudgetInput');
-            if (budgetInput) {
-                if (customTotalBudget !== null) {
-                    budgetInput.value = '$' + customTotalBudget.toLocaleString();
-                } else {
-                    budgetInput.value = '';
-                }
-            }
-
-            // 버튼 활성화 상태 설정 (수동설정일 땐 아무것도 선택 안 함)
-            document.querySelectorAll('.market-level-btn').forEach((btn, index) => {
-                btn.classList.remove('active');
-                {% if market_state_level != -1 %}
-                if (index === {{ market_state_level }}) {
-                    btn.classList.add('active');
-                }
-                {% endif %}
-            });
-
-            openModal('renewalBotModal');
-
-            // 수동설정이 아닐 때만 미리보기 로드
-            {% if market_state_level != -1 %}
-            loadRenewalPreview({{ market_state_level }});
-            {% else %}
-            // 수동설정일 때는 총 자산 카드만 표시
-            showTotalBudgetCardOnly();
-            {% endif %}
-        }
-
-        function showTotalBudgetCardOnly() {
-            const previewContainer = document.getElementById('renewalPreview');
-            const budgetValue = customTotalBudget !== null ? customTotalBudget : 0;
-
-            previewContainer.innerHTML = `
-                <div style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(245, 158, 11, 0.02) 100%); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 12px; padding: 20px; margin-top: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                    <!-- 예산 정보 -->
-                    <div style="background: white; border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.08);">
-                        <div style="text-align: center;">
-                            <div style="font-size: 0.8rem; color: #999; margin-bottom: 4px;">💰 총 예산</div>
-                            <input
-                                type="text"
-                                id="totalBudgetInput"
-                                value="${budgetValue > 0 ? '$' + budgetValue.toLocaleString() : ''}"
-                                oninput="onTotalBudgetInput(this)"
-                                placeholder="예산 입력"
-                                style="font-weight: 700; font-size: 1.3rem; color: #333; border: 2px dashed #e0e0e0; border-radius: 6px; padding: 4px 8px; text-align: center; width: 100%; max-width: 300px; transition: all 0.2s; background: #fafafa; cursor: text;"
-                                onfocus="this.style.borderColor='#f59e0b'; this.style.borderStyle='solid'; this.style.background='#fffbeb';"
-                                onblur="this.style.borderColor='#e0e0e0'; this.style.borderStyle='dashed'; this.style.background='#fafafa';"
-                            >
-                            <div style="font-size: 0.7rem; color: #999; margin-top: 4px;">💡 클릭하여 예산 변경</div>
-                        </div>
-                    </div>
-
-                    <!-- 총자산만 저장 버튼 -->
-                    <button onclick="saveTotalBudgetOnly()" style="width: 100%; padding: 12px; background: #10b981; color: white; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-bottom: 16px;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">💰 총자산만 저장</button>
-
-                    <!-- 안내 메시지 -->
-                    <div style="text-align: center; padding: 20px; color: #999; font-size: 0.9rem; background: white; border-radius: 8px;">
-                        ⬆️ 시장 레벨을 선택하면 봇별 변경사항을 미리볼 수 있습니다
-                    </div>
-                </div>
-            `;
-        }
-
-        function submitBotRenewal() {
-            if (selectedMarketLevel === null) {
-                alert('시장 레벨을 선택해주세요.');
-                return;
-            }
-
-            if (!confirm(`시장 레벨 ${selectedMarketLevel}로 봇 리뉴얼을 적용하시겠습니까?\n\n모든 봇의 설정이 변경됩니다.`)) {
-                return;
-            }
-
-            showLoading();
-            const requestBody = {
-                market_stage: selectedMarketLevel
-            };
-
-            // 커스텀 예산이 설정되어 있으면 포함
-            if (customTotalBudget !== null) {
-                requestBody.total_budget = customTotalBudget;
-            }
-
-            fetch('/apply_bot_renewal', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(requestBody)
-            })
-            .then(response => response.json())
-            .then(data => {
-                hideLoading();
-                if (data.error) {
-                    alert('Error: ' + data.error);
-                } else {
-                    alert(`✅ ${data.updated_count}개 봇이 리뉴얼되었습니다.`);
-                    location.reload();
-                }
-            })
-            .catch(error => {
-                hideLoading();
-                alert('Error: ' + error);
-            });
-        }
-
-        function saveTotalBudgetOnly() {
-            // 입력된 총 예산 가져오기
-            const budgetInput = document.getElementById('totalBudgetInput');
-            let budgetValue = customTotalBudget;
-
-            // 입력 필드에서 값 파싱
-            if (budgetInput && budgetInput.value) {
-                const parsed = parseInt(budgetInput.value.replace(/[^0-9]/g, ''), 10);
-                if (parsed > 0) {
-                    budgetValue = parsed;
-                }
-            }
-
-            if (!budgetValue || budgetValue <= 0) {
-                alert('총 자산을 입력해주세요.');
-                return;
-            }
-
-            showLoading();
-            fetch('/save_total_budget', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ total_budget: budgetValue })
-            })
-            .then(response => response.json())
-            .then(data => {
-                hideLoading();
-                if (data.error) {
-                    alert('Error: ' + data.error);
-                } else {
-                    alert(`✅ 총 자산 $${budgetValue.toLocaleString()} 저장되었습니다.`);
-                    location.reload();
-                }
             })
             .catch(error => {
                 hideLoading();
@@ -1460,6 +926,143 @@
                 }
             });
             return conditions;
+        }
+
+        // === 봇 리뉴얼 모달 ===
+        // 현재 봇의 티커별 개수 (서버에서 전달)
+        const currentTickerCounts = {};
+        {% for bot_info, t in bot_info_with_tiers %}
+        currentTickerCounts['{{ bot_info.symbol }}'] = (currentTickerCounts['{{ bot_info.symbol }}'] || 0) + 1;
+        {% endfor %}
+
+        function openRenewalModal() {
+            // 총자산 미설정 체크
+            const totalBudgetInput = document.querySelector('input[name="total_budget"]');
+            const totalBudget = parseCurrency(totalBudgetInput ? totalBudgetInput.value : '');
+            if (!totalBudget || totalBudget <= 0) {
+                alert('총자산을 먼저 입력해주세요.');
+                return;
+            }
+
+            const container = document.getElementById('renewalTickerList');
+            container.innerHTML = '';
+
+            // 현재 봇 티커들로 행 생성
+            for (const [ticker, count] of Object.entries(currentTickerCounts)) {
+                addRenewalTickerRow(ticker, count);
+            }
+
+            updateRenewalSummary();
+            openModal('renewalBotModal');
+        }
+
+        function updateRenewalSummary() {
+            const summary = document.getElementById('renewalSummary');
+            const totalBudgetInput = document.querySelector('input[name="total_budget"]');
+            const totalBudget = parseCurrency(totalBudgetInput ? totalBudgetInput.value : '');
+            const rows = document.querySelectorAll('.renewal-ticker-row');
+
+            let totalBots = 0;
+            rows.forEach(row => {
+                totalBots += parseInt(row.querySelector('input[name="renewal_count"]').value) || 0;
+            });
+
+            if (totalBudget > 0 && totalBots > 0) {
+                const perBot = Math.floor(totalBudget / totalBots);
+                summary.innerHTML = `총자산 <b>$${totalBudget.toLocaleString()}</b> ÷ <b>${totalBots}봇</b> = 봇당 <b>$${perBot.toLocaleString()}</b>`;
+            } else {
+                summary.innerHTML = '-';
+            }
+        }
+
+        function submitBotRenewal() {
+            const rows = document.querySelectorAll('.renewal-ticker-row');
+            const tickerCounts = {};
+
+            for (const row of rows) {
+                const ticker = row.querySelector('input[name="renewal_ticker"]').value.trim().toUpperCase();
+                const count = parseInt(row.querySelector('input[name="renewal_count"]').value) || 0;
+
+                if (!ticker) {
+                    alert('티커를 입력해주세요.');
+                    return;
+                }
+                if (count < 1 || count > 3) {
+                    alert('봇 개수는 1~3 사이여야 합니다.');
+                    return;
+                }
+                if (tickerCounts[ticker]) {
+                    alert(`중복된 티커가 있습니다: ${ticker}`);
+                    return;
+                }
+                tickerCounts[ticker] = count;
+            }
+
+            if (Object.keys(tickerCounts).length === 0) {
+                alert('최소 1개의 티커가 필요합니다.');
+                return;
+            }
+
+            const totalBots = Object.values(tickerCounts).reduce((a, b) => a + b, 0);
+            if (!confirm(`총 ${totalBots}개의 봇으로 리뉴얼합니다.\n기존 봇은 모두 삭제됩니다.\n\n진행하시겠습니까?`)) {
+                return;
+            }
+
+            showLoading();
+            fetch('/apply_bot_renewal', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ ticker_counts: tickerCounts })
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    alert(data.message);
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                alert('Error: ' + error);
+            });
+        }
+
+        function addRenewalTickerRow(ticker, count) {
+            const container = document.getElementById('renewalTickerList');
+            const currentRows = container.querySelectorAll('.renewal-ticker-row').length;
+
+            ticker = ticker || '';
+            count = count || 1;
+
+            const rowHtml = `
+                <div class="renewal-ticker-row" style="display: flex; gap: 10px; align-items: flex-end; margin-bottom: 10px;">
+                    <div class="bot-field" style="flex: 1;">
+                        <label>티커</label>
+                        <input type="text" name="renewal_ticker" value="${ticker}" placeholder="티커를 입력해주세요">
+                    </div>
+                    <div class="bot-field" style="flex: 0 0 60px;">
+                        <label>개수</label>
+                        <input type="number" name="renewal_count" value="${count}" min="1" max="3" style="text-align: center;" oninput="updateRenewalSummary()">
+                    </div>
+                    <div style="flex: 0 0 auto; display: flex; align-items: flex-end;">
+                        <button type="button" class="btn-danger" onclick="removeRenewalTickerRow(this)" style="padding: 8px 14px; font-size: 0.85rem;">삭제</button>
+                    </div>
+                </div>`;
+            container.insertAdjacentHTML('beforeend', rowHtml);
+            updateRenewalSummary();
+        }
+
+        function removeRenewalTickerRow(btn) {
+            const container = document.getElementById('renewalTickerList');
+            if (container.querySelectorAll('.renewal-ticker-row').length <= 1) {
+                alert('최소 1개의 티커가 필요합니다.');
+                return;
+            }
+            btn.closest('.renewal-ticker-row').remove();
+            updateRenewalSummary();
         }
 
         // 페이지 로드 시 초기화
@@ -1542,44 +1145,22 @@
 <div id="renewalBotModal" class="modal-overlay">
     <div class="modal-card">
         <div class="modal-header">
-            <span class="modal-title" style="color: #f59e0b;">🔄 봇 리뉴얼</span>
+            <span class="modal-title" style="color: #f59e0b;">봇 리뉴얼</span>
             <button class="modal-close" onclick="closeModal('renewalBotModal')">&times;</button>
         </div>
         <div class="modal-body">
-            <div class="market-level-selector">
-                <div class="market-level-current">
-                    현재 시장 레벨: <span class="market-level-current-value">{{ market_state_level }} ({{ ['🛡️ 수비적', '⚖️ 중립', '⚔️ 공격적', '🔥 매우공격적'][market_state_level] }})</span>
-                </div>
-                <div class="market-level-buttons">
-                    <button class="market-level-btn" onclick="selectMarketLevel(0)">
-                        <div style="font-size: 1.5rem;">🛡️</div>
-                        <div style="font-size: 0.85rem; font-weight: 700; margin-top: 4px;">레벨 0</div>
-                        <div style="font-size: 0.75rem; color: #999; margin-top: 2px;">수비적</div>
-                    </button>
-                    <button class="market-level-btn" onclick="selectMarketLevel(1)">
-                        <div style="font-size: 1.5rem;">⚖️</div>
-                        <div style="font-size: 0.85rem; font-weight: 700; margin-top: 4px;">레벨 1</div>
-                        <div style="font-size: 0.75rem; color: #999; margin-top: 2px;">중립</div>
-                    </button>
-                    <button class="market-level-btn" onclick="selectMarketLevel(2)">
-                        <div style="font-size: 1.5rem;">⚔️</div>
-                        <div style="font-size: 0.85rem; font-weight: 700; margin-top: 4px;">레벨 2</div>
-                        <div style="font-size: 0.75rem; color: #999; margin-top: 2px;">공격적</div>
-                    </button>
-                    <button class="market-level-btn" onclick="selectMarketLevel(3)">
-                        <div style="font-size: 1.5rem;">🔥</div>
-                        <div style="font-size: 0.85rem; font-weight: 700; margin-top: 4px;">레벨 3</div>
-                        <div style="font-size: 0.75rem; color: #999; margin-top: 2px;">매우공격적</div>
-                    </button>
-                </div>
-            </div>
+            <!-- 티커 목록 -->
+            <div id="renewalTickerList"></div>
 
-            <!-- 미리보기 영역 -->
-            <div id="renewalPreview"></div>
+            <!-- 티커 추가 버튼 -->
+            <button type="button" class="add-btn" onclick="addRenewalTickerRow()" style="width: 100%; margin-top: 12px; padding: 12px;">+ 티커 추가</button>
+
+            <!-- 분배 요약 -->
+            <div id="renewalSummary" style="margin-top: 16px; padding: 14px; background: #f8f9ff; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 0.9rem; color: #555; text-align: center;"></div>
 
             <div class="modal-actions">
                 <button class="modal-btn-cancel" onclick="closeModal('renewalBotModal')">취소</button>
-                <button class="modal-btn-submit" style="background: #f59e0b;" onclick="submitBotRenewal()">🔄 전체 적용</button>
+                <button class="modal-btn-submit" style="background: #f59e0b;" onclick="submitBotRenewal()">적용</button>
             </div>
         </div>
     </div>
@@ -1598,7 +1179,6 @@
     <!-- 추가 버튼 영역 -->
     <div class="add-buttons">
         <button class="add-btn" onclick="openModal('addBotModal')">🤖 새 봇 추가</button>
-        <button class="renewal-btn" onclick="openRenewalModal()">🔄 봇 리뉴얼</button>
     </div>
 
     <!-- 스케줄 설정 섹션 (아코디언) -->
@@ -1632,6 +1212,43 @@
                         <label>CLOSING BUY</label>
                         <input type="text" name="closing_buy_time" value="{{ closing_buy_time }}" placeholder="HH:MM">
                     </div>
+                </div>
+
+                <div class="schedule-actions">
+                    <button type="button" onclick="saveAllSettings()" class="btn-success">💾 Save All</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 기타 설정 섹션 (아코디언) -->
+    <div class="card-section">
+        <div class="schedule-accordion-header other-accordion-header" onclick="toggleOtherAccordion()">
+            <div class="bot-accordion-left">
+                <span class="bot-accordion-toggle">▶</span>
+                <span class="bot-accordion-name">⚙️ 기타 설정</span>
+            </div>
+            <div class="bot-accordion-right">
+                <span class="schedule-summary">총자산 ${{ '{:,.0f}'.format(saved_total_budget) if saved_total_budget else '미설정' }} | 자동출발 {{ 'ON' if auto_start else 'OFF' }}</span>
+            </div>
+        </div>
+        <div class="schedule-accordion-content other-accordion-content">
+            <div class="schedule-card" style="border-radius: 0 0 10px 10px; margin-top: 0;">
+                <div class="bot-field-group">
+                    <div class="bot-field">
+                        <label>총자산</label>
+                        <input type="text" name="total_budget"
+                               value="{{ '$ {:,.0f}'.format(saved_total_budget) if saved_total_budget else '' }}"
+                               placeholder="$ 0"
+                               oninput="formatCurrency(this, '$ ')">
+                    </div>
+                    <div class="bot-field bot-field-checkbox">
+                        <label>봇 리뉴얼</label>
+                        <div class="switch" onclick="openRenewalModal()" style="cursor: pointer;">
+                            <input type="checkbox" checked disabled>
+                            <span class="slider round renewal-slider"></span>
+                        </div>
+                    </div>
                     <div class="bot-field bot-field-checkbox">
                         <label>다음 봇 자동 출발</label>
                         <label class="switch">
@@ -1642,7 +1259,7 @@
                 </div>
 
                 <div class="schedule-actions">
-                    <button type="button" onclick="saveAllSettings()" class="btn-success">💾 Save All</button>
+                    <button type="button" onclick="saveOtherSettings()" class="btn-success">💾 Save All</button>
                 </div>
             </div>
         </div>
@@ -1666,15 +1283,7 @@
 
         <div style="margin-bottom: 16px;">
             <div class="bot-summary-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; padding: 10px 16px; color: white; box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 0; font-size: 0.95rem; font-weight: 500;">
-                {% if market_state_level == -1 %}
-                <span>⚙️ 수동설정</span>
-                {% else %}
-                <span>🛡️ Lv.{{ market_state_level }} {{ ['수비', '중립', '공격', '매우공격'][market_state_level] }}</span>
-                {% endif %}
                 <span>총액 ${{ '{:,.0f}'.format(total_budget.value) }}</span>
-                {% if saved_total_budget is not none and saved_total_budget > 0 %}
-                <span>현금비중 {{ '{:.0f}'.format(((saved_total_budget - total_budget.value) / saved_total_budget) * 100) }}%</span>
-                {% endif %}
                 <span>1회 ${{ '{:,.0f}'.format(total_seed.value) }}</span>
             </div>
         </div>
@@ -1847,9 +1456,9 @@
 
                 <!-- 장마감 급락 매수 설정 (다중 조건, 최대 3개) -->
                 <div class="closing-buy-conditions">
-                    <div class="bot-card-actions" style="justify-content: flex-start;">
-                        <span style="font-size: 0.85rem; font-weight: 600; color: #666; line-height: 38px;">급락 조건</span>
-                        <button type="button" class="btn-success" onclick="addClosingBuyRow(this)">추가</button>
+                    <div class="bot-card-actions" style="justify-content: flex-start; align-items: center;">
+                        <span style="font-size: 0.85rem; font-weight: 600; color: #666;">급락 조건</span>
+                        <button type="button" class="toggle-action-btn" onclick="addClosingBuyRow(this)">추가</button>
                     </div>
                     {% for cond in bot_info.closing_buy_conditions %}
                     <div class="closing-buy-row bot-field-group" style="margin-bottom: 10px;">

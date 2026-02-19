@@ -1452,7 +1452,7 @@
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                             <span style="background: #667eea; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 0.7em; font-weight: 600;">봇 {{ overview.active_bots }}/{{ overview.total_bots }}</span>
                             <span style="font-size: 0.8em; color: #666;">
-                                <span style="font-weight: 600; color: #667eea;">{{ '{:.1f}'.format(seed_usage_rate) }}%</span> / {{ '{:,.0f}'.format(overview.total_max_seed * overview.usd_krw) }}원
+                                <span style="font-weight: 600; color: #667eea;">{{ '{:.1f}'.format(seed_usage_rate) }}%</span> / {{ '{:,.0f}'.format(overview.total_max_seed * overview.usd_krw) }}원 <span style="color: #aaa; font-size: 0.9em;">(${{ '{:,.0f}'.format(overview.total_max_seed) }})</span>
                             </span>
                         </div>
                         <div style="background: #e0e0e0; border-radius: 6px; height: 10px; overflow: hidden;">
@@ -1462,7 +1462,7 @@
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; margin-bottom: 8px;">
                             <span style="background: #e67e22; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 0.7em; font-weight: 600;">동적시드</span>
                             <span style="font-size: 0.8em; color: #666;">
-                                <span style="font-weight: 600; color: #e67e22;">{{ '{:.1f}'.format(dynamic_seed_usage_rate) }}%</span> / {{ '{:,.0f}'.format(overview.total_dynamic_max_seed * overview.usd_krw) }}원
+                                <span style="font-weight: 600; color: #e67e22;">{{ '{:.1f}'.format(dynamic_seed_usage_rate) }}%</span> / {{ '{:,.0f}'.format(overview.total_dynamic_max_seed * overview.usd_krw) }}원 <span style="color: #aaa; font-size: 0.9em;">(${{ '{:,.0f}'.format(overview.total_dynamic_max_seed) }})</span>
                             </span>
                         </div>
                         <div style="background: #e0e0e0; border-radius: 6px; height: 10px; overflow: hidden;">

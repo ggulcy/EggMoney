@@ -9,7 +9,6 @@ from domain.repositories import (
     ExchangeRepository,
     MessageRepository,
 )
-from domain.services import bot_factory
 from domain.value_objects.point_loc import PointLoc
 
 if TYPE_CHECKING:
@@ -392,145 +391,75 @@ class BotManagementUsecase:
             f"현재 시드: ${old_seed:,.2f} (적용 기준 미달)"
         )
 
-    # ===== 봇 팩토리 - 리뉴얼 =====
+    # ===== 봇 리뉴얼 =====
 
-    def preview_bot_renewal(self, market_stage: int, custom_total_budget: float = None) -> Dict[str, Any]:
+    # 봇 개수별 MaxTier 배열
+    _TIER_TABLE = {
+        1: [40],
+        2: [20, 40],
+        3: [20, 30, 40],
+    }
+
+    _DEFAULT_CLOSING_BUY_CONDITIONS = [
+        {"drop_rate": 0.05, "seed_rate": 0.30},
+        {"drop_rate": 0.07, "seed_rate": 0.50},
+        {"drop_rate": 0.10, "seed_rate": 1.00},
+    ]
+
+    def apply_bot_renewal(self, ticker_counts: Dict[str, int], total_budget: float) -> Dict[str, Any]:
         """
-        봇 리뉴얼 미리보기 - 변경될 필드만 반환 (DB 저장 안 함)
+        봇 리뉴얼 - 기존 봇 전체 삭제 후 새로 생성
 
         Args:
-            market_stage: 시장 단계 (0=수비, 1=중립, 2=공격, 3=매우공격)
-            custom_total_budget: 사용자 지정 총 예산 (None이면 현재 봇 예산 합계 사용)
+            ticker_counts: 티커별 봇 개수 {"TQQQ": 2, "SOXL": 1}
+            total_budget: 총자산
 
         Returns:
-            {
-                "market_stage": int,
-                "total_budget": float,
-                "cash_reserve": float,
-                "investable": float,
-                "bots": [
-                    {
-                        "name": str,              # 봇 이름 (TQ_1, TQ_2 등)
-                        "symbol": str,
-                        "seed": float,            # 변경될 시드
-                        "max_tier": int,          # 변경될 MaxTier
-                        "profit_rate": float,     # 변경될 수익률
-                        "point_loc": str,         # 변경될 포인트 위치
-                        "level": int,             # 레벨
-                        "level_name": str         # 레벨명
-                    }
-                ]
-            }
+            {"created_count": int}
         """
-        # 1. 현재 봇 정보 조회
-        current_bots = self.bot_info_repo.find_all()
+        # 1. 기존 봇의 added_seed를 이름 기준으로 보존
+        existing_bots = self.bot_info_repo.find_all()
+        added_seed_map = {bot.name: bot.added_seed for bot in existing_bots}
 
-        if not current_bots:
-            return None
+        # 2. 기존 봇 전체 삭제
+        for bot in existing_bots:
+            self.bot_info_repo.delete(bot.name)
 
-        # 2. 현재 상태 분석
-        ticker_bot_counts = {}  # {ticker: count}
+        # 3. 총 봇 수 계산 & 균등 분배
+        total_bots = sum(ticker_counts.values())
+        per_bot_budget = total_budget / total_bots
 
-        # 사용자 지정 예산이 있으면 사용, 없으면 현재 봇 예산 합계 사용
-        if custom_total_budget is not None:
-            total_budget = custom_total_budget
-        else:
-            total_budget = 0
-            for bot in current_bots:
-                # 예산 = seed × max_tier
-                bot_budget = bot.seed * bot.max_tier
-                total_budget += bot_budget
+        # 4. 봇 생성
+        created = []
+        for ticker, count in ticker_counts.items():
+            prefix = ticker[:2].upper()
+            tiers = self._TIER_TABLE[count]
 
-        for bot in current_bots:
-            # 티커별 봇 개수
-            ticker_bot_counts[bot.symbol] = ticker_bot_counts.get(bot.symbol, 0) + 1
+            for i, max_tier in enumerate(tiers):
+                name = f"{prefix}_{i + 1}"
+                seed = round(per_bot_budget / max_tier, 2)
 
-        # 3. 공통 t_div 추출 (첫 번째 봇의 값 사용)
-        common_t_div = current_bots[0].t_div
+                bot_info = BotInfo(
+                    name=name,
+                    symbol=ticker,
+                    seed=seed,
+                    max_tier=max_tier,
+                    profit_rate=0.10,
+                    t_div=20,
+                    is_check_buy_avr_price=True,
+                    is_check_buy_t_div_price=True,
+                    active=True,
+                    skip_sell=False,
+                    point_loc=PointLoc.P2_3,
+                    added_seed=added_seed_map.get(name, 0),
+                    dynamic_seed_max=0,
+                    dynamic_seed_enabled=False,
+                    closing_buy_conditions=self._DEFAULT_CLOSING_BUY_CONDITIONS,
+                )
+                self.bot_info_repo.save(bot_info)
+                created.append(bot_info)
 
-        # 4. 리뉴얼 봇 설정 생성 (티커별 봇 개수 고정)
-        renewal_result = bot_factory.create_bot_configs_for_renewal(
-            market_stage=market_stage,
-            total_budget=total_budget,
-            ticker_bot_counts=ticker_bot_counts,
-            t_div=common_t_div
-        )
-
-        # 5. 봇 이름을 현재 봇 이름으로 매핑
-        renewal_bots = []
-        for i, (current_bot, new_config) in enumerate(zip(current_bots, renewal_result["bots"])):
-            renewal_bots.append({
-                "name": current_bot.name,  # 기존 이름 유지
-                "symbol": new_config["symbol"],
-                "seed": new_config["seed"],
-                "max_tier": new_config["max_tier"],
-                "profit_rate": new_config["profit_rate"],
-                "point_loc": new_config["point_loc"],
-                "level": new_config["level"],
-                "level_name": new_config["level_name"]
-            })
-
-        return {
-            "market_stage": market_stage,
-            "total_budget": renewal_result["total_budget"],
-            "cash_reserve": renewal_result["cash_reserve"],
-            "investable": renewal_result["investable"],
-            "bots": renewal_bots
-        }
-
-    def apply_bot_renewal(self, market_stage: int, custom_total_budget: float = None) -> Dict[str, Any]:
-        """
-        봇 리뉴얼 적용 - 실제로 DB에 저장
-
-        Args:
-            market_stage: 시장 단계 (0=수비, 1=중립, 2=공격, 3=매우공격)
-            custom_total_budget: 사용자 지정 총 예산 (선택사항)
-
-        Returns:
-            {
-                "updated_count": int,     # 업데이트된 봇 개수
-                "bots": List[BotInfo]     # 업데이트된 봇 정보
-            }
-        """
-        # 1. 미리보기로 변경될 설정 조회
-        preview = self.preview_bot_renewal(market_stage, custom_total_budget=custom_total_budget)
-
-        if preview is None:
-            return {
-                "updated_count": 0,
-                "bots": []
-            }
-
-        # 2. 각 봇의 설정을 업데이트
-        updated_bots = []
-        for bot_config in preview["bots"]:
-            # 봇 정보 조회
-            bot_info = self.bot_info_repo.find_by_name(bot_config["name"])
-
-            if bot_info is None:
-                continue
-
-            # 필드 업데이트
-            bot_info.seed = bot_config["seed"]
-            bot_info.max_tier = bot_config["max_tier"]
-            bot_info.profit_rate = bot_config["profit_rate"]
-            bot_info.point_loc = PointLoc(bot_config["point_loc"])  # str -> Enum 변환
-
-            # 리뉴얼 시 초기화
-            bot_info.active = True  # 모두 활성화
-            bot_info.dynamic_seed_enabled = False  # 동적 시드 비활성화
-            bot_info.dynamic_seed_max = 0.0  # 동적 시드 최대값 초기화
-            bot_info.is_check_buy_t_div_price = True
-            # added_seed는 유지 (초기화 안 함)
-
-            # DB 저장
-            self.bot_info_repo.save(bot_info)
-            updated_bots.append(bot_info)
-
-        return {
-            "updated_count": len(updated_bots),
-            "bots": updated_bots
-        }
+        return {"created_count": len(created)}
 
 
 

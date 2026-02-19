@@ -34,10 +34,9 @@ def bot_info_template():
         trade_time = key_store.read(key_store.TRADE_TIME) or "04:35"
         twap_time = key_store.read(key_store.TWAP_TIME) or ["04:40", "09:00"]
         twap_count = key_store.read(key_store.TWAP_COUNT) or 5
-        market_state_level = key_store.read(key_store.MARKET_STATE_LEVEL)
-        total_budget = key_store.read(key_store.TOTAL_BUDGET)
         auto_start = key_store.read(key_store.AUTO_START)
         closing_buy_time = key_store.read(key_store.CLOSING_BUY_TIME)
+        total_budget = key_store.read(key_store.TOTAL_BUDGET)
 
         return render_template('bot_info.html',
                                bot_info_with_tiers=bot_info_with_tiers,
@@ -46,10 +45,9 @@ def bot_info_template():
                                PointLoc=PointLoc,
                                twap_time=twap_time,
                                twap_count=twap_count,
-                               market_state_level=market_state_level,
-                               saved_total_budget=total_budget,
                                auto_start=auto_start,
-                               closing_buy_time=closing_buy_time)
+                               closing_buy_time=closing_buy_time,
+                               saved_total_budget=total_budget)
     except Exception as e:
         print(f"Error: {e}")
         import traceback
@@ -104,11 +102,6 @@ def save_bot_info():
             dynamic_seed_drop_rate=dynamic_seed_drop_rate,
             closing_buy_conditions=closing_buy_conditions,
         )
-        # seed 또는 max_tier 변경 시에만 시장 레벨을 -1(수동설정)으로 변경
-        prev_bot_info = bot_management_usecase.get_bot_info_by_name(name)
-        if prev_bot_info and (prev_bot_info.seed != seed or prev_bot_info.max_tier != max_tier):
-            key_store.write(key_store.MARKET_STATE_LEVEL, -1)
-
         bot_management_usecase.update_bot_info(bot_info)
 
         return jsonify({"message": f"{name} saved"}), 200
@@ -186,15 +179,13 @@ def add_bot_info():
 @bot_info_bp.route('/save_all_settings', methods=['POST'])
 @require_web_auth
 def save_all_settings():
-    """모든 설정을 한 번에 저장 (Trade Start, Trade End, TWAP Count, Auto Start)"""
+    """스케줄 설정 저장 (Trade Start, Trade End, TWAP Count, Closing Buy Time)"""
     try:
         data = request.get_json()
 
-        # Trade Start, Trade End, TWAP Count, Auto Start 설정
         trade_start = data.get('trade_start')
         trade_end = data.get('trade_end')
         twap_count = data.get('twap_count')
-        auto_start = data.get('auto_start', False)
 
         # 필수 필드 검증
         if not trade_start or not trade_end or not twap_count:
@@ -207,10 +198,9 @@ def save_all_settings():
         twap_start = twap_start_time.strftime("%H:%M")
 
         # 저장
-        key_store.write(key_store.TRADE_TIME, trade_start)  # TRADE_TIME에 trade_start 저장
-        key_store.write(key_store.TWAP_TIME, [twap_start, trade_end])  # TWAP_TIME에 [자동계산된 start, 사용자입력 end]
+        key_store.write(key_store.TRADE_TIME, trade_start)
+        key_store.write(key_store.TWAP_TIME, [twap_start, trade_end])
         key_store.write(key_store.TWAP_COUNT, int(twap_count))
-        key_store.write(key_store.AUTO_START, auto_start)  # AUTO_START 저장
 
         # CLOSING_BUY_TIME 저장
         closing_buy_time = data.get('closing_buy_time')
@@ -228,31 +218,24 @@ def save_all_settings():
         return jsonify({"error": str(e)}), 500
 
 
-@bot_info_bp.route('/preview_bot_renewal', methods=['POST'])
-def preview_bot_renewal():
-    """시장 단계에 따른 봇 리뉴얼 미리보기"""
-    bot_management_usecase = _get_dependencies()
+@bot_info_bp.route('/save_other_settings', methods=['POST'])
+@require_web_auth
+def save_other_settings():
+    """기타 설정 저장 (총자산, 자동 출발)"""
     try:
         data = request.get_json()
-        market_stage = data.get('market_stage')
-        total_budget = data.get('total_budget')  # 사용자 지정 총 예산 (선택사항)
 
-        if market_stage is None:
-            return jsonify({"error": "market_stage required"}), 400
+        total_budget = data.get('total_budget')
+        auto_start = data.get('auto_start', False)
 
-        # 시장 단계 유효성 검증
-        if market_stage not in [0, 1, 2, 3]:
-            return jsonify({"error": "Invalid market_stage (must be 0-3)"}), 400
+        # 총자산 저장
+        if total_budget is not None and total_budget > 0:
+            key_store.write(key_store.TOTAL_BUDGET, total_budget)
 
-        # 총 예산 유효성 검증 (있는 경우)
-        if total_budget is not None:
-            if not isinstance(total_budget, (int, float)) or total_budget <= 0:
-                return jsonify({"error": "Invalid total_budget (must be positive number)"}), 400
+        # 자동 출발 저장
+        key_store.write(key_store.AUTO_START, auto_start)
 
-        # 봇 리뉴얼 미리보기
-        preview = bot_management_usecase.preview_bot_renewal(market_stage, custom_total_budget=total_budget)
-
-        return jsonify(preview), 200
+        return jsonify({"message": "Other settings saved"}), 200
     except Exception as e:
         print(f"Error: {e}")
         import traceback
@@ -263,39 +246,24 @@ def preview_bot_renewal():
 @bot_info_bp.route('/apply_bot_renewal', methods=['POST'])
 @require_web_auth
 def apply_bot_renewal():
-    """시장 단계에 따른 봇 리뉴얼 적용"""
+    """봇 리뉴얼 적용 - 기존 봇 삭제 후 새로 생성"""
     bot_management_usecase = _get_dependencies()
     try:
         data = request.get_json()
-        market_stage = data.get('market_stage')
-        total_budget = data.get('total_budget')  # 사용자 지정 총 예산 (선택사항)
+        ticker_counts = data.get('ticker_counts')  # {"TQQQ": 2, "SOXL": 1}
 
-        if market_stage is None:
-            return jsonify({"error": "market_stage required"}), 400
+        if not ticker_counts:
+            return jsonify({"error": "ticker_counts required"}), 400
 
-        # 시장 단계 유효성 검증
-        if market_stage not in [0, 1, 2, 3]:
-            return jsonify({"error": "Invalid market_stage (must be 0-3)"}), 400
+        total_budget = key_store.read(key_store.TOTAL_BUDGET)
+        if not total_budget or total_budget <= 0:
+            return jsonify({"error": "총자산을 먼저 설정해주세요."}), 400
 
-        # 총 예산 유효성 검증 (있는 경우)
-        if total_budget is not None:
-            if not isinstance(total_budget, (int, float)) or total_budget <= 0:
-                return jsonify({"error": "Invalid total_budget (must be positive number)"}), 400
-
-        # 봇 리뉴얼 적용
-        result = bot_management_usecase.apply_bot_renewal(market_stage, custom_total_budget=total_budget)
-
-        # 시장 단계 저장
-        key_store.write(key_store.MARKET_STATE_LEVEL, market_stage)
-
-        # 총 예산 저장 (사용자가 지정한 경우)
-        if total_budget is not None:
-            key_store.write(key_store.TOTAL_BUDGET, total_budget)
+        result = bot_management_usecase.apply_bot_renewal(ticker_counts, total_budget)
 
         return jsonify({
-            "message": "Bot renewal applied successfully",
-            "updated_count": result["updated_count"],
-            "market_stage": market_stage
+            "message": f"{result['created_count']}개 봇이 생성되었습니다.",
+            "created_count": result["created_count"]
         }), 200
     except Exception as e:
         print(f"Error: {e}")
@@ -304,28 +272,3 @@ def apply_bot_renewal():
         return jsonify({"error": str(e)}), 500
 
 
-@bot_info_bp.route('/save_total_budget', methods=['POST'])
-@require_web_auth
-def save_total_budget():
-    """총 자산만 저장"""
-    try:
-        data = request.get_json()
-        total_budget = data.get('total_budget')
-
-        if total_budget is None:
-            return jsonify({"error": "total_budget required"}), 400
-
-        if not isinstance(total_budget, (int, float)) or total_budget <= 0:
-            return jsonify({"error": "Invalid total_budget (must be positive number)"}), 400
-
-        key_store.write(key_store.TOTAL_BUDGET, total_budget)
-
-        return jsonify({
-            "message": "Total budget saved successfully",
-            "total_budget": total_budget
-        }), 200
-    except Exception as e:
-        print(f"Error: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500

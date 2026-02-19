@@ -193,6 +193,7 @@ body {
 .schedule-actions {
     display: flex;
     justify-content: flex-end;
+    margin-top: 12px;
 }
 
 /* ===== 봇 카드 (bot_info.html용) ===== */
