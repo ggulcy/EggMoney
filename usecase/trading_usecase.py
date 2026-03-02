@@ -493,7 +493,7 @@ class TradingUsecase:
                 return False
 
             # 스케줄 시간 조회
-            _, _, twap_times = get_schedule_times()
+            _, _, twap_times, _ = get_schedule_times()
             if not twap_times:
                 return False
 
