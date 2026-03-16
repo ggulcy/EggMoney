@@ -88,6 +88,22 @@ class MarketIndicatorRepositoryImpl(MarketIndicatorRepository):
                 cleared.append(ticker)
         return cleared
 
+    def get_average_close(
+        self,
+        ticker: str,
+        days: int = 5,
+        cache_hours: int = 6
+    ) -> Optional[float]:
+        try:
+            return self.service.get_average_close(
+                ticker=ticker,
+                days=days,
+                cache_hours=cache_hours
+            )
+        except Exception as e:
+            logger.error(f"{ticker} {days}일 평균 종가 조회 실패: {e}")
+            return None
+
     def get_moving_average_status(
         self,
         ticker: str,

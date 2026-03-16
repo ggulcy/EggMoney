@@ -51,6 +51,21 @@ class MarketIndicatorRepository(ABC):
         pass
 
     @abstractmethod
+    def get_average_close(self, ticker: str, days: int = 5, cache_hours: int = 6) -> Optional[float]:
+        """
+        특정 티커의 N일 평균 종가 조회 (오늘 제외, 어제까지)
+
+        Args:
+            ticker: 종목 심볼
+            days: 평균 계산 기간 (기본 5일)
+            cache_hours: 캐시 유효 시간 (시간 단위, 기본 6시간)
+
+        Returns:
+            float: 최근 N거래일 종가 평균 또는 None
+        """
+        pass
+
+    @abstractmethod
     def get_moving_average_status(self, ticker: str, cache_hours: int = 6) -> Optional[Dict[str, Any]]:
         """
         특정 티커의 이평선 상태 조회 (현재가, 20일선, 60일선)

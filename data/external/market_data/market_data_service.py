@@ -124,6 +124,56 @@ class MarketDataService:
             logger.error(f"{ticker} 가격 히스토리 조회 실패: {e}")
             return None
 
+    def get_average_close(
+        self,
+        ticker: str,
+        days: int = 5,
+        cache_hours: int = 6
+    ) -> Optional[float]:
+        """
+        특정 티커의 N일 평균 종가 조회 (오늘 제외, 어제까지)
+
+        Args:
+            ticker: 종목 심볼
+            days: 평균 계산 기간 (기본 5일)
+            cache_hours: 캐시 유효 시간
+
+        Returns:
+            float: 최근 N거래일 종가 평균 또는 None
+        """
+        try:
+            # self.clear_cache(ticker)
+            ticker_data = self.client.fetch_ticker_history(
+                ticker,
+                interval=self.CACHE_INTERVAL,
+                cache_hours=cache_hours
+            )
+            if ticker_data is None:
+                return None
+
+            from datetime import datetime
+            import pytz
+            et_tz = pytz.timezone('America/New_York')
+            today_et_str = datetime.now(et_tz).strftime("%Y-%m-%d")
+
+            df = ticker_data.df
+            close_series = df['Close'].astype(float)
+
+            # ET 기준 오늘 날짜 제외 (장중 현재가 포함 방지)
+            close_series = close_series[
+                close_series.index.strftime("%Y-%m-%d") != today_et_str
+            ]
+
+            if len(close_series) < days:
+                logger.warning(f"{ticker} 데이터 부족: {len(close_series)}일치 (요청: {days}일)")
+                return None
+
+            avg = close_series.tail(days).mean()
+            return round(float(avg), 2)
+        except Exception as e:
+            logger.error(f"{ticker} {days}일 평균 종가 조회 실패: {e}")
+            return None
+
     def clear_cache(self, ticker: str) -> bool:
         """
         특정 티커의 캐시(타임스탬프) 삭제
