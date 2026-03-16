@@ -30,13 +30,13 @@ class TradingUsecase:
     """
 
     def __init__(
-        self,
-        bot_info_repo: BotInfoRepository,
-        trade_repo: TradeRepository,
-        history_repo: HistoryRepository,
-        order_repo: OrderRepository,
-        exchange_repo: ExchangeRepository,
-        message_repo: MessageRepository
+            self,
+            bot_info_repo: BotInfoRepository,
+            trade_repo: TradeRepository,
+            history_repo: HistoryRepository,
+            order_repo: OrderRepository,
+            exchange_repo: ExchangeRepository,
+            message_repo: MessageRepository
     ):
         """
         거래 실행 Usecase 초기화
@@ -107,10 +107,10 @@ class TradingUsecase:
                 total_price=trade_result.total_price
             )
             self.message_repo.send_message(f"✅ 강제 매도 체결\n"
-                            f"  - 거래유형: {trade_result.trade_type.value}\n"
-                            f"  - 체결개수: {trade_result.amount}\n"
-                            f"  - 체결가: ${trade_result.unit_price:,.2f}\n"
-                            f"  - 총액: ${trade_result.total_price:,.2f}")
+                                           f"  - 거래유형: {trade_result.trade_type.value}\n"
+                                           f"  - 체결개수: {trade_result.amount}\n"
+                                           f"  - 체결가: ${trade_result.unit_price:,.2f}\n"
+                                           f"  - 총액: ${trade_result.total_price:,.2f}")
 
             # DB 저장
             self._save_sell_to_db(bot_info, trade_result)
@@ -185,7 +185,6 @@ class TradingUsecase:
                     f"  → 다음 TWAP 시간에 계속 진행합니다"
                 )
                 # 예외 발생 시에도 order는 이미 업데이트된 상태 (None이 추가되고 trade_count 감소)
-
 
             # 주문 완료 시 DB 저장
             # 조건 1: trade_count가 0
@@ -382,7 +381,7 @@ class TradingUsecase:
 
             request_price = self.exchange_repo.get_price(symbol)
             if not request_price:
-                self.message_repo.send_message(f"❌ [{name}] 매도 {i+1}/{len(batches)} 현재가 조회 실패")
+                self.message_repo.send_message(f"❌ [{name}] 매도 {i + 1}/{len(batches)} 현재가 조회 실패")
                 continue
 
             result = self.exchange_repo.sell(
@@ -398,11 +397,11 @@ class TradingUsecase:
                     'total_price': result.total_price
                 })
                 self.message_repo.send_message(
-                    f"📉 [{name}] 매도 {i+1}/{len(batches)} 완료: "
+                    f"📉 [{name}] 매도 {i + 1}/{len(batches)} 완료: "
                     f"{result.amount}개 × ${result.unit_price:,.2f} = ${result.total_price:,.2f}"
                 )
             else:
-                self.message_repo.send_message(f"❌ [{name}] 매도 {i+1}/{len(batches)} 실패")
+                self.message_repo.send_message(f"❌ [{name}] 매도 {i + 1}/{len(batches)} 실패")
 
         # 4. 매수 실행
         buy_results = []
@@ -413,7 +412,7 @@ class TradingUsecase:
 
             request_price = self.exchange_repo.get_price(symbol)
             if not request_price:
-                self.message_repo.send_message(f"❌ [{name}] 매수 {i+1}/{len(batches)} 현재가 조회 실패")
+                self.message_repo.send_message(f"❌ [{name}] 매수 {i + 1}/{len(batches)} 현재가 조회 실패")
                 continue
 
             result = self.exchange_repo.buy(
@@ -429,11 +428,11 @@ class TradingUsecase:
                     'total_price': result.total_price
                 })
                 self.message_repo.send_message(
-                    f"📈 [{name}] 매수 {i+1}/{len(batches)} 완료: "
+                    f"📈 [{name}] 매수 {i + 1}/{len(batches)} 완료: "
                     f"{result.amount}개 × ${result.unit_price:,.2f} = ${result.total_price:,.2f}"
                 )
             else:
-                self.message_repo.send_message(f"❌ [{name}] 매수 {i+1}/{len(batches)} 실패")
+                self.message_repo.send_message(f"❌ [{name}] 매수 {i + 1}/{len(batches)} 실패")
 
         # 5. 결과 집계
         total_sell_value = sum(r['total_price'] for r in sell_results)
@@ -601,11 +600,11 @@ class TradingUsecase:
 
         # 요청 정보 출력
         print(f"[{order.name}] 구매 주문을 요청합니다\n"
-                        f"  📊 요청 정보:\n"
-                        f"    - 이름: {order.name}\n"
-                        f"    - 심볼: {order.symbol}\n"
-                        f"    - 수량: {request_amount}\n"
-                        f"    - 총액: ${request_seed:,.0f}")
+              f"  📊 요청 정보:\n"
+              f"    - 이름: {order.name}\n"
+              f"    - 심볼: {order.symbol}\n"
+              f"    - 수량: {request_amount}\n"
+              f"    - 총액: ${request_seed:,.0f}")
 
         # 주문 실행
         trade_result = self.exchange_repo.buy(
@@ -638,9 +637,9 @@ class TradingUsecase:
         # 결과 출력
         if trade_result:
             print(f"✅ [{order.name}] 개별 거래 결과 ({current_trade_num}/{order.total_count})\n"
-                            f"  - 거래유형: {trade_result.trade_type.value}\n"
-                            f"  - 체결개수: {trade_result.amount}\n"
-                            f"  - 체결가: ${trade_result.unit_price:,.2f}")
+                  f"  - 거래유형: {trade_result.trade_type.value}\n"
+                  f"  - 체결개수: {trade_result.amount}\n"
+                  f"  - 체결가: ${trade_result.unit_price:,.2f}")
         else:
             print(f"✅ [{order.name}] 거래 결과: 거래 실패 or 거래가 없습니다 ({current_trade_num}/{order.total_count})")
 
@@ -667,10 +666,10 @@ class TradingUsecase:
 
         # 요청 정보 출력
         print(f"[{order.name}] 판매 주문을 요청합니다\n"
-                        f"  📊 요청 정보:\n"
-                        f"    - 이름: {order.name}\n"
-                        f"    - 심볼: {order.symbol}\n"
-                        f"    - 수량: {request_amount}")
+              f"  📊 요청 정보:\n"
+              f"    - 이름: {order.name}\n"
+              f"    - 심볼: {order.symbol}\n"
+              f"    - 수량: {request_amount}")
 
         # 주문 실행
         request_price = self.exchange_repo.get_available_sell(order.symbol)
@@ -710,9 +709,9 @@ class TradingUsecase:
         # 결과 출력
         if trade_result:
             print(f"✅ [{order.name}] 개별 거래 결과 ({current_trade_num}/{order.total_count})\n"
-                            f"  - 거래유형: {trade_result.trade_type.value}\n"
-                            f"  - 체결개수: {trade_result.amount}\n"
-                            f"  - 체결가: ${trade_result.unit_price:,.2f}")
+                  f"  - 거래유형: {trade_result.trade_type.value}\n"
+                  f"  - 체결개수: {trade_result.amount}\n"
+                  f"  - 체결가: ${trade_result.unit_price:,.2f}")
         else:
             print(f"✅ [{order.name}] 거래 결과: 거래 실패 or 거래가 없습니다 ({current_trade_num}/{order.total_count})")
 
@@ -846,10 +845,10 @@ class TradingUsecase:
         self._save_sell_history(bot_info, trade_result, prev_trade, is_update_added_seed)
 
     def _save_buy_history(
-        self,
-        bot_info: BotInfo,
-        trade_result: TradeResult,
-        prev_trade: Optional[Trade]
+            self,
+            bot_info: BotInfo,
+            trade_result: TradeResult,
+            prev_trade: Optional[Trade]
     ) -> None:
         """
         매수 History 저장
@@ -880,11 +879,11 @@ class TradingUsecase:
         self.history_repo.save(history)
 
     def _save_sell_history(
-        self,
-        bot_info: BotInfo,
-        trade_result: TradeResult,
-        prev_trade: Trade,
-        is_update_added_seed: bool
+            self,
+            bot_info: BotInfo,
+            trade_result: TradeResult,
+            prev_trade: Trade,
+            is_update_added_seed: bool
     ) -> None:
         """
         매도 History 저장 + added_seed 업데이트
@@ -928,7 +927,7 @@ class TradingUsecase:
         # added_seed 업데이트
         if is_update_added_seed:
             # 부분 매도 → added_seed에 수익금 추가
-            bot_info.added_seed += profit * (1/10)
+            bot_info.added_seed += profit * (1 / 10)
             self.bot_info_repo.save(bot_info)
         else:
             # 전체 매도 → added_seed 초기화 + 사이클 종료
@@ -950,8 +949,8 @@ class TradingUsecase:
             total = self.history_repo.get_total_sell_profit_by_name_and_date(bot_info.name, date_added)
 
             date_str = date_added.strftime(f'🎉축하합니다\n'
-                                          f'%Y년 %m월 %d일 시작\n{bot_info.name} 사이클이 종료\n'
-                                          f'최종수익금 💰{total:,.2f}$\n\n')
+                                           f'%Y년 %m월 %d일 시작\n{bot_info.name} 사이클이 종료\n'
+                                           f'최종수익금 💰{total:,.2f}$\n\n')
 
             history_list = self.history_repo.find_sell_by_name_and_date(bot_info.name, date_added)
             msg = ""
@@ -1036,3 +1035,5 @@ class TradingUsecase:
             unit_price=data.get('unit_price'),
             total_price=data.get('total_price')
         )
+
+

@@ -156,6 +156,12 @@ class OrderUsecase:
                 self.order_repo.has_sell_order_today(bot_info.name):
             return None
 
+        total_investment = self.trade_repo.get_total_investment(bot_info.name)
+        t = util.get_T(total_investment, bot_info.seed)
+        if t > bot_info.max_tier - 1:
+            self.message_repo.send_message(f"❌ [{bot_info.name}] 장마감 급락 체크: T최대치 초과 T : {t:,.2f}")
+            return
+
         prev_price = self.exchange_repo.get_prev_price(bot_info.symbol)
         if not prev_price:
             self.message_repo.send_message(f"[{bot_info.name}] 장마감 급락 체크: 전일 종가 조회 실패")
@@ -182,7 +188,7 @@ class OrderUsecase:
             )
             return seed
 
-        conditions_str = ", ".join(f"{c['drop_rate']*100:.0f}%" for c in bot_info.closing_buy_conditions)
+        conditions_str = ", ".join(f"{c['drop_rate'] * 100:.0f}%" for c in bot_info.closing_buy_conditions)
         direction = "하락" if drop_ratio > 0 else "상승"
         self.message_repo.send_message(
             f"[{bot_info.name}] 장마감 급락 체크\n"
