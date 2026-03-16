@@ -952,7 +952,6 @@
 
         {% for trade in trade_list %}
         {% set status = trade_status_map.get(trade.name) %}
-        {% set dynamic_status = dynamic_trade_status_map.get(trade.name) %}
         <!-- Trade 아코디언 헤더 -->
         <div class="trade-accordion-header" data-trade-header="{{ trade.name }}" onclick="toggleTradeAccordion('{{ trade.name }}')">
             <div class="trade-accordion-left">

@@ -74,11 +74,6 @@ def save_bot_info():
         skip_sell = data.get('skip_sell', False)
         point_loc_value = data.get('point_loc', 'P1')
         point_loc = PointLoc(point_loc_value)
-        dynamic_seed_max = float(data.get('dynamic_seed_max', 0))
-        dynamic_seed_enabled = data.get('dynamic_seed_enabled', False)
-        dynamic_seed_multiplier = float(data.get('dynamic_seed_multiplier', 1.3))
-        dynamic_seed_t_threshold = float(data.get('dynamic_seed_t_threshold', 0.3))
-        dynamic_seed_drop_rate = float(data.get('dynamic_seed_drop_rate', 0.03))
         added_seed = float(data.get('added_seed', 0))
         closing_buy_conditions = data.get('closing_buy_conditions', [])
 
@@ -95,11 +90,6 @@ def save_bot_info():
             skip_sell=skip_sell,
             point_loc=point_loc,
             added_seed=added_seed,
-            dynamic_seed_max=dynamic_seed_max,
-            dynamic_seed_enabled=dynamic_seed_enabled,
-            dynamic_seed_multiplier=dynamic_seed_multiplier,
-            dynamic_seed_t_threshold=dynamic_seed_t_threshold,
-            dynamic_seed_drop_rate=dynamic_seed_drop_rate,
             closing_buy_conditions=closing_buy_conditions,
         )
         bot_management_usecase.update_bot_info(bot_info)

@@ -526,8 +526,6 @@
             const seedInput = container.querySelector('input[name="seed"]');
             const maxTierInput = container.querySelector('input[name="max_tier"]');
             const totalSeedInput = container.querySelector('input[name="total_seed"]');
-            const dynamicTotalSeedInput = container.querySelector('input[name="dynamic_total_seed"]');
-            const dynamicSeedMaxInput = container.querySelector('input[name="dynamic_seed_max"]');
 
             if (!seedInput || !maxTierInput || !totalSeedInput) return;
 
@@ -536,37 +534,14 @@
 
             const total = seedValue * maxTierValue;
             totalSeedInput.value = total ? '$ ' + total.toLocaleString('en-US') : '';
-
-            // 동적시드 총시드 계산 (dynamic_seed_max x max_tier)
-            if (dynamicTotalSeedInput && dynamicSeedMaxInput) {
-                const dynamicSeedMax = parseCurrency(dynamicSeedMaxInput.value);
-                const dynamicTotal = dynamicSeedMax * maxTierValue;
-                dynamicTotalSeedInput.value = dynamicTotal ? '$ ' + dynamicTotal.toLocaleString('en-US') : '';
-            }
         }
 
         // 개별 bot 저장
         function saveBotInfo(button) {
             const card = button.closest('.bot-accordion-content');
             const seedInput = card.querySelector('input[name="seed"]');
-            const dynamicSeedMaxInput = card.querySelector('input[name="dynamic_seed_max"]');
-            const dynamicSeedEnabledInput = card.querySelector('input[name^="dynamic_seed_enabled"]');
 
             const seed = parseCurrency(seedInput.value);
-            const dynamicSeedMax = parseCurrency(dynamicSeedMaxInput.value);
-            const dynamicSeedEnabled = dynamicSeedEnabledInput ? dynamicSeedEnabledInput.checked : false;
-
-            // 동적시드 사용 시 유효성 검증
-            if (dynamicSeedEnabled) {
-                if (dynamicSeedMax <= 0) {
-                    alert('동적시드를 사용하려면 동적시드Max를 0보다 크게 설정해야 합니다.');
-                    return;
-                }
-                if (dynamicSeedMax < seed) {
-                    alert('동적시드Max는 1회시드($ ' + seed.toLocaleString() + ')보다 커야 합니다.');
-                    return;
-                }
-            }
 
             const addedSeedInput = card.querySelector('input[name="added_seed"]');
             const addedSeed = addedSeedInput ? parseCurrency(addedSeedInput.value) : 0;
@@ -584,11 +559,6 @@
                 active: card.querySelector('input[name^="active"]').checked,
                 skip_sell: card.querySelector('input[name^="skip_sell"]').checked,
                 point_loc: card.querySelector('input[name^="point_loc"]:checked').value,
-                dynamic_seed_enabled: dynamicSeedEnabled,
-                dynamic_seed_max: dynamicSeedMax,
-                dynamic_seed_multiplier: parsePercent(card.querySelector('input[name="dynamic_seed_multiplier"]').value),
-                dynamic_seed_t_threshold: parsePercent(card.querySelector('input[name="dynamic_seed_t_threshold"]').value),
-                dynamic_seed_drop_rate: parsePercent(card.querySelector('input[name="dynamic_seed_drop_rate"]').value),
                 closing_buy_conditions: getClosingBuyConditions(card)
             };
 
@@ -748,25 +718,6 @@
             }
         }
 
-        // 시드 비율 업데이트 (1회시드 / 동적시드Max)
-        function updateSeedRatio(container) {
-            const seedInput = container.querySelector('input[name="seed"]');
-            const dynamicSeedMaxInput = container.querySelector('input[name="dynamic_seed_max"]');
-            const seedRatioBadge = container.querySelector('.seed-ratio-badge');
-            const dynamicSeedCheckbox = container.querySelector('input[name^="dynamic_seed_enabled"]');
-
-            if (!seedRatioBadge || !dynamicSeedCheckbox || !dynamicSeedCheckbox.checked) return;
-
-            const seed = parseCurrency(seedInput.value);
-            const dynamicSeedMax = parseCurrency(dynamicSeedMaxInput.value);
-
-            if (dynamicSeedMax > 0) {
-                const ratio = Math.round((seed / dynamicSeedMax) * 100);
-                seedRatioBadge.textContent = `(동적시드 대비 ${ratio}%)`;
-            } else {
-                seedRatioBadge.textContent = '';
-            }
-        }
 
         // 봇 아코디언 토글
         function toggleBotAccordion(botName) {
@@ -1273,11 +1224,7 @@
         {% set total_budget = namespace(value=0) %}
         {% set total_seed = namespace(value=0) %}
         {% for bot_info, t in bot_info_with_tiers %}
-            {% if bot_info.dynamic_seed_enabled and bot_info.dynamic_seed_max > 0 %}
-                {% set total_budget.value = total_budget.value + (bot_info.dynamic_seed_max * bot_info.max_tier) %}
-            {% else %}
-                {% set total_budget.value = total_budget.value + (bot_info.seed * bot_info.max_tier) %}
-            {% endif %}
+            {% set total_budget.value = total_budget.value + (bot_info.seed * bot_info.max_tier) %}
             {% set total_seed.value = total_seed.value + bot_info.seed %}
         {% endfor %}
 
@@ -1342,11 +1289,11 @@
                 <!-- 영역2: Seed 정보 -->
                 <div class="bot-field-group">
                     <div class="bot-field">
-                        <label>1회시드 <span class="seed-ratio-badge" style="display: {% if bot_info.dynamic_seed_enabled %}inline{% else %}none{% endif %};">{% if bot_info.dynamic_seed_enabled and bot_info.dynamic_seed_max > 0 %}(동적시드 대비 {{ ((bot_info.seed / bot_info.dynamic_seed_max) * 100)|round(0)|int }}%){% endif %}</span></label>
+                        <label>1회시드</label>
                         <input type="text" name="seed"
                                value="$ {{ '{:,.2f}'.format(bot_info.seed) if bot_info.seed else '' }}"
                                data-original-value="$ {{ '{:,.2f}'.format(bot_info.seed) if bot_info.seed else '' }}"
-                               oninput="formatCurrency(this, '$ '); updateTotalSeed(this.closest('.bot-accordion-content')); updateSeedRatio(this.closest('.bot-accordion-content'))">
+                               oninput="formatCurrency(this, '$ '); updateTotalSeed(this.closest('.bot-accordion-content'))">
                     </div>
                     <div class="bot-field">
                         <label>반복리 시드</label>
@@ -1359,53 +1306,6 @@
                         <input type="text" name="total_seed" disabled>
                     </div>
                 </div>
-                <div class="bot-field-group">
-                    <div class="bot-field bot-field-checkbox">
-                        <label>동적시드</label>
-                        <label class="switch">
-                            <input type="checkbox" name="dynamic_seed_enabled[{{ loop.index0 }}]" value="true"
-                                   {% if bot_info.dynamic_seed_enabled %}checked{% endif %}
-                                   onchange="toggleDynamicSeedFields(this)">
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- 동적시드 상세 설정 -->
-                <div class="dynamic-seed-fields" data-dynamic-fields="{{ bot_info.name }}" style="{% if not bot_info.dynamic_seed_enabled %}display: none;{% endif %}">
-                    <div class="bot-field-group">
-                        <div class="bot-field">
-                            <label>동적시드Max</label>
-                            <input type="text" name="dynamic_seed_max"
-                                   value="$ {{ '{:,.0f}'.format(bot_info.dynamic_seed_max) if bot_info.dynamic_seed_max else '0' }}"
-                                   data-original-value="$ {{ '{:,.0f}'.format(bot_info.dynamic_seed_max) if bot_info.dynamic_seed_max else '0' }}"
-                                   oninput="formatCurrency(this, '$ '); updateSeedRatio(this.closest('.bot-accordion-content')); updateTotalSeed(this.closest('.bot-accordion-content'))">
-                        </div>
-                        <div class="bot-field">
-                            <label>총시드(동적)</label>
-                            <input type="text" name="dynamic_total_seed" disabled>
-                        </div>
-                        <div class="bot-field">
-                            <label>증액 배수</label>
-                            <input type="text" name="dynamic_seed_multiplier"
-                                   value="{{ (bot_info.dynamic_seed_multiplier * 100)|round(0)|int }}%"
-                                   oninput="formatPercent(this)">
-                        </div>
-                        <div class="bot-field">
-                            <label>하락률 기준</label>
-                            <input type="text" name="dynamic_seed_drop_rate"
-                                   value="{{ (bot_info.dynamic_seed_drop_rate * 100)|round(0)|int }}%"
-                                   oninput="formatPercent(this)">
-                        </div>
-                        <div class="bot-field">
-                            <label>T 임계점</label>
-                            <input type="text" name="dynamic_seed_t_threshold"
-                                   value="{{ (bot_info.dynamic_seed_t_threshold * 100)|round(0)|int }}%"
-                                   oninput="formatPercent(this)">
-                        </div>
-                    </div>
-                </div>
-
                 <hr class="bot-section-divider">
 
                 <!-- 영역3: 설정 -->

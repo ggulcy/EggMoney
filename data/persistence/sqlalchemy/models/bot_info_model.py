@@ -30,13 +30,6 @@ class BotInfoModel(Base):
     added_seed = Column(Float, nullable=False, default=0.0)  # 추가 시드
     skip_sell = Column(Boolean, nullable=False, default=False)  # 매도 스킵 여부
 
-    # 동적 시드 설정
-    dynamic_seed_max = Column(Float, nullable=False, default=0.0)  # 동적 시드 최대값
-    dynamic_seed_enabled = Column(Boolean, nullable=False, default=False)  # 동적 시드 활성화 여부
-    dynamic_seed_multiplier = Column(Float, nullable=False, default=0.3)  # 증액 배수 (30% = 0.3)
-    dynamic_seed_t_threshold = Column(Float, nullable=False, default=1.0)  # T값 임계점 (max_tier 대비, 100%=비활성화)
-    dynamic_seed_drop_rate = Column(Float, nullable=False, default=0.03)  # 하락률 기준
-
     # 장마감 급락 매수 설정 (JSON 배열: [{"drop_rate": 0.05, "seed_rate": 0.3}, ...])
     closing_buy_conditions = Column(Text, nullable=False, default='[]')
 

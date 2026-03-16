@@ -212,7 +212,6 @@ class MessageJobs:
         print("=" * 80)
 
         # self.bot_management_usecase.check_bot_sync()
-        self.bot_management_usecase.apply_dynamic_seed()
         self.bot_management_usecase.auto_start_next_bots()
 
         # 1. 텔레그램 메시지 전송

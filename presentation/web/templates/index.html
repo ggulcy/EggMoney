@@ -1395,8 +1395,6 @@
             <!-- 포트폴리오 요약 섹션 -->
             {% if overview %}
             {% set seed_usage_rate = (overview.total_buy / overview.total_max_seed * 100) if overview.total_max_seed > 0 else 0 %}
-            {% set dynamic_seed_usage_rate = (overview.total_buy / overview.total_dynamic_max_seed * 100) if overview.total_dynamic_max_seed > 0 else 0 %}
-            {% set show_dynamic_progress = overview.total_dynamic_max_seed > 0 and overview.total_dynamic_max_seed != overview.total_max_seed %}
             <div>
                 <div class="card-section">
                     <div class="section-title">📊 포트폴리오 <span style="font-size: 0.8em; color: #999;">({{ admin }})</span></div>
@@ -1458,17 +1456,6 @@
                         <div style="background: #e0e0e0; border-radius: 6px; height: 10px; overflow: hidden;">
                             <div style="background: linear-gradient(90deg, #667eea, #764ba2); height: 100%; width: {{ seed_usage_rate }}%; border-radius: 6px;"></div>
                         </div>
-                        {% if show_dynamic_progress %}
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; margin-bottom: 8px;">
-                            <span style="background: #e67e22; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 0.7em; font-weight: 600;">동적시드</span>
-                            <span style="font-size: 0.8em; color: #666;">
-                                <span style="font-weight: 600; color: #e67e22;">{{ '{:.1f}'.format(dynamic_seed_usage_rate) }}%</span> / {{ '{:,.0f}'.format(overview.total_dynamic_max_seed * overview.usd_krw) }}원 <span style="color: #aaa; font-size: 0.9em;">(${{ '{:,.0f}'.format(overview.total_dynamic_max_seed) }})</span>
-                            </span>
-                        </div>
-                        <div style="background: #e0e0e0; border-radius: 6px; height: 10px; overflow: hidden;">
-                            <div style="background: linear-gradient(90deg, #e67e22, #f39c12); height: 100%; width: {{ dynamic_seed_usage_rate }}%; border-radius: 6px;"></div>
-                        </div>
-                        {% endif %}
                     </div>
 
                     <!-- 투자 현황 -->
@@ -1498,7 +1485,6 @@
 
                     {% for trade in trade_list if trade.symbol != 'RP' %}
                     {% set status = trade_status_map.get(trade.name) %}
-                    {% set dynamic_status = dynamic_trade_status_map.get(trade.name) %}
                     <!-- 포트폴리오 아코디언 헤더 -->
                     <div class="portfolio-accordion-header" data-portfolio-header="{{ trade.name }}" onclick="togglePortfolioAccordion('{{ trade.name }}')">
                         <div class="portfolio-accordion-left">
@@ -1577,20 +1563,6 @@
                                     </div>
                                     <span style="color: #888; font-size: 0.8em;">${{ '{:,.0f}'.format(status.max_seed) }}</span>
                                 </div>
-                            </div>
-                            <div class="portfolio-detail-item">
-                                <div class="portfolio-detail-label">동적시드 소진율</div>
-                                {% if dynamic_status %}
-                                <div class="portfolio-detail-value" style="display: flex; align-items: center; gap: 8px; justify-content: center;">
-                                    <span style="color: #e67e22; font-weight: 600;">{{ '{:.1f}'.format(dynamic_status.progress_rate) }}%</span>
-                                    <div class="portfolio-progress-bar" style="flex: 1; max-width: 80px; margin: 0;">
-                                        <div class="portfolio-progress-fill" style="width: {{ dynamic_status.progress_rate }}%; background: linear-gradient(90deg, #e67e22, #f39c12);"></div>
-                                    </div>
-                                    <span style="color: #888; font-size: 0.8em;">${{ '{:,.0f}'.format(dynamic_status.max_seed) }}</span>
-                                </div>
-                                {% else %}
-                                <div class="portfolio-detail-value" style="color: #888;">-</div>
-                                {% endif %}
                             </div>
                             {% else %}
                             <div class="portfolio-detail-item">

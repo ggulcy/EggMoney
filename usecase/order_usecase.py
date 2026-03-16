@@ -266,6 +266,7 @@ class OrderUsecase:
 
         # T가 Max 초과 시 손절
         if t >= bot_info.max_tier - 1:
+
             msg += "\nT가 Max를 초과하여 손절합니다"
             trade_type, amount = self._calculate_sell_amount(False, True, bot_info)
         else:

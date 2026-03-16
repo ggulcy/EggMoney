@@ -45,11 +45,6 @@ class SQLAlchemyBotInfoRepositoryImpl(BotInfoRepository):
             existing.point_loc = bot_info.point_loc.value
             existing.added_seed = bot_info.added_seed
             existing.skip_sell = bot_info.skip_sell
-            existing.dynamic_seed_max = bot_info.dynamic_seed_max
-            existing.dynamic_seed_enabled = bot_info.dynamic_seed_enabled
-            existing.dynamic_seed_multiplier = bot_info.dynamic_seed_multiplier
-            existing.dynamic_seed_t_threshold = bot_info.dynamic_seed_t_threshold
-            existing.dynamic_seed_drop_rate = bot_info.dynamic_seed_drop_rate
             existing.closing_buy_conditions = json.dumps(bot_info.closing_buy_conditions)
         else:
             # 신규 생성
@@ -106,11 +101,6 @@ class SQLAlchemyBotInfoRepositoryImpl(BotInfoRepository):
             point_loc=PointLoc(model.point_loc),
             added_seed=model.added_seed,
             skip_sell=model.skip_sell,
-            dynamic_seed_max=model.dynamic_seed_max,
-            dynamic_seed_enabled=model.dynamic_seed_enabled,
-            dynamic_seed_multiplier=model.dynamic_seed_multiplier,
-            dynamic_seed_t_threshold=model.dynamic_seed_t_threshold,
-            dynamic_seed_drop_rate=model.dynamic_seed_drop_rate,
             closing_buy_conditions=json.loads(model.closing_buy_conditions) if model.closing_buy_conditions else [],
         )
 
@@ -129,10 +119,5 @@ class SQLAlchemyBotInfoRepositoryImpl(BotInfoRepository):
             point_loc=entity.point_loc.value,
             added_seed=entity.added_seed,
             skip_sell=entity.skip_sell,
-            dynamic_seed_max=entity.dynamic_seed_max,
-            dynamic_seed_enabled=entity.dynamic_seed_enabled,
-            dynamic_seed_multiplier=entity.dynamic_seed_multiplier,
-            dynamic_seed_t_threshold=entity.dynamic_seed_t_threshold,
-            dynamic_seed_drop_rate=entity.dynamic_seed_drop_rate,
             closing_buy_conditions=json.dumps(entity.closing_buy_conditions),
         )
