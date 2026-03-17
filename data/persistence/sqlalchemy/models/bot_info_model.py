@@ -33,5 +33,8 @@ class BotInfoModel(Base):
     # 장마감 급락 매수 설정 (JSON 배열: [{"drop_rate": 0.05, "seed_rate": 0.3}, ...])
     closing_buy_conditions = Column(Text, nullable=False, default='[]')
 
+    # 리버스 모드
+    reverse_mode = Column(Boolean, nullable=False, default=False)
+
     def __repr__(self):
         return f"<BotInfoModel(name={self.name}, symbol={self.symbol}, active={self.active})>"

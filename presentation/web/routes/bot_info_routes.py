@@ -72,6 +72,7 @@ def save_bot_info():
         is_check_buy_t_div_price = data.get('is_check_buy_t_div_price', False)
         active = data.get('active', False)
         skip_sell = data.get('skip_sell', False)
+        reverse_mode = data.get('reverse_mode', False)
         point_loc_value = data.get('point_loc', 'P1')
         point_loc = PointLoc(point_loc_value)
         added_seed = float(data.get('added_seed', 0))
@@ -88,6 +89,7 @@ def save_bot_info():
             is_check_buy_t_div_price=is_check_buy_t_div_price,
             active=active,
             skip_sell=skip_sell,
+            reverse_mode=reverse_mode,
             point_loc=point_loc,
             added_seed=added_seed,
             closing_buy_conditions=closing_buy_conditions,

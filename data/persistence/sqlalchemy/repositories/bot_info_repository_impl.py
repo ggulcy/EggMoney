@@ -46,6 +46,7 @@ class SQLAlchemyBotInfoRepositoryImpl(BotInfoRepository):
             existing.added_seed = bot_info.added_seed
             existing.skip_sell = bot_info.skip_sell
             existing.closing_buy_conditions = json.dumps(bot_info.closing_buy_conditions)
+            existing.reverse_mode = bot_info.reverse_mode
         else:
             # 신규 생성
             model = self._to_model(bot_info)
@@ -102,6 +103,7 @@ class SQLAlchemyBotInfoRepositoryImpl(BotInfoRepository):
             added_seed=model.added_seed,
             skip_sell=model.skip_sell,
             closing_buy_conditions=json.loads(model.closing_buy_conditions) if model.closing_buy_conditions else [],
+            reverse_mode=model.reverse_mode,
         )
 
     def _to_model(self, entity: BotInfo) -> BotInfoModel:
@@ -120,4 +122,5 @@ class SQLAlchemyBotInfoRepositoryImpl(BotInfoRepository):
             added_seed=entity.added_seed,
             skip_sell=entity.skip_sell,
             closing_buy_conditions=json.dumps(entity.closing_buy_conditions),
+            reverse_mode=entity.reverse_mode,
         )
