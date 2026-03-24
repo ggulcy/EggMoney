@@ -261,6 +261,16 @@ class SQLAlchemyHistoryRepositoryImpl(HistoryRepository):
             profit_rate=entity.profit_rate
         )
 
+    def find_latest_sell_by_name(self, name: str) -> Optional[History]:
+        """name 기준 가장 최근 매도 히스토리 조회"""
+        model = self.session.query(HistoryModel).filter(
+            and_(
+                HistoryModel.name == name,
+                self._get_sell_type_filter()
+            )
+        ).order_by(HistoryModel.trade_date.desc()).first()
+        return self._to_entity(model) if model else None
+
     def find_today_sells(self) -> List[History]:
         """
         오늘 매도한 History 리스트 조회

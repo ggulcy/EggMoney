@@ -36,5 +36,9 @@ class BotInfoModel(Base):
     # 리버스 모드
     reverse_mode = Column(Boolean, nullable=False, default=False)
 
+    # 매도 후 쿨다운
+    sell_cooldown_days = Column(Integer, nullable=False, default=0)        # 0이면 비활성화
+    sell_cooldown_loss_only = Column(Boolean, nullable=False, default=False)  # True면 손절 매도 시에만 적용
+
     def __repr__(self):
         return f"<BotInfoModel(name={self.name}, symbol={self.symbol}, active={self.active})>"

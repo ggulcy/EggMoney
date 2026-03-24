@@ -100,6 +100,11 @@ class HistoryRepository(ABC):
         pass
 
     @abstractmethod
+    def find_latest_sell_by_name(self, name: str) -> Optional[History]:
+        """name 기준 가장 최근 매도 히스토리 조회"""
+        pass
+
+    @abstractmethod
     def find_today_sells(self) -> List[History]:
         """
         오늘 매도한 History 리스트 조회

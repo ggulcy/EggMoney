@@ -26,6 +26,8 @@ class BotInfo:
         skip_sell: bool = False,
         closing_buy_conditions: Optional[List[Dict]] = None,
         reverse_mode: bool = False,
+        sell_cooldown_days: int = 0,
+        sell_cooldown_loss_only: bool = False,
     ):
         self.name = name
         self.symbol = symbol
@@ -41,6 +43,8 @@ class BotInfo:
         self.skip_sell = skip_sell
         self.closing_buy_conditions = closing_buy_conditions or []
         self.reverse_mode = reverse_mode
+        self.sell_cooldown_days = sell_cooldown_days
+        self.sell_cooldown_loss_only = sell_cooldown_loss_only
 
         self._validate()
 

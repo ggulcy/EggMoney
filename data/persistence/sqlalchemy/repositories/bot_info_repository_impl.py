@@ -47,6 +47,8 @@ class SQLAlchemyBotInfoRepositoryImpl(BotInfoRepository):
             existing.skip_sell = bot_info.skip_sell
             existing.closing_buy_conditions = json.dumps(bot_info.closing_buy_conditions)
             existing.reverse_mode = bot_info.reverse_mode
+            existing.sell_cooldown_days = bot_info.sell_cooldown_days
+            existing.sell_cooldown_loss_only = bot_info.sell_cooldown_loss_only
         else:
             # 신규 생성
             model = self._to_model(bot_info)
@@ -104,6 +106,8 @@ class SQLAlchemyBotInfoRepositoryImpl(BotInfoRepository):
             skip_sell=model.skip_sell,
             closing_buy_conditions=json.loads(model.closing_buy_conditions) if model.closing_buy_conditions else [],
             reverse_mode=model.reverse_mode,
+            sell_cooldown_days=model.sell_cooldown_days or 0,
+            sell_cooldown_loss_only=bool(model.sell_cooldown_loss_only),
         )
 
     def _to_model(self, entity: BotInfo) -> BotInfoModel:
@@ -123,4 +127,6 @@ class SQLAlchemyBotInfoRepositoryImpl(BotInfoRepository):
             skip_sell=entity.skip_sell,
             closing_buy_conditions=json.dumps(entity.closing_buy_conditions),
             reverse_mode=entity.reverse_mode,
+            sell_cooldown_days=entity.sell_cooldown_days,
+            sell_cooldown_loss_only=entity.sell_cooldown_loss_only,
         )

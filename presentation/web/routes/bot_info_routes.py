@@ -73,6 +73,8 @@ def save_bot_info():
         active = data.get('active', False)
         skip_sell = data.get('skip_sell', False)
         reverse_mode = data.get('reverse_mode', False)
+        sell_cooldown_days = int(data.get('sell_cooldown_days', 0))
+        sell_cooldown_loss_only = data.get('sell_cooldown_loss_only', False)
         point_loc_value = data.get('point_loc', 'P1')
         point_loc = PointLoc(point_loc_value)
         added_seed = float(data.get('added_seed', 0))
@@ -90,6 +92,8 @@ def save_bot_info():
             active=active,
             skip_sell=skip_sell,
             reverse_mode=reverse_mode,
+            sell_cooldown_days=sell_cooldown_days,
+            sell_cooldown_loss_only=sell_cooldown_loss_only,
             point_loc=point_loc,
             added_seed=added_seed,
             closing_buy_conditions=closing_buy_conditions,

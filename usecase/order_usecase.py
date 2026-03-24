@@ -1,5 +1,5 @@
 """주문서 생성 Usecase - 매도/매수 조건 판단 및 주문서 생성/저장"""
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, Tuple, List, Dict
 
 from config import util
@@ -160,6 +160,10 @@ class OrderUsecase:
             self.message_repo.send_message(f"[{bot_info.name}] 장마감 급락 체크: 리버스 모드 중 비활성화")
             return None
 
+        # 매도 후 쿨다운 중에는 장마감 급락 매수 비활성화
+        # if self._is_sell_cooldown(bot_info):
+        #     return None
+
         # 매도가 일어난 날(또는 매도 예정인 날)은 구매하지 않음
         if self.history_repo.find_today_sell_by_name(bot_info.name) or \
                 self.order_repo.has_sell_order_today(bot_info.name):
@@ -223,22 +227,26 @@ class OrderUsecase:
         # 1. reverse mode 판단 및 전환
         self._is_reverse_mode_switch(bot_info)
 
-        # 2. reverse mode 분기
+        # 2. 매도 후 쿨다운 체크 (리버스 모드에서는 스킵)
+        if not bot_info.reverse_mode and self._is_sell_cooldown(bot_info):
+            return None
+
+        # 3. reverse mode 분기
         if bot_info.reverse_mode:
             return self._create_reverse_mode_order(bot_info)
 
-        # 3. 매도 주문서 생성 (skip_sell이 False일 때만)
+        # 4. 매도 주문서 생성 (skip_sell이 False일 때만)
         if not bot_info.skip_sell:
             result = self._create_sell_order(bot_info)
             if result:
                 return result
 
-        # 4. 매도가 일어난 날(또는 매도 예정인 날)은 구매하지 않음
+        # 5. 매도가 일어난 날(또는 매도 예정인 날)은 구매하지 않음
         if self.history_repo.find_today_sell_by_name(bot_info.name) or \
                 self.order_repo.has_sell_order_today(bot_info.name):
             return None
 
-        # 5. 매수 주문서 생성
+        # 6. 매수 주문서 생성
         return self._create_buy_order(bot_info)
 
     # ===== Private Methods (내부 헬퍼) =====
@@ -320,15 +328,15 @@ class OrderUsecase:
         # T가 아직 max_tier-1 초과 시 → ma5 무시하고 강제 10% 매도
         if t > bot_info.max_tier - 1:
             sell_amount = int(total_amount * 0.1) or int(total_amount)
-            self.message_repo.send_message(f"[{bot_info.name}] 리버스 모드 강제 매도: {sell_amount}주 (T={t:.2f})")
+            self.message_repo.send_message(f"[{bot_info.name}] 리버스 모드 강제 매도: {sell_amount}주 (T={t:.2f})\n현재가({cur_price:.2f}) / 5일평균가({ma5:.2f})")
             return TradeType.SELL_PART, sell_amount
 
         if cur_price > ma5:
             sell_amount = int(total_amount * 0.1)
             if sell_amount < 1:
-                self.message_repo.send_message(f"[{bot_info.name}] 리버스 모드: 잔여 수량 전량 매도 ({total_amount}주)")
+                self.message_repo.send_message(f"[{bot_info.name}] 리버스 모드: 잔여 수량 전량 매도 ({total_amount}주)\n현재가({cur_price:.2f}) / 5일평균가({ma5:.2f})")
                 return TradeType.SELL, int(total_amount)
-            self.message_repo.send_message(f"[{bot_info.name}] 리버스 모드 매도: {sell_amount}주 (보유량의 10%)")
+            self.message_repo.send_message(f"[{bot_info.name}] 리버스 모드 매도: {sell_amount}주 (보유량의 10%)\n현재가({cur_price:.2f}) / 5일평균가({ma5:.2f})")
             return TradeType.SELL_PART, sell_amount
 
         if cur_price < ma5:
@@ -337,11 +345,41 @@ class OrderUsecase:
             if buy_seed <= 0:
                 self.message_repo.send_message(f"[{bot_info.name}] 리버스 모드: 여유금 없음")
                 return None
-            self.message_repo.send_message(f"[{bot_info.name}] 리버스 모드 매수: ${buy_seed:,.2f} (여유금의 1/4)")
+            self.message_repo.send_message(f"[{bot_info.name}] 리버스 모드 매수: ${buy_seed:,.2f} (여유금의 1/4)\n현재가({cur_price:.2f}) / 5일평균가({ma5:.2f})")
             return TradeType.BUY, buy_seed
 
         self.message_repo.send_message(f"[{bot_info.name}] 리버스 모드: 현재가 = 5일 평균가, HOLD")
         return None
+
+    def _is_sell_cooldown(self, bot_info: BotInfo) -> bool:
+        """매도 후 쿨다운 체크
+
+        sell_cooldown_days가 0이면 비활성화.
+        sell_cooldown_loss_only가 True이면 손절(profit < 0) 매도 시에만 적용.
+        """
+        if bot_info.sell_cooldown_days <= 0:
+            return False
+
+        latest_sell = self.history_repo.find_latest_sell_by_name(bot_info.name)
+        if not latest_sell:
+            return False
+
+        if bot_info.sell_cooldown_loss_only and latest_sell.profit >= 0:
+            return False
+
+        days_since_sell = (datetime.now() - latest_sell.trade_date).days
+        if days_since_sell < bot_info.sell_cooldown_days:
+            resume_date = (latest_sell.trade_date + timedelta(days=bot_info.sell_cooldown_days)).strftime("%Y-%m-%d")
+            sell_type = "손절" if latest_sell.profit < 0 else "익절"
+            self.message_repo.send_message(
+                f"[{bot_info.name}] 매도 쿨다운 중\n"
+                f"  - 유형: {sell_type}\n"
+                f"  - 설정: {bot_info.sell_cooldown_days}일 / 경과: {days_since_sell}일\n"
+                f"  - 재개 예정: {resume_date}"
+            )
+            return True
+
+        return False
 
     def _is_reverse_mode_switch(self, bot_info: BotInfo):
         """reverse_mode 전환 판단 및 DB 저장"""

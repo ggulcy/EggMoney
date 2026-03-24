@@ -597,6 +597,8 @@
                 active: card.querySelector('input[name^="active"]').checked,
                 skip_sell: card.querySelector('input[name^="skip_sell"]').checked,
                 reverse_mode: card.querySelector('input[name^="reverse_mode"]').checked,
+                sell_cooldown_days: parseInt(card.querySelector('input[name^="sell_cooldown_days"]').value) || 0,
+                sell_cooldown_loss_only: card.querySelector('input[name^="sell_cooldown_loss_only"]').checked,
                 point_loc: card.querySelector('input[name^="point_loc"]:checked').value,
                 closing_buy_conditions: getClosingBuyConditions(card)
             };
@@ -1401,6 +1403,23 @@
                         <input type="checkbox" name="reverse_mode[{{ loop.index0 }}]" value="true" {% if bot_info.reverse_mode %}checked{% endif %} disabled>
                         <span class="slider round"></span>
                     </label>
+                </div>
+
+                <!-- 매도 후 쿨다운 설정 -->
+                <div class="bot-field-group">
+                    <div class="bot-field">
+                        <label>매도 쿨다운 (일)</label>
+                        <input type="number" name="sell_cooldown_days[{{ loop.index0 }}]"
+                               value="{{ bot_info.sell_cooldown_days }}" min="0" max="30" placeholder="0">
+                    </div>
+                    <div class="bot-field bot-field-checkbox">
+                        <label>손절만 적용</label>
+                        <label class="switch">
+                            <input type="checkbox" name="sell_cooldown_loss_only[{{ loop.index0 }}]" value="true"
+                                   {% if bot_info.sell_cooldown_loss_only %}checked{% endif %}>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
                 </div>
 
                 <!-- 장마감 급락 매수 설정 (다중 조건, 최대 3개) -->
