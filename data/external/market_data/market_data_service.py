@@ -128,7 +128,7 @@ class MarketDataService:
         self,
         ticker: str,
         days: int = 5,
-        cache_hours: int = 6
+        cache_hours: int = 3
     ) -> Optional[float]:
         """
         특정 티커의 N일 평균 종가 조회 (오늘 제외, 어제까지)

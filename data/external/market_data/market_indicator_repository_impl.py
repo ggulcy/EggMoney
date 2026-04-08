@@ -92,7 +92,7 @@ class MarketIndicatorRepositoryImpl(MarketIndicatorRepository):
         self,
         ticker: str,
         days: int = 5,
-        cache_hours: int = 6
+        cache_hours: int = 3
     ) -> Optional[float]:
         try:
             return self.service.get_average_close(

@@ -379,7 +379,8 @@ class TradingUsecase:
             if i > 0 and not item.is_test:
                 time.sleep(INTERVAL_SECONDS)
 
-            request_price = self.exchange_repo.get_price(symbol)
+            request_price = self.exchange_repo.get_available_sell(symbol)
+
             if not request_price:
                 self.message_repo.send_message(f"❌ [{name}] 매도 {i + 1}/{len(batches)} 현재가 조회 실패")
                 continue
@@ -410,7 +411,7 @@ class TradingUsecase:
             if not item.is_test:
                 time.sleep(INTERVAL_SECONDS)
 
-            request_price = self.exchange_repo.get_price(symbol)
+            request_price = self.exchange_repo.get_available_buy(symbol)
             if not request_price:
                 self.message_repo.send_message(f"❌ [{name}] 매수 {i + 1}/{len(batches)} 현재가 조회 실패")
                 continue
