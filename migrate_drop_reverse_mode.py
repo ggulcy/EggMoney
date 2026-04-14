@@ -1,36 +1,41 @@
 """
-Migration: bot_info 테이블에 reverse_mode 컬럼 추가
-실행: python migrate_add_reverse_mode.py
+Migration: bot_info 테이블에서 reverse_mode 컬럼 제거
+
+실행: python migrate_drop_reverse_mode.py
 """
+import os
 import sqlite3
 from pathlib import Path
+from dotenv import load_dotenv
 
-# 관리자 목록 (하드코딩)
-ADMIN_USERS = ['sk']
-
-# DB 디렉토리 경로 (프로젝트 루트 기준)
 PROJECT_ROOT = Path(__file__).parent
+load_dotenv(dotenv_path=PROJECT_ROOT / '.env', override=True)
+
 DB_DIR = PROJECT_ROOT / "data" / "persistence" / "sqlalchemy" / "db"
 
 
+def _get_admin_users() -> list[str]:
+    admin = os.getenv('ADMIN', '').strip().lower()
+    if not admin:
+        raise ValueError("ADMIN 환경변수가 설정되지 않았습니다.")
+    return [admin]
+
+
 def get_db_paths():
-    """모든 관리자의 DB 경로 목록 반환"""
     paths = []
-    for admin in ADMIN_USERS:
+    for admin in _get_admin_users():
         db_path = DB_DIR / f"egg_{admin}.db"
         paths.append((admin, db_path))
     return paths
 
 
 def check_column_exists(cursor, table_name, column_name):
-    """컬럼 존재 여부 확인"""
     cursor.execute(f"PRAGMA table_info({table_name})")
     columns = [row[1] for row in cursor.fetchall()]
     return column_name in columns
 
 
 def migrate_single_db(admin, db_path):
-    """단일 DB에 대한 마이그레이션 수행"""
     print(f"\n{'─' * 40}")
     print(f"👤 {admin.upper()} DB 마이그레이션")
     print(f"📂 경로: {db_path}")
@@ -43,33 +48,18 @@ def migrate_single_db(admin, db_path):
     cursor = conn.cursor()
 
     try:
-        # bot_info 테이블 존재 여부 확인
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='bot_info'")
         if not cursor.fetchone():
             print(f"⚠️  bot_info 테이블이 존재하지 않습니다. 스킵합니다.")
             return False
 
-        # 컬럼 존재 여부 확인
         if check_column_exists(cursor, 'bot_info', 'reverse_mode'):
-            print("✅ reverse_mode 컬럼이 이미 존재합니다.")
-            return True
-
-        # 컬럼 추가
-        print("🔄 reverse_mode 컬럼 추가 중...")
-        cursor.execute("""
-            ALTER TABLE bot_info
-            ADD COLUMN reverse_mode BOOLEAN NOT NULL DEFAULT 0
-        """)
-
-        conn.commit()
-        print("✅ 마이그레이션 완료!")
-
-        # 확인
-        cursor.execute("SELECT name, reverse_mode FROM bot_info")
-        rows = cursor.fetchall()
-        print(f"📊 현재 bot_info 데이터 ({len(rows)}개):")
-        for row in rows:
-            print(f"   - {row[0]}: reverse_mode = {bool(row[1])}")
+            print(f"  🔄 reverse_mode 컬럼 삭제 중...")
+            cursor.execute("ALTER TABLE bot_info DROP COLUMN reverse_mode")
+            conn.commit()
+            print(f"  ✅ 삭제 완료: reverse_mode")
+        else:
+            print(f"  ⏭️  reverse_mode 컬럼이 없습니다. 스킵.")
 
         return True
 
@@ -82,21 +72,19 @@ def migrate_single_db(admin, db_path):
 
 
 def migrate_all():
-    """모든 관리자 DB에 대해 마이그레이션 수행"""
     print("=" * 50)
-    print("🚀 EggMoney - reverse_mode 컬럼 마이그레이션")
+    print("🚀 EggMoney - reverse_mode 컬럼 제거 마이그레이션")
     print("=" * 50)
+    admin_users = _get_admin_users()
     print(f"📁 DB 디렉토리: {DB_DIR}")
-    print(f"👥 대상 관리자: {', '.join(ADMIN_USERS)}")
+    print(f"👥 대상 관리자: {', '.join(admin_users)}")
 
     results = {}
     for admin, db_path in get_db_paths():
         results[admin] = migrate_single_db(admin, db_path)
 
-    # 결과 요약
     print("\n" + "=" * 50)
     print("📋 마이그레이션 결과 요약")
-    print("=" * 50)
     for admin, success in results.items():
         status = "✅ 성공" if success else "❌ 실패/스킵"
         print(f"   {admin}: {status}")

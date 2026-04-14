@@ -33,9 +33,6 @@ class BotInfoModel(Base):
     # 장마감 급락 매수 설정 (JSON 배열: [{"drop_rate": 0.05, "seed_rate": 0.3}, ...])
     closing_buy_conditions = Column(Text, nullable=False, default='[]')
 
-    # 리버스 모드
-    reverse_mode = Column(Boolean, nullable=False, default=False)
-
     # 매도 후 쿨다운
     sell_cooldown_days = Column(Integer, nullable=False, default=0)        # 0이면 비활성화
     sell_cooldown_loss_only = Column(Boolean, nullable=False, default=False)  # True면 손절 매도 시에만 적용

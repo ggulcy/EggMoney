@@ -15,7 +15,6 @@ from domain.repositories import (
     ExchangeRepository,
     MessageRepository,
 )
-from domain.repositories.market_indicator_repository import MarketIndicatorRepository
 from domain.value_objects.order_type import OrderType
 from domain.value_objects.trade_type import TradeType
 from domain.value_objects.netting_pair import NettingPair
@@ -37,7 +36,6 @@ class OrderUsecase:
             order_repo: OrderRepository,
             exchange_repo: ExchangeRepository,
             message_repo: MessageRepository,
-            market_indicator_repo: MarketIndicatorRepository
     ):
         """
         주문서 생성 Usecase 초기화
@@ -49,7 +47,6 @@ class OrderUsecase:
             order_repo: Order 리포지토리 (오늘 매도 주문 확인)
             exchange_repo: 증권사 API 리포지토리
             message_repo: 메시지 발송 리포지토리
-            market_indicator_repo: 시장 지표 리포지토리 (5일 평균가 등)
         """
         self.bot_info_repo = bot_info_repo
         self.trade_repo = trade_repo
@@ -57,7 +54,6 @@ class OrderUsecase:
         self.order_repo = order_repo
         self.exchange_repo = exchange_repo
         self.message_repo = message_repo
-        self.market_indicator_repo = market_indicator_repo
 
     # ===== Public Methods (Router/Scheduler에서 호출) =====
 
@@ -155,11 +151,6 @@ class OrderUsecase:
         if not bot_info.closing_buy_conditions:
             return None
 
-        # 리버스 모드에서는 장마감 급락 매수 비활성화
-        if bot_info.reverse_mode:
-            self.message_repo.send_message(f"[{bot_info.name}] 장마감 급락 체크: 리버스 모드 중 비활성화")
-            return None
-
         # 매도 후 쿨다운 중에는 장마감 급락 매수 비활성화
         # if self._is_sell_cooldown(bot_info):
         #     return None
@@ -224,29 +215,22 @@ class OrderUsecase:
 
         egg/trade_module.py의 trade() 이관 (25-34번 줄)
         """
-        # 1. reverse mode 판단 및 전환
-        self._is_reverse_mode_switch(bot_info)
-
-        # 2. 매도 후 쿨다운 체크 (리버스 모드에서는 스킵)
-        if not bot_info.reverse_mode and self._is_sell_cooldown(bot_info):
+        # 1. 매도 후 쿨다운 체크
+        if self._is_sell_cooldown(bot_info):
             return None
 
-        # 3. reverse mode 분기
-        if bot_info.reverse_mode:
-            return self._create_reverse_mode_order(bot_info)
-
-        # 4. 매도 주문서 생성 (skip_sell이 False일 때만)
+        # 2. 매도 주문서 생성 (skip_sell이 False일 때만)
         if not bot_info.skip_sell:
             result = self._create_sell_order(bot_info)
             if result:
                 return result
 
-        # 5. 매도가 일어난 날(또는 매도 예정인 날)은 구매하지 않음
+        # 3. 매도가 일어난 날(또는 매도 예정인 날)은 구매하지 않음
         if self.history_repo.find_today_sell_by_name(bot_info.name) or \
                 self.order_repo.has_sell_order_today(bot_info.name):
             return None
 
-        # 6. 매수 주문서 생성
+        # 4. 매수 주문서 생성
         return self._create_buy_order(bot_info)
 
     # ===== Private Methods (내부 헬퍼) =====
@@ -299,58 +283,6 @@ class OrderUsecase:
                                            f"판매 조건이 없습니다")
             return None
 
-    def _create_reverse_mode_order(self, bot_info: BotInfo) -> Optional[tuple[TradeType, float]]:
-        """
-        리버스 모드 주문서 생성 (5일 평균가 기준 매수/매도)
-
-        매도: 현재가 > 5일 평균가 → 현재 보유량의 10% 매도
-        매수: 현재가 < 5일 평균가 → 여유금(seed × (max_tier - T))의 1/4 매수
-        """
-        total_amount = self.trade_repo.get_total_amount(bot_info.name)
-        total_investment = self.trade_repo.get_total_investment(bot_info.name)
-        t = util.get_T(total_investment, bot_info.seed)
-
-        ma5 = self.market_indicator_repo.get_average_close(bot_info.symbol, days=5)
-        if not ma5:
-            self.message_repo.send_message(f"[{bot_info.name}] 리버스 모드: 5일 평균가 조회 실패")
-            return None
-
-        cur_price = self.exchange_repo.get_price(bot_info.symbol)
-        if not cur_price:
-            self.message_repo.send_message(f"[{bot_info.name}] 리버스 모드: 현재가 조회 실패")
-            return None
-
-        self.message_repo.send_message(
-            f"[🔄리버스모드({bot_info.name})]\n"
-            f"현재가({cur_price:.2f}) / 5일평균가({ma5:.2f}) / T({t:.2f})"
-        )
-
-        # T가 아직 max_tier-1 초과 시 → ma5 무시하고 강제 10% 매도
-        if t > bot_info.max_tier - 1:
-            sell_amount = int(total_amount * 0.1) or int(total_amount)
-            self.message_repo.send_message(f"[{bot_info.name}] 리버스 모드 강제 매도: {sell_amount}주 (T={t:.2f})\n현재가({cur_price:.2f}) / 5일평균가({ma5:.2f})")
-            return TradeType.SELL_PART, sell_amount
-
-        if cur_price > ma5:
-            sell_amount = int(total_amount * 0.1)
-            if sell_amount < 1:
-                self.message_repo.send_message(f"[{bot_info.name}] 리버스 모드: 잔여 수량 전량 매도 ({total_amount}주)\n현재가({cur_price:.2f}) / 5일평균가({ma5:.2f})")
-                return TradeType.SELL, int(total_amount)
-            self.message_repo.send_message(f"[{bot_info.name}] 리버스 모드 매도: {sell_amount}주 (보유량의 10%)\n현재가({cur_price:.2f}) / 5일평균가({ma5:.2f})")
-            return TradeType.SELL_PART, sell_amount
-
-        if cur_price < ma5:
-            available_cash = bot_info.seed * (bot_info.max_tier - t)
-            buy_seed = available_cash * 0.25
-            if buy_seed <= 0:
-                self.message_repo.send_message(f"[{bot_info.name}] 리버스 모드: 여유금 없음")
-                return None
-            self.message_repo.send_message(f"[{bot_info.name}] 리버스 모드 매수: ${buy_seed:,.2f} (여유금의 1/4)\n현재가({cur_price:.2f}) / 5일평균가({ma5:.2f})")
-            return TradeType.BUY, buy_seed
-
-        self.message_repo.send_message(f"[{bot_info.name}] 리버스 모드: 현재가 = 5일 평균가, HOLD")
-        return None
-
     def _is_sell_cooldown(self, bot_info: BotInfo) -> bool:
         """매도 후 쿨다운 체크
 
@@ -380,38 +312,6 @@ class OrderUsecase:
             return True
 
         return False
-
-    def _is_reverse_mode_switch(self, bot_info: BotInfo):
-        """reverse_mode 전환 판단 및 DB 저장"""
-
-        # 전량 매도 시 일반 모드 복귀
-        total_amount = self.trade_repo.get_total_amount(bot_info.name)
-        if total_amount == 0:
-            if bot_info.reverse_mode:
-                bot_info.reverse_mode = False
-                self.bot_info_repo.save(bot_info)
-                self.message_repo.send_message(f"[{bot_info.name}] 전량 매도 완료 → 일반 모드 복귀")
-            return
-
-        # T가 max_tier-1 초과 시 리버스 모드 진입
-        total_investment = self.trade_repo.get_total_investment(bot_info.name)
-        t = util.get_T(total_investment, bot_info.seed)
-        if t > bot_info.max_tier - 1:
-            if not bot_info.reverse_mode:
-                bot_info.reverse_mode = True
-                self.bot_info_repo.save(bot_info)
-                self.message_repo.send_message(f"[{bot_info.name}] T({t:.2f}) > max_tier-1({bot_info.max_tier - 1}) → 리버스 모드 진입")
-            return
-
-        # T가 내려오고 현재가가 평단가 기준선 위로 회복 시 일반 모드 복귀
-        avr_price = self.trade_repo.get_average_purchase_price(bot_info.name)
-        cur_price = self.exchange_repo.get_price(bot_info.symbol)
-        if avr_price and cur_price and cur_price > avr_price * (1 - bot_info.profit_rate):
-            if bot_info.reverse_mode:
-                bot_info.reverse_mode = False
-                self.bot_info_repo.save(bot_info)
-                self.message_repo.send_message(f"[{bot_info.name}] 현재가({cur_price:.2f}) > 기준선({avr_price * (1 - bot_info.profit_rate):.2f}) → 일반 모드 복귀")
-
 
     def _create_buy_order(self, bot_info: BotInfo) -> Optional[tuple[TradeType, float]]:
         """

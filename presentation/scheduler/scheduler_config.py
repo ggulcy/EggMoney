@@ -51,7 +51,6 @@ def _initialize_dependencies() -> tuple[TradingJobs, MessageJobs]:
         order_repo=deps.order_repo,
         exchange_repo=deps.exchange_repo,
         message_repo=deps.message_repo,
-        market_indicator_repo=deps.market_indicator_repo,
     )
     trading_usecase = TradingUsecase(
         bot_info_repo=deps.bot_info_repo,

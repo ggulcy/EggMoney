@@ -46,7 +46,6 @@ class SQLAlchemyBotInfoRepositoryImpl(BotInfoRepository):
             existing.added_seed = bot_info.added_seed
             existing.skip_sell = bot_info.skip_sell
             existing.closing_buy_conditions = json.dumps(bot_info.closing_buy_conditions)
-            existing.reverse_mode = bot_info.reverse_mode
             existing.sell_cooldown_days = bot_info.sell_cooldown_days
             existing.sell_cooldown_loss_only = bot_info.sell_cooldown_loss_only
         else:
@@ -105,7 +104,6 @@ class SQLAlchemyBotInfoRepositoryImpl(BotInfoRepository):
             added_seed=model.added_seed,
             skip_sell=model.skip_sell,
             closing_buy_conditions=json.loads(model.closing_buy_conditions) if model.closing_buy_conditions else [],
-            reverse_mode=model.reverse_mode,
             sell_cooldown_days=model.sell_cooldown_days or 0,
             sell_cooldown_loss_only=bool(model.sell_cooldown_loss_only),
         )
@@ -126,7 +124,6 @@ class SQLAlchemyBotInfoRepositoryImpl(BotInfoRepository):
             added_seed=entity.added_seed,
             skip_sell=entity.skip_sell,
             closing_buy_conditions=json.dumps(entity.closing_buy_conditions),
-            reverse_mode=entity.reverse_mode,
             sell_cooldown_days=entity.sell_cooldown_days,
             sell_cooldown_loss_only=entity.sell_cooldown_loss_only,
         )

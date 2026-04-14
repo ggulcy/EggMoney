@@ -451,44 +451,6 @@
             content: "리뉴얼" !important;
         }
 
-        /* 리버스 모드 전용 스위치 */
-        .reverse-mode-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 12px;
-            margin-top: 8px;
-            background: #fff8f0;
-            border: 1px dashed #f0a500;
-            border-radius: 8px;
-            opacity: 0.85;
-            width: fit-content;
-        }
-
-        .reverse-mode-row label.label-text {
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: #b36b00;
-            white-space: nowrap;
-        }
-
-        .reverse-mode-row .lock-icon {
-            font-size: 0.75rem;
-            color: #b36b00;
-        }
-
-        .switch.reverse-switch {
-            pointer-events: none;
-        }
-
-        .switch.reverse-switch input:checked + .slider {
-            background-color: #f0a500;
-        }
-
-        .switch.reverse-switch .slider {
-            background-color: #ccc;
-        }
-
         .toggle-action-btn {
             display: flex;
             align-items: center;
@@ -596,7 +558,6 @@
                 is_check_buy_t_div_price: card.querySelector('input[name^="is_check_buy_t_div_price"]').checked,
                 active: card.querySelector('input[name^="active"]').checked,
                 skip_sell: card.querySelector('input[name^="skip_sell"]').checked,
-                reverse_mode: card.querySelector('input[name^="reverse_mode"]').checked,
                 sell_cooldown_days: parseInt(card.querySelector('input[name^="sell_cooldown_days"]').value) || 0,
                 sell_cooldown_loss_only: card.querySelector('input[name^="sell_cooldown_loss_only"]').checked,
                 point_loc: card.querySelector('input[name^="point_loc"]:checked').value,
@@ -1395,15 +1356,7 @@
                     </div>
                 </div>
 
-                <!-- 리버스 모드 (코드 전용 제어) -->
-                <div class="reverse-mode-row">
-                    <span class="lock-icon">🔒</span>
-                    <label class="label-text">리버스 모드 상태</label>
-                    <label class="switch reverse-switch">
-                        <input type="checkbox" name="reverse_mode[{{ loop.index0 }}]" value="true" {% if bot_info.reverse_mode %}checked{% endif %} disabled>
-                        <span class="slider round"></span>
-                    </label>
-                </div>
+
 
                 <!-- 매도 후 쿨다운 설정 -->
                 <div class="bot-field-group">

@@ -112,6 +112,12 @@ def cleanup_other_dbs():
             print(f"🗑️ 삭제: {f.name}")
 
 
+def run_migrations():
+    """DB 마이그레이션 실행 (앱 시작 전)"""
+    from migrate_drop_reverse_mode import migrate_all as drop_reverse_mode
+    drop_reverse_mode()
+
+
 def main():
     """애플리케이션 시작"""
     cleanup_other_dbs()
@@ -124,6 +130,9 @@ def main():
     print(f"📍 Test Mode: {is_test}")
     print(f"📍 Admin: {admin}")
     print("=" * 80)
+
+    # DB 마이그레이션 (의존성 초기화 전)
+    run_migrations()
 
     # 의존성 초기화 (앱 시작 시 한 번만)
     init_dependencies(test_mode=is_test)
