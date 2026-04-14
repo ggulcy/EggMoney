@@ -181,7 +181,11 @@ class BotManagementUsecase:
 
         egg/seed_module.py의 check_is_bot_start() 참고 (475-486번 줄)
         """
-        from config import util
+        from config import util, key_store
+
+        # AUTO_START가 비활성화된 경우 스킵
+        if not key_store.read(key_store.AUTO_START):
+            return
 
         # 1. 활성화된 봇들의 심볼 수집 (중복 제거)
         active_bots = self.bot_info_repo.find_active_bots()
@@ -271,9 +275,9 @@ class BotManagementUsecase:
     }
 
     _DEFAULT_CLOSING_BUY_CONDITIONS = [
-        {"drop_rate": 0.05, "seed_rate": 0.30},
-        {"drop_rate": 0.07, "seed_rate": 0.50},
-        {"drop_rate": 0.10, "seed_rate": 1.00},
+        {"drop_rate": 0.05, "seed_rate": 0.20},
+        {"drop_rate": 0.07, "seed_rate": 0.30},
+        {"drop_rate": 0.10, "seed_rate": 0.50},
     ]
 
     def apply_bot_renewal(self, ticker_counts: Dict[str, int], total_budget: float) -> Dict[str, Any]:

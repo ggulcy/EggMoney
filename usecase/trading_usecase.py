@@ -85,7 +85,7 @@ class TradingUsecase:
         self.message_repo.send_message(f"[{bot_info.name}] 강제 매도 즉시 실행: {sell_amount}주 ({sell_ratio}%)")
 
         # 2. 현재가 조회
-        request_price = self.exchange_repo.get_price(bot_info.symbol)
+        request_price = self.exchange_repo.get_available_sell(bot_info.symbol)
         if not request_price:
             self.message_repo.send_message(f"❌ [{bot_info.name}] 현재가 조회 실패")
             return
@@ -1036,5 +1036,4 @@ class TradingUsecase:
             unit_price=data.get('unit_price'),
             total_price=data.get('total_price')
         )
-
 
