@@ -14,6 +14,7 @@ from domain.repositories import (
     OrderRepository,
     ExchangeRepository,
     MessageRepository,
+    MarketIndicatorRepository,
 )
 from domain.value_objects.order_type import OrderType
 from domain.value_objects.trade_type import TradeType
@@ -36,6 +37,7 @@ class OrderUsecase:
             order_repo: OrderRepository,
             exchange_repo: ExchangeRepository,
             message_repo: MessageRepository,
+            market_indicator_repo: MarketIndicatorRepository,
     ):
         """
         주문서 생성 Usecase 초기화
@@ -47,6 +49,7 @@ class OrderUsecase:
             order_repo: Order 리포지토리 (오늘 매도 주문 확인)
             exchange_repo: 증권사 API 리포지토리
             message_repo: 메시지 발송 리포지토리
+            market_indicator_repo: 시장 지표 리포지토리 (ATR 계산)
         """
         self.bot_info_repo = bot_info_repo
         self.trade_repo = trade_repo
@@ -54,6 +57,7 @@ class OrderUsecase:
         self.order_repo = order_repo
         self.exchange_repo = exchange_repo
         self.message_repo = message_repo
+        self.market_indicator_repo = market_indicator_repo
 
     # ===== Public Methods (Router/Scheduler에서 호출) =====
 
@@ -151,6 +155,11 @@ class OrderUsecase:
         if not bot_info.closing_buy_conditions:
             return None
 
+        # 트레일링 모드 중엔 장마감 급락 매수 비활성화
+        if bot_info.trailing_mode:
+            self.message_repo.send_message(f"[{bot_info.name}] 트레일링 모드 중 → 장마감 급락 매수 스킵")
+            return None
+
         # 매도 후 쿨다운 중에는 장마감 급락 매수 비활성화
         # if self._is_sell_cooldown(bot_info):
         #     return None
@@ -215,15 +224,22 @@ class OrderUsecase:
 
         egg/trade_module.py의 trade() 이관 (25-34번 줄)
         """
-        # 1. 매도 후 쿨다운 체크
-        if self._is_sell_cooldown(bot_info):
+        # 1. 매도 후 쿨다운 체크 (trailing_mode 중엔 스킵)
+        if not bot_info.trailing_mode and self._is_sell_cooldown(bot_info):
             return None
 
         # 2. 매도 주문서 생성 (skip_sell이 False일 때만)
         if not bot_info.skip_sell:
-            result = self._create_sell_order(bot_info)
-            if result:
-                return result
+            if bot_info.trailing_enabled and bot_info.trailing_mode:
+                # Day 1+: ATR 스탑 체크만, 기존 매도 로직 없음
+                if result := self._handle_trailing_active(bot_info):
+                    return result
+            else:
+                # trailing OFF 또는 trailing 미진입: 진입 조건 체크 후 기존 매도 로직
+                if bot_info.trailing_enabled and (result := self._check_trailing_entry(bot_info)):
+                    return result
+                if result := self._create_sell_order(bot_info):
+                    return result
 
         # 3. 매도가 일어난 날(또는 매도 예정인 날)은 구매하지 않음
         if self.history_repo.find_today_sell_by_name(bot_info.name) or \
@@ -236,24 +252,16 @@ class OrderUsecase:
     # ===== Private Methods (내부 헬퍼) =====
     def _create_sell_order(self, bot_info: BotInfo) -> Optional[tuple[TradeType, int]]:
         """
-        매도 주문서 생성 (조건 체크 + 주문 정보 반환)
-
-        Args:
-            bot_info: 봇 정보
-
-        Returns:
-            Optional[tuple]: (TradeType, amount) 또는 None
+        매도 주문서 생성 - 순수 기존 로직 (trailing 코드 없음)
 
         egg/trade_module.py의 sell() 이관 (50-81번 줄)
         """
         total_amount = self.trade_repo.get_total_amount(bot_info.name)
         avr_price = self.trade_repo.get_average_purchase_price(bot_info.name)
 
-        # 보유량이 0이거나 평단가가 없으면 매도 불가
         if total_amount == 0 or not avr_price:
             return None
 
-        # 현재 상태 조회
         point_price, t, point = self._get_point_price(bot_info)
         cur_price = self.exchange_repo.get_price(bot_info.symbol)
         if not cur_price:
@@ -261,10 +269,8 @@ class OrderUsecase:
             return None
 
         profit_price = avr_price * (1 + bot_info.profit_rate)
-
-        # 매도 조건 체크
-        condition_3_4 = cur_price > profit_price  # 익절가 돌파
-        condition_1_4 = cur_price > point_price   # %지점가 돌파
+        condition_3_4 = cur_price > profit_price
+        condition_1_4 = cur_price > point_price
 
         cur_profit_rate = util.get_profit_rate(cur_price, avr_price)
         msg = (f"[🎯판매검사({bot_info.name})] 현재가({cur_price:.2f}) 평단대비 {cur_profit_rate:,.2f}%\n"
@@ -273,15 +279,139 @@ class OrderUsecase:
 
         trade_type, amount = self._calculate_sell_amount(condition_3_4, condition_1_4, bot_info)
 
-        # 매도 주문 정보 반환
         if trade_type:
             self.message_repo.send_message(msg + f"\n[{bot_info.name}] 매도 주문서 생성: {amount}주 ({trade_type.value})")
             return trade_type, amount
         else:
-            self.message_repo.send_message(f"[{bot_info.name}]\n"
-                                           f"{msg}\n"
-                                           f"판매 조건이 없습니다")
+            self.message_repo.send_message(f"[{bot_info.name}]\n{msg}\n판매 조건이 없습니다")
             return None
+
+    def _check_trailing_entry(self, bot_info: BotInfo) -> Optional[tuple[TradeType, int]]:
+        """
+        트레일링 모드 진입 조건 체크 (Day 0)
+
+        조건: condition_3_4(익절가 돌파) AND T >= trailing_t_threshold × max_tier
+          - 충족: trailing_mode=True, 1/4 매도, ATR 저장 후 반환
+          - 미충족: None 반환 → 기존 _create_sell_order로 fall-through
+        """
+        total_amount = self.trade_repo.get_total_amount(bot_info.name)
+        avr_price = self.trade_repo.get_average_purchase_price(bot_info.name)
+
+        if total_amount == 0 or not avr_price:
+            return None
+
+        cur_price = self.exchange_repo.get_price(bot_info.symbol)
+        if not cur_price:
+            self.message_repo.send_message(f"[{bot_info.name}] 현재가 조회 실패")
+            return None
+
+        _, t, _ = self._get_point_price(bot_info)
+        profit_price = avr_price * (1 + bot_info.profit_rate)
+        condition_3_4 = cur_price > profit_price
+
+        t_threshold = bot_info.trailing_t_threshold * bot_info.max_tier
+        if not (condition_3_4 and t >= t_threshold):
+            return None
+
+        # ATR 먼저 확인 - 실패 시 진입 취소 → fall-through to 기존 로직
+        atr = self.market_indicator_repo.get_atr(ticker=bot_info.symbol)
+        if not atr:
+            self.message_repo.send_message(
+                f"⚠️ [{bot_info.name}] ATR 조회 실패 → 트레일링 진입 취소"
+            )
+            return None
+
+        bot_info.trailing_mode = True
+        bot_info.trailing_high_watermark = cur_price
+        self._update_trailing_stop_with_atr(bot_info, cur_price, avr_price, atr)
+
+        self.message_repo.send_message(
+            f"🟢 [{bot_info.name}] 트레일링 모드 진입!\n"
+            f"현재가({cur_price:.2f}) T({t:.2f}) threshold({t_threshold:.2f}) ({bot_info.trailing_t_threshold * 100:.0f}% of {bot_info.max_tier})\n"
+            f"trailing_stop({bot_info.trailing_stop:.2f}) 저장 완료 → 1/4 매도"
+        )
+        return TradeType.SELL_1_4, int(total_amount / 4)
+
+    def _handle_trailing_active(self, bot_info: BotInfo) -> Optional[tuple[TradeType, int]]:
+        """
+        트레일링 모드 ON 상태 처리 (Day 1+)
+
+        - cur_price < trailing_stop: 전량 매도, mode OFF
+        - 미도달: high_watermark/trailing_stop 갱신, None 반환 (매도 없음)
+        """
+        total_amount = self.trade_repo.get_total_amount(bot_info.name)
+        avr_price = self.trade_repo.get_average_purchase_price(bot_info.name)
+
+        if total_amount == 0 or not avr_price:
+            return None
+
+        cur_price = self.exchange_repo.get_price(bot_info.symbol)
+        if not cur_price:
+            self.message_repo.send_message(f"[{bot_info.name}] 현재가 조회 실패")
+            return None
+
+        cur_profit_rate = util.get_profit_rate(cur_price, avr_price)
+        self.message_repo.send_message(
+            f"[🎯트레일링({bot_info.name})] 현재가({cur_price:.2f}) 평단대비 {cur_profit_rate:.2f}%\n"
+            f"trailing_stop({bot_info.trailing_stop:.2f}) "
+            f"high_watermark({bot_info.trailing_high_watermark:.2f})"
+        )
+
+        if cur_price < bot_info.trailing_stop:
+            prev_stop = bot_info.trailing_stop
+            bot_info.trailing_mode = False
+            bot_info.trailing_high_watermark = 0.0
+            bot_info.trailing_stop = 0.0
+            self.bot_info_repo.save(bot_info)
+            self.message_repo.send_message(
+                f"🔴 [{bot_info.name}] 트레일링 스탑 도달! 전량 매도\n"
+                f"현재가({cur_price:.2f}) < trailing_stop({prev_stop:.2f})"
+            )
+            return TradeType.SELL, int(total_amount)
+
+        # 스탑 미도달 → watermark/stop 갱신
+        self._update_trailing_stop(bot_info, cur_price, avr_price)
+        return None
+
+    def _update_trailing_stop(self, bot_info: BotInfo, cur_price: float, avr_price: float) -> None:
+        """
+        ATR 조회 후 trailing_stop 갱신 (Day 1+ 갱신용)
+
+        ATR 실패 시 갱신 생략 (전날 trailing_stop 유지)
+        """
+        atr = self.market_indicator_repo.get_atr(ticker=bot_info.symbol)
+        if not atr:
+            self.message_repo.send_message(f"⚠️ [{bot_info.name}] ATR 조회 실패, trailing_stop 갱신 생략 (전날 값 유지)")
+            return
+
+        self._update_trailing_stop_with_atr(bot_info, cur_price, avr_price, atr)
+
+    def _update_trailing_stop_with_atr(
+            self, bot_info: BotInfo, cur_price: float, avr_price: float, atr: float
+    ) -> None:
+        """
+        ATR을 받아 trailing_stop 계산 후 DB 저장
+
+        - high_watermark = max(기존, cur_price)
+        - new_stop = max(high_watermark - N×ATR, avr_price×(1-floor_rate))
+        - trailing_stop = max(기존 trailing_stop, new_stop)  ← 절대 후퇴 금지
+        """
+        bot_info.trailing_high_watermark = max(bot_info.trailing_high_watermark, cur_price)
+
+        atr_stop = bot_info.trailing_high_watermark - (bot_info.trailing_atr_multiplier * atr)
+        avr_floor = avr_price * (1 - bot_info.trailing_floor_rate)
+        new_stop = max(atr_stop, avr_floor)
+
+        bot_info.trailing_stop = max(bot_info.trailing_stop, new_stop)
+        self.bot_info_repo.save(bot_info)
+
+        self.message_repo.send_message(
+            f"📊 [{bot_info.name}] trailing_stop 갱신\n"
+            f"  high_watermark: {bot_info.trailing_high_watermark:.2f}\n"
+            f"  ATR: {atr:.2f} × N({bot_info.trailing_atr_multiplier}) = {atr * bot_info.trailing_atr_multiplier:.2f}\n"
+            f"  atr_stop: {atr_stop:.2f} | avr_floor: {avr_floor:.2f}\n"
+            f"  trailing_stop: {bot_info.trailing_stop:.2f}"
+        )
 
     def _is_sell_cooldown(self, bot_info: BotInfo) -> bool:
         """매도 후 쿨다운 체크

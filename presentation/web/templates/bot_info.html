@@ -561,7 +561,11 @@
                 sell_cooldown_days: parseInt(card.querySelector('input[name^="sell_cooldown_days"]').value) || 0,
                 sell_cooldown_loss_only: card.querySelector('input[name^="sell_cooldown_loss_only"]').checked,
                 point_loc: card.querySelector('input[name^="point_loc"]:checked').value,
-                closing_buy_conditions: getClosingBuyConditions(card)
+                closing_buy_conditions: getClosingBuyConditions(card),
+                trailing_enabled: card.querySelector('input[name^="trailing_enabled"]').checked,
+                trailing_t_threshold: parseFloat(card.querySelector('input[name^="trailing_t_threshold"]').value) || 2.5,
+                trailing_atr_multiplier: parseFloat(card.querySelector('input[name^="trailing_atr_multiplier"]').value) || 2.0,
+                trailing_floor_rate: parsePercent(card.querySelector('input[name^="trailing_floor_rate"]').value)
             };
 
             // 급락 조건 하락률 중복 검사
@@ -1032,6 +1036,14 @@
             const botCards = document.querySelectorAll('.bot-accordion-content');
             botCards.forEach(updateTotalSeed);
 
+            // 트레일링 스탑 토글
+            document.querySelectorAll('input[name^="trailing_enabled"]').forEach(function (checkbox) {
+                checkbox.addEventListener('change', function () {
+                    const settings = this.closest('.bot-accordion-content').querySelector('.trailing-settings');
+                    settings.style.display = this.checked ? '' : 'none';
+                });
+            });
+
             // 확장 상태 복원
             restoreExpandedStates();
 
@@ -1374,6 +1386,41 @@
                         </label>
                     </div>
                 </div>
+
+                <!-- ATR 트레일링 스탑 설정 -->
+                <div class="bot-field-group">
+                    <div class="bot-field bot-field-checkbox">
+                        <label>트레일링 스탑</label>
+                        <label class="switch">
+                            <input type="checkbox" name="trailing_enabled[{{ loop.index0 }}]" value="true"
+                                   {% if bot_info.trailing_enabled %}checked{% endif %}>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="bot-field-group trailing-settings" style="{% if not bot_info.trailing_enabled %}display:none;{% endif %}">
+                    <div class="bot-field">
+                        <label>T 진입 기준</label>
+                        <input type="number" name="trailing_t_threshold[{{ loop.index0 }}]"
+                               value="{{ bot_info.trailing_t_threshold }}" min="0.5" max="10" step="0.5">
+                    </div>
+                    <div class="bot-field">
+                        <label>ATR 배수 (N)</label>
+                        <input type="number" name="trailing_atr_multiplier[{{ loop.index0 }}]"
+                               value="{{ bot_info.trailing_atr_multiplier }}" min="0.5" max="5" step="0.5">
+                    </div>
+                    <div class="bot-field">
+                        <label>평단 하단 (%)</label>
+                        <input type="text" name="trailing_floor_rate[{{ loop.index0 }}]"
+                               value="{{ (bot_info.trailing_floor_rate * 100)|round(0)|int }}%"
+                               oninput="formatPercent(this)">
+                    </div>
+                </div>
+                {% if bot_info.trailing_mode %}
+                <div class="bot-field-group" style="background:#fff3cd; padding:6px 10px; border-radius:6px; font-size:0.8rem;">
+                    <span>🟢 트레일링 중 | 고점: ${{ "%.2f"|format(bot_info.trailing_high_watermark) }} | 스탑: ${{ "%.2f"|format(bot_info.trailing_stop) }}</span>
+                </div>
+                {% endif %}
 
                 <!-- 장마감 급락 매수 설정 (다중 조건, 최대 3개) -->
                 <div class="closing-buy-conditions">

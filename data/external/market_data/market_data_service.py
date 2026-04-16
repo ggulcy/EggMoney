@@ -3,6 +3,7 @@
 from typing import Optional, List, Dict, Any
 import logging
 from ta.momentum import RSIIndicator as TAIndicator
+from ta.volatility import AverageTrueRange
 
 from data.external.market_data.market_data_client import MarketDataClient
 
@@ -172,6 +173,46 @@ class MarketDataService:
             return round(float(avg), 2)
         except Exception as e:
             logger.error(f"{ticker} {days}일 평균 종가 조회 실패: {e}")
+            return None
+
+    def get_atr(self, ticker: str, period: int = 14) -> Optional[float]:
+        """
+        특정 티커의 ATR (Average True Range) 조회 (캐시 없음, 항상 최신)
+
+        Args:
+            ticker: 종목 심볼
+            period: ATR 계산 기간 (기본 14일)
+
+        Returns:
+            float: 가장 최근 ATR 값 (달러 단위) 또는 None
+        """
+        try:
+            # ATR 계산을 위해 period보다 충분히 많은 데이터 필요, 캐시 0으로 항상 최신
+            ticker_data = self.client.fetch_ticker_history(
+                ticker,
+                interval=self.CACHE_INTERVAL,
+                cache_hours=0
+            )
+            if ticker_data is None:
+                return None
+
+            df = ticker_data.df
+            high = df['High'].astype(float)
+            low = df['Low'].astype(float)
+            close = df['Close'].astype(float)
+
+            atr_series = AverageTrueRange(
+                high=high,
+                low=low,
+                close=close,
+                window=period
+            ).average_true_range()
+
+            latest_atr = atr_series.dropna().iloc[-1]
+            return round(float(latest_atr), 2)
+
+        except Exception as e:
+            logger.error(f"{ticker} ATR 조회 실패: {e}")
             return None
 
     def clear_cache(self, ticker: str) -> bool:

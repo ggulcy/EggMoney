@@ -78,6 +78,16 @@ def save_bot_info():
         point_loc = PointLoc(point_loc_value)
         added_seed = float(data.get('added_seed', 0))
         closing_buy_conditions = data.get('closing_buy_conditions', [])
+        trailing_enabled = data.get('trailing_enabled', False)
+        trailing_t_threshold = float(data.get('trailing_t_threshold', 0.3))
+        trailing_atr_multiplier = float(data.get('trailing_atr_multiplier', 1.0))
+        trailing_floor_rate = float(data.get('trailing_floor_rate', 0.10))
+
+        # 기존 봇 상태 유지 (trailing_mode, high_watermark, trailing_stop은 로직에서만 변경)
+        existing = bot_management_usecase.get_bot_info_by_name(name)
+        trailing_mode = existing.trailing_mode if existing else False
+        trailing_high_watermark = existing.trailing_high_watermark if existing else 0.0
+        trailing_stop = existing.trailing_stop if existing else 0.0
 
         bot_info = BotInfo(
             name=name,
@@ -95,6 +105,13 @@ def save_bot_info():
             point_loc=point_loc,
             added_seed=added_seed,
             closing_buy_conditions=closing_buy_conditions,
+            trailing_enabled=trailing_enabled,
+            trailing_t_threshold=trailing_t_threshold,
+            trailing_atr_multiplier=trailing_atr_multiplier,
+            trailing_floor_rate=trailing_floor_rate,
+            trailing_mode=trailing_mode,
+            trailing_high_watermark=trailing_high_watermark,
+            trailing_stop=trailing_stop,
         )
         bot_management_usecase.update_bot_info(bot_info)
 

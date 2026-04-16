@@ -66,6 +66,20 @@ class MarketIndicatorRepository(ABC):
         pass
 
     @abstractmethod
+    def get_atr(self, ticker: str, period: int = 14) -> Optional[float]:
+        """
+        특정 티커의 ATR (Average True Range) 조회 (캐시 없음, 항상 최신)
+
+        Args:
+            ticker: 종목 심볼
+            period: ATR 계산 기간 (기본 14일)
+
+        Returns:
+            float: 가장 최근 ATR 값 (달러 단위) 또는 None
+        """
+        pass
+
+    @abstractmethod
     def get_moving_average_status(self, ticker: str, cache_hours: int = 6) -> Optional[Dict[str, Any]]:
         """
         특정 티커의 이평선 상태 조회 (현재가, 20일선, 60일선)

@@ -104,6 +104,23 @@ class MarketIndicatorRepositoryImpl(MarketIndicatorRepository):
             logger.error(f"{ticker} {days}일 평균 종가 조회 실패: {e}")
             return None
 
+    def get_atr(self, ticker: str, period: int = 14) -> Optional[float]:
+        """
+        특정 티커의 ATR 조회 (캐시 없음, 항상 최신)
+
+        Args:
+            ticker: 종목 심볼
+            period: ATR 계산 기간 (기본 14일)
+
+        Returns:
+            float: 가장 최근 ATR 값 (달러 단위) 또는 None
+        """
+        try:
+            return self.service.get_atr(ticker=ticker, period=period)
+        except Exception as e:
+            logger.error(f"{ticker} ATR 조회 실패: {e}")
+            return None
+
     def get_moving_average_status(
         self,
         ticker: str,

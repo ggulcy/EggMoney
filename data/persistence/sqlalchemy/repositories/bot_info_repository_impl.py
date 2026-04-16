@@ -48,6 +48,13 @@ class SQLAlchemyBotInfoRepositoryImpl(BotInfoRepository):
             existing.closing_buy_conditions = json.dumps(bot_info.closing_buy_conditions)
             existing.sell_cooldown_days = bot_info.sell_cooldown_days
             existing.sell_cooldown_loss_only = bot_info.sell_cooldown_loss_only
+            existing.trailing_enabled = bot_info.trailing_enabled
+            existing.trailing_t_threshold = bot_info.trailing_t_threshold
+            existing.trailing_atr_multiplier = bot_info.trailing_atr_multiplier
+            existing.trailing_floor_rate = bot_info.trailing_floor_rate
+            existing.trailing_mode = bot_info.trailing_mode
+            existing.trailing_high_watermark = bot_info.trailing_high_watermark
+            existing.trailing_stop = bot_info.trailing_stop
         else:
             # 신규 생성
             model = self._to_model(bot_info)
@@ -106,6 +113,13 @@ class SQLAlchemyBotInfoRepositoryImpl(BotInfoRepository):
             closing_buy_conditions=json.loads(model.closing_buy_conditions) if model.closing_buy_conditions else [],
             sell_cooldown_days=model.sell_cooldown_days or 0,
             sell_cooldown_loss_only=bool(model.sell_cooldown_loss_only),
+            trailing_enabled=bool(model.trailing_enabled),
+            trailing_t_threshold=model.trailing_t_threshold or 0.3,
+            trailing_atr_multiplier=model.trailing_atr_multiplier or 1.0,
+            trailing_floor_rate=model.trailing_floor_rate or 0.10,
+            trailing_mode=bool(model.trailing_mode),
+            trailing_high_watermark=model.trailing_high_watermark or 0.0,
+            trailing_stop=model.trailing_stop or 0.0,
         )
 
     def _to_model(self, entity: BotInfo) -> BotInfoModel:
@@ -126,4 +140,11 @@ class SQLAlchemyBotInfoRepositoryImpl(BotInfoRepository):
             closing_buy_conditions=json.dumps(entity.closing_buy_conditions),
             sell_cooldown_days=entity.sell_cooldown_days,
             sell_cooldown_loss_only=entity.sell_cooldown_loss_only,
+            trailing_enabled=entity.trailing_enabled,
+            trailing_t_threshold=entity.trailing_t_threshold,
+            trailing_atr_multiplier=entity.trailing_atr_multiplier,
+            trailing_floor_rate=entity.trailing_floor_rate,
+            trailing_mode=entity.trailing_mode,
+            trailing_high_watermark=entity.trailing_high_watermark,
+            trailing_stop=entity.trailing_stop,
         )

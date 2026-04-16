@@ -27,6 +27,15 @@ class BotInfo:
         closing_buy_conditions: Optional[List[Dict]] = None,
         sell_cooldown_days: int = 0,
         sell_cooldown_loss_only: bool = False,
+        # ATR 트레일링 스탑 설정
+        trailing_enabled: bool = False,
+        trailing_t_threshold: float = 0.3,
+        trailing_atr_multiplier: float = 1.0,
+        trailing_floor_rate: float = 0.10,
+        # ATR 트레일링 스탑 상태 (매일 갱신)
+        trailing_mode: bool = False,
+        trailing_high_watermark: float = 0.0,
+        trailing_stop: float = 0.0,
     ):
         self.name = name
         self.symbol = symbol
@@ -43,6 +52,15 @@ class BotInfo:
         self.closing_buy_conditions = closing_buy_conditions or []
         self.sell_cooldown_days = sell_cooldown_days
         self.sell_cooldown_loss_only = sell_cooldown_loss_only
+        # ATR 트레일링 스탑 설정
+        self.trailing_enabled = trailing_enabled
+        self.trailing_t_threshold = trailing_t_threshold
+        self.trailing_atr_multiplier = trailing_atr_multiplier
+        self.trailing_floor_rate = trailing_floor_rate
+        # ATR 트레일링 스탑 상태
+        self.trailing_mode = trailing_mode
+        self.trailing_high_watermark = trailing_high_watermark
+        self.trailing_stop = trailing_stop
 
         self._validate()
 

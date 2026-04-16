@@ -115,7 +115,9 @@ def cleanup_other_dbs():
 def run_migrations():
     """DB 마이그레이션 실행 (앱 시작 전)"""
     from migrate_drop_reverse_mode import migrate_all as drop_reverse_mode
+    from migrate_add_trailing_stop import migrate_all as add_trailing_stop
     drop_reverse_mode()
+    add_trailing_stop()
 
 
 def main():

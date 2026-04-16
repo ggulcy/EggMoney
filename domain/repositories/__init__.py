@@ -5,6 +5,7 @@ from domain.repositories.history_repository import HistoryRepository
 from domain.repositories.order_repository import OrderRepository
 from domain.repositories.exchange_repository import ExchangeRepository
 from domain.repositories.message_repository import MessageRepository
+from domain.repositories.market_indicator_repository import MarketIndicatorRepository
 
 __all__ = [
     'BotInfoRepository',
@@ -13,4 +14,5 @@ __all__ = [
     'OrderRepository',
     'ExchangeRepository',
     'MessageRepository',
+    'MarketIndicatorRepository',
 ]
