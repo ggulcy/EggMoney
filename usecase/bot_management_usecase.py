@@ -175,7 +175,7 @@ class BotManagementUsecase:
         """
         활성화된 봇들의 심볼을 수집하여 다음 봇 자동 출발
 
-        조건: 현재 활성화된 봇의 T값이 max_tier * 1/3 지점을 통과해야 함
+        조건: 현재 활성화된 봇의 T값이 max_tier * AUTO_START_THRESHOLD 지점을 통과해야 함 (key_store 설정)
 
         변화가 있을 때만 텔레그램 메시지 발송
 
@@ -215,7 +215,8 @@ class BotManagementUsecase:
                     min_t_bot = bot
 
             current_t = min_t
-            threshold = min_t_bot.max_tier * (1 / 2)
+            threshold_ratio = key_store.read(key_store.AUTO_START_THRESHOLD)
+            threshold = min_t_bot.max_tier * threshold_ratio
 
             # T값이 임계값을 통과하지 않았으면 스킵 (메시지 없음)
             if current_t < threshold:

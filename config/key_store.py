@@ -28,6 +28,7 @@ IS_DYNAMIC_SEED_APPLY_TODAY = "IS_DYNAMIC_SEED_APPLY_TODAY"
 
 TOTAL_BUDGET = "TOTAL_BUDGET"  # 사용자 지정 총 예산
 AUTO_START = "AUTO_START"  # 다음 봇 자동 출발 여부
+AUTO_START_THRESHOLD = "AUTO_START_THRESHOLD"  # 자동 출발 T값 임계 비율 (예: 0.3 = max_tier의 30%)
 
 
 def _get_default_values():
@@ -40,7 +41,8 @@ def _get_default_values():
         TWAP_TIME: get_twap_times(),
         TWAP_COUNT: 5,
         CLOSING_BUY_TIME: get_closing_buy_times(),
-        AUTO_START: False  # 기본값: 자동 출발 비활성화
+        AUTO_START: False,  # 기본값: 자동 출발 비활성화
+        AUTO_START_THRESHOLD: 0.5  # 기본값: max_tier의 50%
     }
 
 
@@ -121,6 +123,9 @@ def read(key):
         elif key == "AUTO_START":
             auto_start = db.get(key)
             return auto_start if auto_start is not None else False
+        elif key == "AUTO_START_THRESHOLD":
+            threshold = db.get(key)
+            return threshold if threshold is not None else 0.5
         elif key == "CLOSING_BUY_TIME":
             closing_buy_time = db.get(key)
             if closing_buy_time:

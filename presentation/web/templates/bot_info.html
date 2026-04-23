@@ -680,6 +680,10 @@
         function saveOtherSettings() {
             const totalBudget = parseCurrency(document.querySelector('input[name="total_budget"]').value);
             const autoStart = document.querySelector('input[name="auto_start"]').checked;
+            const thresholdPct = parseInt(document.querySelector('input[name="auto_start_threshold"]').value, 10);
+            const autoStartThreshold = (!isNaN(thresholdPct) && thresholdPct > 0 && thresholdPct <= 100)
+                ? thresholdPct / 100
+                : null;
 
             showLoading();
             fetch('/save_other_settings', {
@@ -687,7 +691,8 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
                     total_budget: totalBudget > 0 ? totalBudget : null,
-                    auto_start: autoStart
+                    auto_start: autoStart,
+                    auto_start_threshold: autoStartThreshold
                 })
             })
             .then(response => response.json())
@@ -1194,7 +1199,7 @@
                 <span class="bot-accordion-name">⚙️ 기타 설정</span>
             </div>
             <div class="bot-accordion-right">
-                <span class="schedule-summary">총자산 ${{ '{:,.0f}'.format(saved_total_budget) if saved_total_budget else '미설정' }} | 자동출발 {{ 'ON' if auto_start else 'OFF' }}</span>
+                <span class="schedule-summary">총자산 ${{ '{:,.0f}'.format(saved_total_budget) if saved_total_budget else '미설정' }} | 자동출발 {{ 'ON' if auto_start else 'OFF' }} ({{ (auto_start_threshold * 100)|int }}%)</span>
             </div>
         </div>
         <div class="schedule-accordion-content other-accordion-content">
@@ -1220,6 +1225,13 @@
                             <input type="checkbox" name="auto_start" {% if auto_start %}checked{% endif %}>
                             <span class="slider round"></span>
                         </label>
+                    </div>
+                    <div class="bot-field">
+                        <label>돌파 임계값 (%)</label>
+                        <input type="number" name="auto_start_threshold"
+                               value="{{ (auto_start_threshold * 100)|int }}"
+                               min="1" max="100" step="1"
+                               placeholder="50">
                     </div>
                 </div>
 

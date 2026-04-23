@@ -35,6 +35,7 @@ def bot_info_template():
         twap_time = key_store.read(key_store.TWAP_TIME) or ["04:40", "09:00"]
         twap_count = key_store.read(key_store.TWAP_COUNT) or 5
         auto_start = key_store.read(key_store.AUTO_START)
+        auto_start_threshold = key_store.read(key_store.AUTO_START_THRESHOLD)
         closing_buy_time = key_store.read(key_store.CLOSING_BUY_TIME)
         total_budget = key_store.read(key_store.TOTAL_BUDGET)
 
@@ -46,6 +47,7 @@ def bot_info_template():
                                twap_time=twap_time,
                                twap_count=twap_count,
                                auto_start=auto_start,
+                               auto_start_threshold=auto_start_threshold,
                                closing_buy_time=closing_buy_time,
                                saved_total_budget=total_budget)
     except Exception as e:
@@ -238,6 +240,7 @@ def save_other_settings():
 
         total_budget = data.get('total_budget')
         auto_start = data.get('auto_start', False)
+        auto_start_threshold = data.get('auto_start_threshold')
 
         # 총자산 저장
         if total_budget is not None and total_budget > 0:
@@ -245,6 +248,12 @@ def save_other_settings():
 
         # 자동 출발 저장
         key_store.write(key_store.AUTO_START, auto_start)
+
+        # 자동 출발 임계 비율 저장
+        if auto_start_threshold is not None:
+            threshold = float(auto_start_threshold)
+            if 0 < threshold <= 1:
+                key_store.write(key_store.AUTO_START_THRESHOLD, threshold)
 
         return jsonify({"message": "Other settings saved"}), 200
     except Exception as e:
