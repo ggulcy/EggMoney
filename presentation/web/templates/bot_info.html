@@ -563,7 +563,7 @@
                 point_loc: card.querySelector('input[name^="point_loc"]:checked').value,
                 closing_buy_conditions: getClosingBuyConditions(card),
                 trailing_enabled: card.querySelector('input[name^="trailing_enabled"]').checked,
-                trailing_t_threshold: parseFloat(card.querySelector('input[name^="trailing_t_threshold"]').value) || 2.5,
+                trailing_t_threshold: parsePercent(card.querySelector('input[name^="trailing_t_threshold"]').value),
                 trailing_atr_multiplier: parseFloat(card.querySelector('input[name^="trailing_atr_multiplier"]').value) || 2.0,
                 trailing_floor_rate: parsePercent(card.querySelector('input[name^="trailing_floor_rate"]').value)
             };
@@ -1042,6 +1042,25 @@
             botCards.forEach(updateTotalSeed);
 
             // 트레일링 스탑 토글
+            document.querySelectorAll('.atr-check-btn').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    const symbol = this.dataset.symbol;
+                    const idx = this.dataset.idx;
+                    const resultEl = document.querySelector('.atr-result-' + idx);
+                    resultEl.value = '조회 중...';
+                    fetch('/api/atr/' + symbol)
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.error) {
+                                resultEl.value = '조회 실패';
+                            } else {
+                                resultEl.value = data.atr_pct + '% ($' + data.atr + ')';
+                            }
+                        })
+                        .catch(() => { resultEl.value = '조회 실패'; });
+                });
+            });
+
             document.querySelectorAll('input[name^="trailing_enabled"]').forEach(function (checkbox) {
                 checkbox.addEventListener('change', function () {
                     const settings = this.closest('.bot-accordion-content').querySelector('.trailing-settings');
@@ -1399,6 +1418,7 @@
                     </div>
                 </div>
 
+                <hr style="border:none;border-top:1px solid #ddd;margin:8px 0;">
                 <!-- ATR 트레일링 스탑 설정 -->
                 <div class="bot-field-group">
                     <div class="bot-field bot-field-checkbox">
@@ -1413,8 +1433,8 @@
                 <div class="bot-field-group trailing-settings" style="{% if not bot_info.trailing_enabled %}display:none;{% endif %}">
                     <div class="bot-field">
                         <label>T 진입 기준</label>
-                        <input type="number" name="trailing_t_threshold[{{ loop.index0 }}]"
-                               value="{{ bot_info.trailing_t_threshold }}" min="0.5" max="10" step="0.5">
+                        <input type="text" name="trailing_t_threshold[{{ loop.index0 }}]"
+                               value="{{ (bot_info.trailing_t_threshold * 100)|round(0)|int }}%" placeholder="30%">
                     </div>
                     <div class="bot-field">
                         <label>ATR 배수 (N)</label>
@@ -1428,12 +1448,23 @@
                                oninput="formatPercent(this)">
                     </div>
                 </div>
+                <div class="bot-field-group trailing-settings" style="{% if not bot_info.trailing_enabled %}display:none;{% endif %}">
+                    <div class="bot-field">
+                        <label>현재 ATR</label>
+                        <input type="text" class="atr-result-{{ loop.index0 }}" readonly placeholder="ATR 확인 버튼 클릭" style="background:#f5f5f5;cursor:default;">
+                    </div>
+                    <div class="bot-field">
+                        <label>&nbsp;</label>
+                        <button type="button" class="toggle-action-btn atr-check-btn" data-symbol="{{ bot_info.symbol }}" data-idx="{{ loop.index0 }}">ATR 확인</button>
+                    </div>
+                </div>
                 {% if bot_info.trailing_mode %}
                 <div class="bot-field-group" style="background:#fff3cd; padding:6px 10px; border-radius:6px; font-size:0.8rem;">
                     <span>🟢 트레일링 중 | 고점: ${{ "%.2f"|format(bot_info.trailing_high_watermark) }} | 스탑: ${{ "%.2f"|format(bot_info.trailing_stop) }}</span>
                 </div>
                 {% endif %}
 
+                <hr style="border:none;border-top:1px solid #ddd;margin:8px 0;">
                 <!-- 장마감 급락 매수 설정 (다중 조건, 최대 3개) -->
                 <div class="closing-buy-conditions">
                     <div class="bot-card-actions" style="justify-content: flex-start; align-items: center;">

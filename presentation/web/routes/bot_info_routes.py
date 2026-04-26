@@ -125,6 +125,21 @@ def save_bot_info():
         return jsonify({"error": str(e)}), 500
 
 
+@bot_info_bp.route('/api/atr/<symbol>', methods=['GET'])
+@require_web_auth
+def get_atr(symbol):
+    deps = get_dependencies()
+    try:
+        atr = deps.market_indicator_repo.get_atr(ticker=symbol)
+        price = deps.exchange_repo.get_price(symbol)
+        if not atr or not price:
+            return jsonify({"error": "ATR 또는 현재가 조회 실패"}), 500
+        atr_pct = round(atr / price * 100, 2)
+        return jsonify({"atr": round(atr, 4), "price": round(price, 2), "atr_pct": atr_pct})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @bot_info_bp.route('/delete_bot_info', methods=['POST'])
 @require_web_auth
 def delete_bot_info():

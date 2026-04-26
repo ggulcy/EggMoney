@@ -238,7 +238,9 @@ class OrderUsecase:
                 # trailing OFF 또는 trailing 미진입: 진입 조건 체크 후 기존 매도 로직
                 if bot_info.trailing_enabled and (result := self._check_trailing_entry(bot_info)):
                     return result
-                if result := self._create_sell_order(bot_info):
+                if bot_info.trailing_mode:
+                    pass  # 트레일링 진입됐지만 T < max_tier/2 → 매도 없이 다음날부터 트레일링
+                elif result := self._create_sell_order(bot_info):
                     return result
 
         # 3. 매도가 일어난 날(또는 매도 예정인 날)은 구매하지 않음
@@ -291,7 +293,8 @@ class OrderUsecase:
         트레일링 모드 진입 조건 체크 (Day 0)
 
         조건: condition_3_4(익절가 돌파) AND T >= trailing_t_threshold × max_tier
-          - 충족: trailing_mode=True, 1/4 매도, ATR 저장 후 반환
+          - 충족 + T >= max_tier/2: trailing_mode=True, 1/4 매도, ATR 저장 후 반환
+          - 충족 + T < max_tier/2: trailing_mode=True, ATR 저장, None 반환 (매도 없이 트레일링만 시작)
           - 미충족: None 반환 → 기존 _create_sell_order로 fall-through
         """
         total_amount = self.trade_repo.get_total_amount(bot_info.name)
@@ -325,12 +328,21 @@ class OrderUsecase:
         bot_info.trailing_high_watermark = cur_price
         self._update_trailing_stop_with_atr(bot_info, cur_price, avr_price, atr)
 
-        self.message_repo.send_message(
-            f"🟢 [{bot_info.name}] 트레일링 모드 진입!\n"
-            f"현재가({cur_price:.2f}) T({t:.2f}) threshold({t_threshold:.2f}) ({bot_info.trailing_t_threshold * 100:.0f}% of {bot_info.max_tier})\n"
-            f"trailing_stop({bot_info.trailing_stop:.2f}) 저장 완료 → 1/4 매도"
-        )
-        return TradeType.SELL_1_4, int(total_amount / 4)
+        half_tier = bot_info.max_tier / 2
+        if t >= half_tier:
+            self.message_repo.send_message(
+                f"🟢 [{bot_info.name}] 트레일링 모드 진입!\n"
+                f"현재가({cur_price:.2f}) T({t:.2f}) threshold({t_threshold:.2f}) ({bot_info.trailing_t_threshold * 100:.0f}% of {bot_info.max_tier})\n"
+                f"trailing_stop({bot_info.trailing_stop:.2f}) 저장 완료 → 1/4 매도"
+            )
+            return TradeType.SELL_1_4, int(total_amount / 4)
+        else:
+            self.message_repo.send_message(
+                f"🟢 [{bot_info.name}] 트레일링 모드 진입! (매도 없음 - T {t:.2f} < max_tier/2 {half_tier:.2f})\n"
+                f"현재가({cur_price:.2f}) threshold({t_threshold:.2f})\n"
+                f"trailing_stop({bot_info.trailing_stop:.2f}) 저장 완료 → 내일부터 트레일링 매매"
+            )
+            return None
 
     def _handle_trailing_active(self, bot_info: BotInfo) -> Optional[tuple[TradeType, int]]:
         """
@@ -371,6 +383,15 @@ class OrderUsecase:
 
         # 스탑 미도달 → watermark/stop 갱신
         self._update_trailing_stop(bot_info, cur_price, avr_price)
+
+        # 시드 풀 진입(T > max_tier-1)이면 1/4 매도
+        _, t, _ = self._get_point_price(bot_info)
+        if t > bot_info.max_tier - 1:
+            self.message_repo.send_message(
+                f"📤 [{bot_info.name}] 트레일링 중 시드 풀 (T {t:.2f} > {bot_info.max_tier - 1}) → 1/4 매도"
+            )
+            return TradeType.SELL_1_4, int(total_amount / 4)
+
         return None
 
     def _update_trailing_stop(self, bot_info: BotInfo, cur_price: float, avr_price: float) -> None:
