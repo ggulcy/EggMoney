@@ -3,7 +3,6 @@
 from typing import Optional, List, Dict, Any
 import logging
 from ta.momentum import RSIIndicator as TAIndicator
-from ta.volatility import AverageTrueRange
 
 from data.external.market_data.market_data_client import MarketDataClient
 
@@ -201,15 +200,17 @@ class MarketDataService:
             low = df['Low'].astype(float)
             close = df['Close'].astype(float)
 
-            atr_series = AverageTrueRange(
-                high=high,
-                low=low,
-                close=close,
-                window=period
-            ).average_true_range()
+            prev_close = close.shift(1)
+            tr = (high - low).combine(
+                (high - prev_close).abs(), max
+            ).combine(
+                (low - prev_close).abs(), max
+            )
+            tr_pct = tr / prev_close
 
-            latest_atr = atr_series.dropna().iloc[-1]
-            return round(float(latest_atr), 2)
+            avg_tr_pct = tr_pct.tail(period).mean()
+            cur_price = float(close.iloc[-1])
+            return round(avg_tr_pct * cur_price, 2)
 
         except Exception as e:
             logger.error(f"{ticker} ATR 조회 실패: {e}")
