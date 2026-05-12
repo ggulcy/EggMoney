@@ -406,12 +406,18 @@ class OrderUsecase:
         ATR을 받아 trailing_stop 계산 후 DB 저장
 
         - high_watermark = max(기존, cur_price)
-        - new_stop = max(high_watermark - N×ATR, avr_price×(1-floor_rate))
+        - profit_high = high_watermark / avr_price - 1  (수익률 고점)
+        - stop_profit = profit_high - N × (ATR / cur_price)
+        - new_stop = max(avr_price × (1 + stop_profit), avr_price × (1 - floor_rate))
         - trailing_stop = max(기존 trailing_stop, new_stop)  ← 절대 후퇴 금지
         """
         bot_info.trailing_high_watermark = max(bot_info.trailing_high_watermark, cur_price)
 
-        atr_stop = bot_info.trailing_high_watermark - (bot_info.trailing_atr_multiplier * atr)
+        profit_high = (bot_info.trailing_high_watermark / avr_price) - 1
+        atr_pct = atr / cur_price
+        stop_profit = profit_high - (bot_info.trailing_atr_multiplier * atr_pct)
+        atr_stop = avr_price * (1 + stop_profit)
+
         avr_floor = avr_price * (1 - bot_info.trailing_floor_rate)
         new_stop = max(atr_stop, avr_floor)
 
@@ -420,9 +426,9 @@ class OrderUsecase:
 
         self.message_repo.send_message(
             f"📊 [{bot_info.name}] trailing_stop 갱신\n"
-            f"  high_watermark: {bot_info.trailing_high_watermark:.2f}\n"
-            f"  ATR: {atr:.2f} × N({bot_info.trailing_atr_multiplier}) = {atr * bot_info.trailing_atr_multiplier:.2f}\n"
-            f"  atr_stop: {atr_stop:.2f} | avr_floor: {avr_floor:.2f}\n"
+            f"  high_watermark: {bot_info.trailing_high_watermark:.2f} (수익률 고점 {profit_high * 100:.2f}%)\n"
+            f"  ATR: {atr:.2f} ({atr_pct * 100:.2f}%) × N({bot_info.trailing_atr_multiplier}) = {atr_pct * bot_info.trailing_atr_multiplier * 100:.2f}%p\n"
+            f"  stop 수익률: {stop_profit * 100:.2f}% → atr_stop: {atr_stop:.2f} | avr_floor: {avr_floor:.2f}\n"
             f"  trailing_stop: {bot_info.trailing_stop:.2f}"
         )
 
