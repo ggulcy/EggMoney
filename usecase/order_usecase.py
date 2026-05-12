@@ -173,7 +173,7 @@ class OrderUsecase:
         t = util.get_T(total_investment, bot_info.seed)
         if t > bot_info.max_tier - 1:
             self.message_repo.send_message(f"❌ [{bot_info.name}] 장마감 급락 체크: T최대치 초과 T : {t:,.2f}")
-            return
+            return None
 
         prev_price = self.exchange_repo.get_prev_price(bot_info.symbol)
         if not prev_price:
@@ -231,7 +231,7 @@ class OrderUsecase:
         # 2. 매도 주문서 생성 (skip_sell이 False일 때만)
         if not bot_info.skip_sell:
             if bot_info.trailing_enabled and bot_info.trailing_mode:
-                # Day 1+: ATR 스탑 체크만, 기존 매도 로직 없음
+                # Day 1+: 트레일링 스탑 체크, 스탑 미도달·T 조건 미충족 시 매수 로직으로 진행
                 if result := self._handle_trailing_active(bot_info):
                     return result
             else:
@@ -239,7 +239,7 @@ class OrderUsecase:
                 if bot_info.trailing_enabled and (result := self._check_trailing_entry(bot_info)):
                     return result
                 if bot_info.trailing_mode:
-                    pass  # 트레일링 진입됐지만 T < max_tier/2 → 매도 없이 다음날부터 트레일링
+                    pass  # 트레일링 진입됐지만 매도 없이 다음날부터 트레일링
                 elif result := self._create_sell_order(bot_info):
                     return result
 
@@ -249,6 +249,8 @@ class OrderUsecase:
             return None
 
         # 4. 매수 주문서 생성
+        if bot_info.trailing_mode:
+            return self._create_trailing_buy_order(bot_info)
         return self._create_buy_order(bot_info)
 
     # ===== Private Methods (내부 헬퍼) =====
@@ -293,8 +295,7 @@ class OrderUsecase:
         트레일링 모드 진입 조건 체크 (Day 0)
 
         조건: condition_3_4(익절가 돌파) AND T >= trailing_t_threshold × max_tier
-          - 충족 + T >= max_tier/2: trailing_mode=True, 1/4 매도, ATR 저장 후 반환
-          - 충족 + T < max_tier/2: trailing_mode=True, ATR 저장, None 반환 (매도 없이 트레일링만 시작)
+          - 충족: trailing_mode=True, ATR 저장, None 반환 (매도 없이 트레일링만 시작)
           - 미충족: None 반환 → 기존 _create_sell_order로 fall-through
         """
         total_amount = self.trade_repo.get_total_amount(bot_info.name)
@@ -328,21 +329,12 @@ class OrderUsecase:
         bot_info.trailing_high_watermark = cur_price
         self._update_trailing_stop_with_atr(bot_info, cur_price, avr_price, atr)
 
-        half_tier = bot_info.max_tier / 2
-        if t >= half_tier:
-            self.message_repo.send_message(
-                f"🟢 [{bot_info.name}] 트레일링 모드 진입!\n"
-                f"현재가({cur_price:.2f}) T({t:.2f}) threshold({t_threshold:.2f}) ({bot_info.trailing_t_threshold * 100:.0f}% of {bot_info.max_tier})\n"
-                f"trailing_stop({bot_info.trailing_stop:.2f}) 저장 완료 → 1/4 매도"
-            )
-            return TradeType.SELL_1_4, int(total_amount / 4)
-        else:
-            self.message_repo.send_message(
-                f"🟢 [{bot_info.name}] 트레일링 모드 진입! (매도 없음 - T {t:.2f} < max_tier/2 {half_tier:.2f})\n"
-                f"현재가({cur_price:.2f}) threshold({t_threshold:.2f})\n"
-                f"trailing_stop({bot_info.trailing_stop:.2f}) 저장 완료 → 내일부터 트레일링 매매"
-            )
-            return None
+        self.message_repo.send_message(
+            f"🟢 [{bot_info.name}] 트레일링 모드 진입! (매도 없음)\n"
+            f"현재가({cur_price:.2f}) T({t:.2f}) threshold({t_threshold:.2f}) ({bot_info.trailing_t_threshold * 100:.0f}% of {bot_info.max_tier})\n"
+            f"trailing_stop({bot_info.trailing_stop:.2f}) 저장 완료 → 내일부터 트레일링 매매"
+        )
+        return None
 
     def _handle_trailing_active(self, bot_info: BotInfo) -> Optional[tuple[TradeType, int]]:
         """
@@ -463,6 +455,19 @@ class OrderUsecase:
             return True
 
         return False
+
+    def _create_trailing_buy_order(self, bot_info: BotInfo) -> Optional[tuple[TradeType, float]]:
+        """트레일링 모드 중 매수 — 현재 시드의 1/3만큼 매수"""
+        if not self._is_buy_available_for_max_balance(bot_info):
+            self.message_repo.send_message(f"[{bot_info.name}] 최대투자금을 초과하여 주문서를 생성하지 않습니다")
+            return None
+
+        seed = (bot_info.seed + bot_info.added_seed) / 3
+        self.message_repo.send_message(
+            f"[{bot_info.name}] 트레일링 모드 매수\n"
+            f"시드 1/3 매수: ${seed:,.2f}"
+        )
+        return TradeType.BUY, seed
 
     def _create_buy_order(self, bot_info: BotInfo) -> Optional[tuple[TradeType, float]]:
         """

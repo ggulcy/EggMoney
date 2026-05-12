@@ -26,5 +26,5 @@ def check_atr(tickers: list, period: int = 14):
 if __name__ == "__main__":
     # 인자로 티커 넘기거나 기본값 사용
     # 예: python check_atr.py SOXL TQQQ QQQ SPY
-    tickers = sys.argv[1:] if len(sys.argv) > 1 else ["SOXL", "TQQQ", "QQQ", "SPY"]
+    tickers = sys.argv[1:] if len(sys.argv) > 1 else ["SOXL"]
     check_atr(tickers)
