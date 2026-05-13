@@ -116,8 +116,10 @@ def run_migrations():
     """DB 마이그레이션 실행 (앱 시작 전)"""
     from migrate_drop_reverse_mode import migrate_all as drop_reverse_mode
     from migrate_add_trailing_stop import migrate_all as add_trailing_stop
+    from migrate_trailing_stop_pct import migrate_all as trailing_stop_pct
     drop_reverse_mode()
     add_trailing_stop()
+    trailing_stop_pct()
 
 
 def main():

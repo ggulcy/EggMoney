@@ -82,7 +82,7 @@ def save_bot_info():
         closing_buy_conditions = data.get('closing_buy_conditions', [])
         trailing_enabled = data.get('trailing_enabled', False)
         trailing_t_threshold = float(data.get('trailing_t_threshold', 0.3))
-        trailing_atr_multiplier = float(data.get('trailing_atr_multiplier', 1.0))
+        trailing_stop_pct = float(data.get('trailing_stop_pct', 0.10))
         trailing_floor_rate = float(data.get('trailing_floor_rate', 0.10))
 
         # 기존 봇 상태 유지 (trailing_mode, high_watermark, trailing_stop은 로직에서만 변경)
@@ -109,7 +109,7 @@ def save_bot_info():
             closing_buy_conditions=closing_buy_conditions,
             trailing_enabled=trailing_enabled,
             trailing_t_threshold=trailing_t_threshold,
-            trailing_atr_multiplier=trailing_atr_multiplier,
+            trailing_stop_pct=trailing_stop_pct,
             trailing_floor_rate=trailing_floor_rate,
             trailing_mode=trailing_mode,
             trailing_high_watermark=trailing_high_watermark,
@@ -136,6 +136,19 @@ def get_atr(symbol):
             return jsonify({"error": "ATR 또는 현재가 조회 실패"}), 500
         atr_pct = round(atr / price * 100, 2)
         return jsonify({"atr": round(atr, 4), "price": round(price, 2), "atr_pct": atr_pct})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@bot_info_bp.route('/api/price/<symbol>', methods=['GET'])
+@require_web_auth
+def get_price(symbol):
+    deps = get_dependencies()
+    try:
+        price = deps.exchange_repo.get_price(symbol)
+        if not price:
+            return jsonify({"error": "현재가 조회 실패"}), 500
+        return jsonify({"price": round(price, 2)})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

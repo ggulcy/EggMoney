@@ -295,7 +295,7 @@ class OrderUsecase:
         트레일링 모드 진입 조건 체크 (Day 0)
 
         조건: condition_3_4(익절가 돌파) AND T >= trailing_t_threshold × max_tier
-          - 충족: trailing_mode=True, ATR 저장, None 반환 (매도 없이 트레일링만 시작)
+          - 충족: trailing_mode=True, trailing_stop 계산, None 반환 (매도 없이 트레일링만 시작)
           - 미충족: None 반환 → 기존 _create_sell_order로 fall-through
         """
         total_amount = self.trade_repo.get_total_amount(bot_info.name)
@@ -317,17 +317,9 @@ class OrderUsecase:
         if not (condition_3_4 and t >= t_threshold):
             return None
 
-        # ATR 먼저 확인 - 실패 시 진입 취소 → fall-through to 기존 로직
-        atr = self.market_indicator_repo.get_atr(ticker=bot_info.symbol)
-        if not atr:
-            self.message_repo.send_message(
-                f"⚠️ [{bot_info.name}] ATR 조회 실패 → 트레일링 진입 취소"
-            )
-            return None
-
         bot_info.trailing_mode = True
         bot_info.trailing_high_watermark = cur_price
-        self._update_trailing_stop_with_atr(bot_info, cur_price, avr_price, atr)
+        self._update_trailing_stop(bot_info, cur_price, avr_price)
 
         self.message_repo.send_message(
             f"🟢 [{bot_info.name}] 트레일링 모드 진입! (매도 없음)\n"
@@ -388,47 +380,30 @@ class OrderUsecase:
 
     def _update_trailing_stop(self, bot_info: BotInfo, cur_price: float, avr_price: float) -> None:
         """
-        ATR 조회 후 trailing_stop 갱신 (Day 1+ 갱신용)
+        trailing_stop 계산 후 DB 저장
 
-        ATR 실패 시 갱신 생략 (전날 trailing_stop 유지)
-        """
-        atr = self.market_indicator_repo.get_atr(ticker=bot_info.symbol)
-        if not atr:
-            self.message_repo.send_message(f"⚠️ [{bot_info.name}] ATR 조회 실패, trailing_stop 갱신 생략 (전날 값 유지)")
-            return
-
-        self._update_trailing_stop_with_atr(bot_info, cur_price, avr_price, atr)
-
-    def _update_trailing_stop_with_atr(
-            self, bot_info: BotInfo, cur_price: float, avr_price: float, atr: float
-    ) -> None:
-        """
-        ATR을 받아 trailing_stop 계산 후 DB 저장
-
-        - high_watermark = max(기존, cur_price)
+        - high_watermark = max(기존, cur_price)  ← 가격 기준 워터마크
         - profit_high = high_watermark / avr_price - 1  (수익률 고점)
-        - stop_profit = profit_high - N × (ATR / cur_price)
+        - stop_profit = profit_high - trailing_stop_pct  (고정 % 후퇴)
         - new_stop = max(avr_price × (1 + stop_profit), avr_price × (1 - floor_rate))
         - trailing_stop = max(기존 trailing_stop, new_stop)  ← 절대 후퇴 금지
         """
         bot_info.trailing_high_watermark = max(bot_info.trailing_high_watermark, cur_price)
 
         profit_high = (bot_info.trailing_high_watermark / avr_price) - 1
-        atr_pct = atr / cur_price
-        stop_profit = profit_high - (bot_info.trailing_atr_multiplier * atr_pct)
-        atr_stop = avr_price * (1 + stop_profit)
+        stop_profit = profit_high - bot_info.trailing_stop_pct
+        stop_price = avr_price * (1 + stop_profit)
 
         avr_floor = avr_price * (1 - bot_info.trailing_floor_rate)
-        new_stop = max(atr_stop, avr_floor)
+        new_stop = max(stop_price, avr_floor)
 
         bot_info.trailing_stop = max(bot_info.trailing_stop, new_stop)
         self.bot_info_repo.save(bot_info)
 
         self.message_repo.send_message(
             f"📊 [{bot_info.name}] trailing_stop 갱신\n"
-            f"  high_watermark: {bot_info.trailing_high_watermark:.2f} (수익률 고점 {profit_high * 100:.2f}%)\n"
-            f"  ATR: {atr:.2f} ({atr_pct * 100:.2f}%) × N({bot_info.trailing_atr_multiplier}) = {atr_pct * bot_info.trailing_atr_multiplier * 100:.2f}%p\n"
-            f"  stop 수익률: {stop_profit * 100:.2f}% → atr_stop: {atr_stop:.2f} | avr_floor: {avr_floor:.2f}\n"
+            f"  수익률 고점: {profit_high * 100:.2f}% → 스탑 수익률: {stop_profit * 100:.2f}% ({bot_info.trailing_stop_pct * 100:.0f}%p 후퇴)\n"
+            f"  stop_price: {stop_price:.2f} | avr_floor: {avr_floor:.2f}\n"
             f"  trailing_stop: {bot_info.trailing_stop:.2f}"
         )
 

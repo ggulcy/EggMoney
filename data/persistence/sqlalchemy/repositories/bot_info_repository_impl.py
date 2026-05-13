@@ -50,7 +50,7 @@ class SQLAlchemyBotInfoRepositoryImpl(BotInfoRepository):
             existing.sell_cooldown_loss_only = bot_info.sell_cooldown_loss_only
             existing.trailing_enabled = bot_info.trailing_enabled
             existing.trailing_t_threshold = bot_info.trailing_t_threshold
-            existing.trailing_atr_multiplier = bot_info.trailing_atr_multiplier
+            existing.trailing_stop_pct = bot_info.trailing_stop_pct
             existing.trailing_floor_rate = bot_info.trailing_floor_rate
             existing.trailing_mode = bot_info.trailing_mode
             existing.trailing_high_watermark = bot_info.trailing_high_watermark
@@ -115,7 +115,7 @@ class SQLAlchemyBotInfoRepositoryImpl(BotInfoRepository):
             sell_cooldown_loss_only=bool(model.sell_cooldown_loss_only),
             trailing_enabled=bool(model.trailing_enabled),
             trailing_t_threshold=model.trailing_t_threshold if model.trailing_t_threshold is not None else 0.3,
-            trailing_atr_multiplier=model.trailing_atr_multiplier if model.trailing_atr_multiplier is not None else 1.0,
+            trailing_stop_pct=model.trailing_stop_pct if model.trailing_stop_pct is not None else 0.10,
             trailing_floor_rate=model.trailing_floor_rate if model.trailing_floor_rate is not None else 0.10,
             trailing_mode=bool(model.trailing_mode),
             trailing_high_watermark=model.trailing_high_watermark or 0.0,
@@ -142,7 +142,7 @@ class SQLAlchemyBotInfoRepositoryImpl(BotInfoRepository):
             sell_cooldown_loss_only=entity.sell_cooldown_loss_only,
             trailing_enabled=entity.trailing_enabled,
             trailing_t_threshold=entity.trailing_t_threshold,
-            trailing_atr_multiplier=entity.trailing_atr_multiplier,
+            trailing_stop_pct=entity.trailing_stop_pct,
             trailing_floor_rate=entity.trailing_floor_rate,
             trailing_mode=entity.trailing_mode,
             trailing_high_watermark=entity.trailing_high_watermark,
